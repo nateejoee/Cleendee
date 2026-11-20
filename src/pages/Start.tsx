@@ -41,35 +41,40 @@ export function Onboarding() {
   </div>
 }
 
+const SOCIAL: { id: string; label: string; bg: string; fg: string; icon: React.ReactNode }[] = [
+  { id: 'google', label: 'Google', bg: '#fff', fg: '#1F1F1F', icon: <svg width="22" height="22" viewBox="0 0 48 48" aria-hidden><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg> },
+  { id: 'custom:line', label: 'LINE', bg: '#06C755', fg: '#fff', icon: <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden><path fill="#fff" d="M12 3C6.5 3 2 6.6 2 11c0 3.9 3.5 7.2 8.3 7.9.3.1.8.2.9.5.1.3.1.7 0 1l-.1.9c0 .3-.2 1 .9.5s6-3.5 8.2-6C21.4 14.3 22 12.7 22 11c0-4.4-4.5-8-10-8z"/></svg> },
+  { id: 'facebook', label: 'Facebook', bg: '#1877F2', fg: '#fff', icon: <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden><path fill="#fff" d="M14 8h3V4h-3c-2.8 0-4 1.8-4 4.3V10H7v4h3v8h4v-8h3l1-4h-4V8.6c0-.4.3-.6.6-.6z"/></svg> },
+]
+
 export function Login() {
   const { t, lang } = useI18n(); const nav = useNavigate(); const { refresh } = useAuth()
-  const [mode, setMode] = useState<'in' | 'up'>('in'); const [email, setEmail] = useState(''); const [pw, setPw] = useState('')
-  const [name, setName] = useState(''); const [phone, setPhone] = useState(''); const [err, setErr] = useState(''); const [info, setInfo] = useState(''); const [busy, setBusy] = useState(false)
+  const [showEmail, setShowEmail] = useState(false); const [email, setEmail] = useState(''); const [pw, setPw] = useState('')
+  const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
+  const social = async (provider: string) => {
+    setErr('')
+    const { error } = await sb.auth.signInWithOAuth({ provider: provider as 'google', options: { redirectTo: window.location.origin + '/' } })
+    if (error) setErr(friendly(error, lang))
+  }
   const submit = async (e: React.FormEvent) => {
-    e.preventDefault(); setErr(''); setInfo(''); setBusy(true)
-    try {
-      if (mode === 'in') {
-        const { error } = await sb.auth.signInWithPassword({ email, password: pw }); if (error) throw error
-        await refresh(); nav(-1)
-      } else {
-        const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { full_name: name } } }); if (error) throw error
-        if (data.session) { await sb.from('profiles').update({ full_name: name, phone, lang }).eq('id', data.session.user.id); await refresh(); nav('/') }
-        else setInfo(t('check_email'))
-      }
-    } catch (e2) { setErr(friendly(e2, lang)) } finally { setBusy(false) }
+    e.preventDefault(); setErr(''); setBusy(true)
+    try { const { error } = await sb.auth.signInWithPassword({ email, password: pw }); if (error) throw error; await refresh(); nav('/') }
+    catch (e2) { setErr(friendly(e2, lang)) } finally { setBusy(false) }
   }
   return <div className="page nobar">
-    <TopBar title={mode === 'in' ? t('login') : t('signup')} />
-    <form className="pad stack mt20" onSubmit={submit}>
-      <div style={{ textAlign: 'center', margin: '10px 0 16px' }}><img src="/brand/CleenDee_logo_stacked.svg" alt="CleenDee" style={{ height: 120 }} /></div>
-      {mode === 'up' && <div className="field"><label>{t('full_name')}</label><input className="input" value={name} onChange={e => setName(e.target.value)} required autoComplete="name" /></div>}
-      {mode === 'up' && <div className="field"><label>{t('phone')}</label><input className="input" value={phone} onChange={e => setPhone(e.target.value)} inputMode="tel" autoComplete="tel" /></div>}
-      <div className="field"><label>{t('email')}</label><input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" /></div>
-      <div className="field"><label>{t('password')}</label><input className="input" type="password" value={pw} onChange={e => setPw(e.target.value)} required minLength={8} autoComplete={mode === 'in' ? 'current-password' : 'new-password'} /></div>
-      {err && <div className="err">{err}</div>}{info && <div className="ok-note">{info}</div>}
-      <button className="btn b-sun mt8" disabled={busy}>{mode === 'in' ? t('login') : t('signup')}</button>
-      <button type="button" className="link" onClick={() => setMode(mode === 'in' ? 'up' : 'in')}>{mode === 'in' ? t('no_account') : t('have_account')}</button>
-    </form>
+    <TopBar title={t('login')} />
+    <div className="pad stack mt20">
+      <div style={{ textAlign: 'center', margin: '10px 0 8px' }}><img src="/brand/CleenDee_logo_stacked.svg" alt="CleenDee" style={{ height: 120 }} /></div>
+      <p className="muted" style={{ textAlign: 'center', marginBottom: 8 }}>{t('login_with')}</p>
+      {SOCIAL.map(s => <button key={s.id} className="btn" style={{ background: s.bg, color: s.fg, border: s.bg === '#fff' ? '1.5px solid var(--line)' : 0 }} onClick={() => social(s.id)}>{s.icon}{t('continue_with')} {s.label}</button>)}
+      {err && <div className="err">{err}</div>}
+      <p className="tiny muted" style={{ textAlign: 'center' }}>{t('login_terms')}</p>
+      <button className="link mt16" onClick={() => setShowEmail(!showEmail)}>{t('staff_login')}</button>
+      {showEmail && <form className="stack" onSubmit={submit}>
+        <div className="field"><label>{t('email')}</label><input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" /></div>
+        <div className="field"><label>{t('password')}</label><input className="input" type="password" value={pw} onChange={e => setPw(e.target.value)} required autoComplete="current-password" /></div>
+        <button className="btn b-ocean" disabled={busy}>{t('login')}</button></form>}
+    </div>
   </div>
 }
 
