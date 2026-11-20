@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import generatePayload from 'promptpay-qr'
-import { sb, friendly, type Maid, type Rating, type Quote2 } from '../lib/supabase'
+import { sb, friendly, type Maid, type Rating, type Quote2, type Service } from '../lib/supabase'
 import { useServices, useAddons, svcName, svcUnit, jobHours } from '../lib/services'
 import { useI18n, money, fmtDate, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
@@ -22,6 +22,11 @@ export function useMaids() {
   return maids
 }
 
+function bookingQuantity(draft: Draft, service: Service | undefined) {
+  // แพ็กเกจรายเดือนใช้ได้กับทำความสะอาดทั่วไป 6 ชม. เท่านั้น
+  return draft.plan === 'once' ? (draft.qty ?? service?.min_qty ?? 0) : 6
+}
+
 export function BookMaid() {
   const { t, lang } = useI18n(); const nav = useNavigate(); const maids = useMaids(); const services = useServices()
   const [d, setD] = useState<Draft>(getDraft())
@@ -29,7 +34,7 @@ export function BookMaid() {
   const pick = (id: string | null) => setD(setDraft({ maidId: id }))
   // แสดงเฉพาะแม่บ้านที่ทำบริการนี้ได้
   const list = maids?.filter(m => (m.services || []).includes(d.service))
-  const qty = d.qty ?? s?.default_qty ?? 0
+  const qty = bookingQuantity(d, s)
   return <div className="page nobar">
     <TopBar title={t('who_cleans')} /><Steps at={0} />
     <div className="pad mt16">
@@ -83,7 +88,7 @@ export function MaidProfile() {
 function FreeDays({ maidId }: { maidId: string }) {
   const { t, lang } = useI18n(); const nav = useNavigate(); const d = getDraft(); const services = useServices()
   const s = services?.find(x => x.code === d.service)
-  const hours = s ? jobHours(s, d.qty ?? s.default_qty, []) : 6
+  const hours = jobHours(s, bookingQuantity(d, s), [])
   const [days, setDays] = useState<string[] | null>(null)
   useEffect(() => { if (s) sb.rpc('maid_free_days', { p_maid: maidId, p_service_code: s.code, p_hours: hours }).then(({ data }) => setDays((data as string[]) || [])) }, [maidId, s?.code, hours])
   return <><div className="sec-title">{t('free_days')}</div>
@@ -100,8 +105,7 @@ export function BookTime() {
   const date = d.date ?? (urgentMode ? days[0] : days[1])
   const s = services?.find(x => x.code === d.service)
   const isPkg = d.plan !== 'once'
-  // แพ็กเกจรายเดือนใช้ได้กับทำความสะอาดทั่วไป 6 ชม. เท่านั้น
-  const qty = isPkg ? 6 : (d.qty ?? s?.default_qty ?? 0)
+  const qty = bookingQuantity(d, s)
   const addons = (allAddons || []).filter(a => a.active && a.service_codes.includes(d.service))
   const chosen = isPkg ? [] : addons.filter(a => d.addons.includes(a.code))
   const hours = jobHours(s, qty, chosen)
