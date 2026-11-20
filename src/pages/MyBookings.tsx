@@ -334,12 +334,14 @@ export function Account() {
 }
 
 export function Addresses() {
-  const { t } = useI18n(); const { list, reload } = useAddresses(); const [adding, setAdding] = useState(false)
+  const { t,lang } = useI18n(); const { list, reload } = useAddresses(); const [adding, setAdding] = useState(false)
+  const [editing, setEditing] = useState<number | null>(null)
+  const address = list?.find(a => a.id === editing)
   return <div className="page nobar"><TopBar title={t('my_addresses')} />
     <div className="pad mt16 stack">
       {list?.length === 0 && !adding && <div className="empty"><Icon n="pin" size={40} style={{ color: '#C9DDEC' }} /><div className="disp mt8" style={{ fontWeight: 600 }}>{t('no_address')}</div></div>}
-      {list?.map(a => <div key={a.id} className="choice"><Icon n="pin" style={{ color: 'var(--ocean)' }} /><span><b>{a.label}</b><span className="small muted">{a.address}</span></span></div>)}
-      {adding ? <AddressForm onSaved={() => { setAdding(false); reload() }} /> : <button className="btn b-ocean" onClick={() => setAdding(true)}>{t('add_address')}</button>}
+      {list?.map(a => <div key={a.id} className="choice"><Icon n="pin" style={{ color: 'var(--ocean)' }} /><span><b>{a.label}</b><span className="small muted">{a.address}</span></span><button className="link" onClick={() => { setEditing(a.id); setAdding(false) }}>{lang === 'th' ? 'ปรับหมุด' : 'Adjust pin'}</button></div>)}
+      {adding || address ? <AddressForm key={address?.id ?? 'new'} existing={address} onSaved={() => { setAdding(false); setEditing(null); reload() }} /> : <button className="btn b-ocean" onClick={() => setAdding(true)}>{t('add_address')}</button>}
       <div className="infonote"><Icon n="lock" />{t('addr_private')}</div>
     </div></div>
 }
