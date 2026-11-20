@@ -39,7 +39,7 @@ a{color:var(--ocean);text-decoration:none}
 .topbar h2{font-size:clamp(1rem,2.2vw,1.25rem);min-width:0;flex:1;text-wrap:balance}
 .back{width:40px;height:40px;border-radius:50%;background:var(--foam);display:flex;align-items:center;justify-content:center;color:var(--ink);flex:none}
 .hero .back{background:rgba(255,255,255,.95)}
-.lang{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.16);border-radius:99px;padding:5px 11px;font-size:13px;font-weight:600}
+.lang{display:inline-flex;align-items:center;flex:none;white-space:nowrap;gap:4px;background:rgba(255,255,255,.16);border-radius:99px;padding:5px 11px;font-size:13px;font-weight:600}
 .topbar .lang{background:var(--foam)}
 
 /* buttons */
@@ -282,11 +282,11 @@ textarea.input{min-height:90px;resize:vertical}
 /* ภาพใหญ่หัวหน้าแรก */
 .lux-hero{position:relative;color:#fff;padding:16px 20px 28px;min-height:400px;background-size:cover;background-position:72% center;display:flex;flex-direction:column;border-radius:0 0 30px 30px;overflow:hidden;isolation:isolate}
 .lux-hero:before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(8,20,40,.6) 0%,rgba(8,20,40,.2) 28%,rgba(8,20,40,.78) 52%,rgba(8,20,40,.94) 100%)}
-.lh-loc{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;padding:5px 11px;border-radius:99px;background:rgba(255,255,255,.14);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.lh-loc{display:inline-flex;align-items:center;gap:5px;min-width:0;font-size:12.5px;line-height:1.35;padding:5px 11px;border-radius:99px;background:rgba(255,255,255,.14);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 .lh-body{margin-top:auto}
 .lh-greet{color:var(--sun);font-size:.875rem;font-weight:600}
 .lux-hero h1{font-size:clamp(1.875rem,5vw,3.5rem);font-weight:600;line-height:1.2;margin-top:6px;text-shadow:0 2px 20px rgba(0,0,0,.25)}
-.lux-hero p{color:rgba(255,255,255,.9);margin-top:12px;max-width:29rem;text-wrap:pretty}
+.lux-hero p{color:rgba(255,255,255,.9);margin-top:12px;max-width:29rem;text-wrap:balance}
 .lh-cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
 .lh-cta .btn{flex:1 1 8rem}
 
