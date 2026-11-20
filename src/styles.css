@@ -539,3 +539,6 @@ textarea.input{min-height:90px;resize:vertical}
  .admin-grid{grid-template-columns:repeat(3,1fr)}
  .admin-queues{grid-template-columns:repeat(3,1fr)}
 }
+.admin-app{display:grid;gap:8px;padding:12px;border-radius:14px;background:var(--foam)}
+.admin-kv{display:flex;justify-content:space-between;gap:16px;font-size:.9375rem;line-height:1.5}
+.admin-kv span{color:var(--ink2);flex:none}.admin-kv b{font-weight:600;text-align:end;overflow-wrap:anywhere}

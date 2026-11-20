@@ -238,19 +238,122 @@ export function MaidIncome() {
     <MaidTabs /></div>
 }
 
+const DAYS: [string, string, string][] = [['mon', 'จ.', 'Mon'], ['tue', 'อ.', 'Tue'], ['wed', 'พ.', 'Wed'], ['thu', 'พฤ.', 'Thu'], ['fri', 'ศ.', 'Fri'], ['sat', 'ส.', 'Sat'], ['sun', 'อา.', 'Sun']]
+const TIMES: [string, string, string][] = [['morning', 'เช้า (08-12)', 'Morning (8-12)'], ['afternoon', 'บ่าย (12-17)', 'Afternoon (12-5)'], ['evening', 'เย็น (17-20)', 'Evening (5-8)']]
+const DOC_TYPES: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf' }
+const toggle = (a: string[], v: string) => (a.includes(v) ? a.filter(x => x !== v) : [...a, v])
+
+// ปุ่มเลือกไฟล์ + แสดงชื่อไฟล์ที่เลือก
+function FileField({ label, hint, file, onFile, accept, required }: { label: string; hint?: string; file: File | null; onFile: (f: File | null) => void; accept: string; required?: boolean }) {
+  const th = useI18n().lang === 'th'
+  const [msg, setMsg] = useState('')
+  const pick = (f?: File) => {
+    if (!f) return
+    if (!DOC_TYPES[f.type] || !accept.includes(f.type) || f.size > 5 * 1024 * 1024) { setMsg(th ? 'ไฟล์ไม่ถูกต้อง หรือใหญ่เกิน 5 MB' : 'Invalid file, or larger than 5 MB'); return }
+    setMsg(''); onFile(f)
+  }
+  return <div className="field"><label>{label}{required && <span style={{ color: 'var(--brick)' }}> *</span>}</label>
+    {hint && <small className="muted">{hint}</small>}
+    <label className="btn b-line photo-control" style={{ justifyContent: 'flex-start', position: 'relative' }}><Icon n={file ? 'check' : 'plus'} size={18} />
+      <span>{file ? file.name : (th ? 'เลือกไฟล์ / ถ่ายรูป' : 'Choose file / take photo')}</span>
+      <input type="file" accept={accept} onChange={e => { pick(e.target.files?.[0]); e.target.value = '' }} /></label>
+    {msg && <small role="alert" style={{ color: 'var(--brick)' }}>{msg}</small>}</div>
+}
+
 export function MaidApply() {
-  const { t, lang } = useI18n(); const { session } = useAuth(); const nav = useNavigate(); const districts = useDistricts()
-  const [f, setF] = useState({ nickname: '', bio: '', district_id: 1, bank_name: '', bank_account: '' }); const [err, setErr] = useState(''); const [done, setDone] = useState(false)
+  const { t, lang } = useI18n(); const { session } = useAuth(); const nav = useNavigate(); const districts = useDistricts(); const services = useServices(); const th = lang === 'th'
+  const [f, setF] = useState({ nickname: '', full_name: '', phone: '', line_id: '', birth_date: '', bio: '', experience_years: '', experience_note: '', district_id: 1, bank_name: '', bank_account: '', referee_name: '', referee_phone: '' })
+  const [svc, setSvc] = useState<string[]>([]); const [days, setDays] = useState<string[]>([]); const [times, setTimes] = useState<string[]>([]); const [areas, setAreas] = useState<number[]>([])
+  const [photo, setPhoto] = useState<File | null>(null); const [idCard, setIdCard] = useState<File | null>(null); const [selfie, setSelfie] = useState<File | null>(null); const [cert, setCert] = useState<File | null>(null)
+  const [consent, setConsent] = useState(false); const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState(''); const [done, setDone] = useState(false)
   useEffect(() => { if (session) sb.from('maids').select('status').eq('id', session.user.id).maybeSingle().then(({ data }) => data && setDone(true)) }, [session])
   if (!session) return <div className="page nobar"><TopBar title={t('m_apply_t')} /><div className="pad mt20"><Link className="btn b-ocean" to="/login">{t('login')}</Link></div></div>
-  const submit = async () => { const { error } = await sb.from('maids').insert({ id: session.user.id, ...f }); if (error) setErr(friendly(error, lang)); else setDone(true) }
+  const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value })
+  const phone = f.phone.replace(/\D/g, ''); const refPhone = f.referee_phone.replace(/\D/g, '')
+  const adultBefore = new Date(Date.now() + 7 * 3600e3); adultBefore.setUTCFullYear(adultBefore.getUTCFullYear() - 18)
+  const adult = !!f.birth_date && f.birth_date <= adultBefore.toISOString().slice(0, 10) && f.birth_date >= '1930-01-01'
+  const ok = !!f.nickname.trim() && !!f.full_name.trim() && /^0\d{8,9}$/.test(phone) && adult && svc.length > 0 && days.length > 0 && !!f.bank_name.trim() && f.bank_account.replace(/\D/g, '').length >= 8
+    && !!idCard && !!selfie && consent && (!f.referee_phone || /^0\d{8,9}$/.test(refPhone))
+  const up = async (bucket: string, uid: string, name: string, file: File) => {
+    const path = `${uid}/${name}-${crypto.randomUUID()}.${DOC_TYPES[file.type]}`
+    const r = await sb.storage.from(bucket).upload(path, file, { contentType: file.type }); if (r.error) throw r.error
+    return path
+  }
+  const submit = async () => {
+    if (!ok || busy || !idCard || !selfie) return
+    setBusy(true); setErr('')
+    try {
+      const uid = session.user.id
+      let photo_url: string | undefined
+      if (photo) { const pth = await up('avatars', uid, 'profile', photo); photo_url = sb.storage.from('avatars').getPublicUrl(pth).data.publicUrl }
+      const id_card_path = await up('maid-docs', uid, 'id-card', idCard); const selfie_path = await up('maid-docs', uid, 'selfie', selfie)
+      const conduct_cert_path = cert ? await up('maid-docs', uid, 'conduct', cert) : null
+      const { error } = await sb.from('maids').insert({
+        id: uid, nickname: f.nickname.trim(), bio: f.bio.trim() || null, district_id: f.district_id, bank_name: f.bank_name.trim(), bank_account: f.bank_account.replace(/\D/g, ''),
+        ...(photo_url ? { photo_url } : {}),
+        full_name: f.full_name.trim(), phone, line_id: f.line_id.trim() || null, birth_date: f.birth_date,
+        experience_years: f.experience_years === '' ? null : Number(f.experience_years), experience_note: f.experience_note.trim() || null,
+        applied_services: svc, available_days: days, available_times: times, service_districts: [...new Set([f.district_id, ...areas])],
+        referee_name: f.referee_name.trim() || null, referee_phone: refPhone || null, id_card_path, selfie_path, conduct_cert_path, consent_at: new Date().toISOString(),
+      })
+      if (error) throw error
+      setDone(true)
+    } catch (e) { setErr(friendly(e, lang)) } finally { setBusy(false) }
+  }
+  const star = <span style={{ color: 'var(--brick)' }}> *</span>
+  const text = (k: keyof typeof f, label: string, o: { req?: boolean; type?: string; mode?: 'numeric' | 'tel'; ph?: string } = {}) =>
+    <div className="field"><label>{label}{o.req && star}</label><input className="input" type={o.type} inputMode={o.mode} placeholder={o.ph} value={f[k] as string} onChange={set(k)} /></div>
+  const chips = (items: [string, string, string][], sel: string[], on: (v: string) => void) => <div className="chips">{items.map(([k, a, b]) => <button type="button" key={k} className={'chip' + (sel.includes(k) ? ' on' : '')} onClick={() => on(k)}>{th ? a : b}</button>)}</div>
+  const activeSvc = (services || []).filter(s => s.active)
   return <div className="page nobar"><TopBar title={t('m_apply_t')} />
     {done ? <div className="pad mt20"><div className="ok-note"><Icon n="check" />{t('m_wait')}</div><button className="btn b-ghost mt16" onClick={() => nav('/')}>{t('tab_home')}</button></div> :
-      <div className="pad mt16 stack"><header className="join-banner"><div><h2>{lang === 'th' ? 'ร่วมงานกับ CleenDee' : 'Work with CleenDee'}</h2><p>{t('m_apply_d')}</p></div><img src={maidPortrait} alt="" /></header>
-        <h3 className="desk-heading">{lang === 'th' ? 'ข้อมูลผู้สมัคร' : 'Your application'}</h3>
-        {([['nickname', 'm_nick'], ['bio', 'm_bio'], ['bank_name', 'm_bank_name'], ['bank_account', 'm_bank_acc']] as const).map(([k, l]) =>
-          <div key={k} className="field"><label>{t(l)}</label><input className="input" value={f[k]} onChange={e => setF({ ...f, [k]: e.target.value })} /></div>)}
-        <div className="field"><label>{t('district')}</label><select className="input" value={f.district_id} onChange={e => setF({ ...f, district_id: Number(e.target.value) })}>{districts.map(d => <option key={d.id} value={d.id}>{lang === 'th' ? d.name_th : d.name_en}</option>)}</select></div>
-        {err && <div className="err">{err}</div>}<button className="btn b-sun" disabled={!f.nickname || !f.bank_account} onClick={submit}>{t('m_submit')}</button></div>}
+      <div className="pad mt16 stack"><header className="join-banner"><div><h2>{th ? 'ร่วมงานกับ CleenDee' : 'Work with CleenDee'}</h2><p>{t('m_apply_d')}</p></div><img src={maidPortrait} alt="" /></header>
+        <p className="admin-hint">{th ? 'ช่อง * จำเป็นต้องกรอก ใช้เวลาประมาณ 5 นาที เตรียมบัตรประชาชนและสมุดบัญชีไว้ได้เลย' : 'Fields marked * are required. About 5 minutes — have your ID card and bank details ready.'}</p>
+
+        <h3 className="desk-heading">{th ? '1. ข้อมูลส่วนตัว' : '1. About you'}</h3>
+        {text('full_name', th ? 'ชื่อ-นามสกุลจริง (ตามบัตรประชาชน)' : 'Full name (as on ID card)', { req: true })}
+        {text('nickname', t('m_nick'), { req: true })}
+        {text('phone', th ? 'เบอร์โทรศัพท์' : 'Phone number', { req: true, type: 'tel', mode: 'tel', ph: '08xxxxxxxx' })}
+        {text('line_id', 'LINE ID')}
+        <div className="field"><label>{th ? 'วันเกิด (อายุ 18 ปีขึ้นไป)' : 'Date of birth (18+)'}{star}</label><input className="input" type="date" max={adultBefore.toISOString().slice(0, 10)} value={f.birth_date} onChange={set('birth_date')} />
+          {f.birth_date && !adult && <small role="alert" style={{ color: 'var(--brick)' }}>{th ? 'ผู้สมัครต้องมีอายุ 18 ปีขึ้นไป' : 'Applicants must be 18 or older'}</small>}</div>
+        <FileField label={th ? 'รูปโปรไฟล์ (หน้าตรง ยิ้ม ใส่ชุดสุภาพ)' : 'Profile photo (face the camera, smile)'} hint={th ? 'ลูกค้าจะเห็นรูปนี้ตอนเลือกแม่บ้าน' : 'Customers see this when choosing a helper'} file={photo} onFile={setPhoto} accept="image/jpeg,image/png,image/webp" />
+
+        <h3 className="desk-heading">{th ? '2. ประสบการณ์และงานที่ทำได้' : '2. Experience and services'}</h3>
+        <div className="field"><label>{th ? 'บริการที่ทำได้' : 'Services you can do'}{star}</label>
+          <div className="chips">{activeSvc.map(s => <button type="button" key={s.code} className={'chip' + (svc.includes(s.code) ? ' on' : '')} onClick={() => setSvc(toggle(svc, s.code))}>{svcName(s, lang)}</button>)}</div></div>
+        <div className="field"><label>{th ? 'ประสบการณ์ทำความสะอาด' : 'Cleaning experience'}</label>
+          <select className="input" value={f.experience_years} onChange={set('experience_years')}><option value="">{th ? 'เลือก' : 'Select'}</option><option value="0">{th ? 'ยังไม่มี' : 'None yet'}</option><option value="1">{th ? 'น้อยกว่า 1 ปี' : 'Under 1 year'}</option><option value="2">{th ? '1-3 ปี' : '1-3 years'}</option><option value="5">{th ? 'มากกว่า 3 ปี' : 'Over 3 years'}</option></select></div>
+        <div className="field"><label>{th ? 'เคยทำงานที่ไหนมาบ้าง' : 'Where have you worked'}</label><textarea className="input" value={f.experience_note} onChange={set('experience_note')} placeholder={th ? 'เช่น แม่บ้านโรงแรม รับจ้างทำความสะอาดบ้าน' : 'e.g. hotel housekeeping, home cleaning'} /></div>
+        {text('bio', t('m_bio'))}
+
+        <h3 className="desk-heading">{th ? '3. วันเวลาและพื้นที่ที่รับงาน' : '3. When and where'}</h3>
+        <div className="field"><label>{th ? 'วันที่ว่างทำงาน' : 'Days available'}{star}</label>{chips(DAYS, days, v => setDays(toggle(days, v)))}</div>
+        <div className="field"><label>{th ? 'ช่วงเวลาที่สะดวก' : 'Times available'}</label>{chips(TIMES, times, v => setTimes(toggle(times, v)))}</div>
+        <div className="field"><label>{t('district')}{star}</label><select className="input" value={f.district_id} onChange={e => setF({ ...f, district_id: Number(e.target.value) })}>{districts.map(d => <option key={d.id} value={d.id}>{th ? d.name_th : d.name_en}</option>)}</select></div>
+        <div className="field"><label>{th ? 'อำเภออื่นที่ไปทำงานได้ด้วย' : 'Other districts you can travel to'}</label>
+          <div className="chips">{districts.filter(d => d.id !== f.district_id).map(d => <button type="button" key={d.id} className={'chip' + (areas.includes(d.id) ? ' on' : '')} onClick={() => setAreas(areas.includes(d.id) ? areas.filter(x => x !== d.id) : [...areas, d.id])}>{th ? d.name_th : d.name_en}</button>)}</div></div>
+
+        <h3 className="desk-heading">{th ? '4. เอกสารยืนยันตัวตน' : '4. Identity documents'}</h3>
+        <p className="admin-hint">{th ? 'ใช้เพื่อตรวจสอบก่อนอนุมัติเท่านั้น เก็บเป็นความลับ เห็นได้เฉพาะแอดมิน' : 'Used only for verification. Kept private and visible to admins only.'}</p>
+        <FileField required label={th ? 'รูปบัตรประชาชน (ด้านหน้า)' : 'ID card photo (front)'} file={idCard} onFile={setIdCard} accept="image/jpeg,image/png,image/webp" />
+        <FileField required label={th ? 'รูปเซลฟี่คู่กับบัตรประชาชน' : 'Selfie holding your ID card'} file={selfie} onFile={setSelfie} accept="image/jpeg,image/png,image/webp" />
+        <FileField label={th ? 'ใบรับรองความประพฤติ (ถ้ามี)' : 'Certificate of good conduct (optional)'} hint={th ? 'รูปหรือ PDF ไม่เกิน 5 MB' : 'Photo or PDF up to 5 MB'} file={cert} onFile={setCert} accept="image/jpeg,image/png,image/webp,application/pdf" />
+
+        <h3 className="desk-heading">{th ? '5. ผู้แนะนำ (ถ้ามี)' : '5. Reference (optional)'}</h3>
+        {text('referee_name', th ? 'ชื่อผู้แนะนำ (นายจ้างเก่า หรือคนรู้จัก)' : 'Reference name (past employer or acquaintance)')}
+        {text('referee_phone', th ? 'เบอร์โทรผู้แนะนำ' : 'Reference phone', { type: 'tel', mode: 'tel' })}
+
+        <h3 className="desk-heading">{th ? '6. บัญชีรับเงิน' : '6. Bank account'}</h3>
+        {text('bank_name', t('m_bank_name'), { req: true })}
+        {text('bank_account', t('m_bank_acc'), { req: true, mode: 'numeric' })}
+
+        <label className="row" style={{ alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}><input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} style={{ width: 22, height: 22, marginTop: 3, flex: 'none' }} />
+          <span className="small">{th ? 'ข้าพเจ้ายืนยันว่าข้อมูลเป็นความจริง ยินยอมให้ CleenDee เก็บและใช้ข้อมูลส่วนบุคคลและเอกสารนี้เพื่อตรวจสอบตัวตนและประวัติก่อนอนุมัติ และให้ติดต่อผู้แนะนำที่ระบุไว้' : 'I confirm the information is true and consent to CleenDee storing and using my personal data and documents to verify my identity and background, and to contacting the reference listed.'}{star}</span></label>
+        {err && <div className="err" role="alert">{err}</div>}
+        <button className="btn b-sun" disabled={!ok || busy} onClick={submit}>{busy ? (th ? 'กำลังส่งใบสมัคร…' : 'Submitting…') : t('m_submit')}</button>
+        {!ok && <small className="muted" style={{ textAlign: 'center' }}>{th ? 'กรอกช่อง * ให้ครบ แนบรูปบัตรและเซลฟี่ และติ๊กยอมรับ จึงจะส่งได้' : 'Complete the * fields, attach ID and selfie, and accept to submit.'}</small>}
+      </div>}
   </div>
 }

@@ -8,6 +8,7 @@ import { useAuth } from '../lib/auth'
 import { AdminTabs, Avatar, Icon, LangToggle, Loading, StatusPill, useToast } from '../components/ui'
 
 import { PublicPageEditor } from './PublicPageEditor'
+import { useDistricts } from './Start'
 
 function useAdminGuard() { const { profile, ready } = useAuth(); return ready && profile?.role !== 'admin' }
 
@@ -155,13 +156,42 @@ export function AdminMoney() {
 }
 
 type MaidRow = { id: string; nickname: string; bio: string | null; status: string; id_verified: boolean; background_checked: boolean; created_at: string; services: string[] }
+type Application = { id: string; full_name: string; phone: string; line_id: string | null; birth_date: string; experience_years: number | null; experience_note: string | null; applied_services: string[]; available_days: string[]; available_times: string[]; service_districts: number[]; referee_name: string | null; referee_phone: string | null; id_card_path: string; selfie_path: string; conduct_cert_path: string | null; consent_at: string }
+const DAY_TH: Record<string, string> = { mon: 'จ.', tue: 'อ.', wed: 'พ.', thu: 'พฤ.', fri: 'ศ.', sat: 'ส.', sun: 'อา.' }
+const TIME_TH: Record<string, string> = { morning: 'เช้า', afternoon: 'บ่าย', evening: 'เย็น' }
+const EXP_TH: Record<number, string> = { 0: 'ยังไม่มีประสบการณ์', 1: 'น้อยกว่า 1 ปี', 2: '1-3 ปี', 5: 'มากกว่า 3 ปี' }
+const age = (b: string) => { const d = new Date(b), n = new Date(); let a = n.getFullYear() - d.getFullYear(); if (n < new Date(n.getFullYear(), d.getMonth(), d.getDate())) a--; return a }
+
+// รายละเอียดใบสมัครแม่บ้าน (เห็นเฉพาะแอดมิน) — กดดูเอกสารเปิดเป็นรูปชั่วคราว
+function ApplicationInfo({ a, onDoc }: { a: Application; onDoc: (path: string) => void }) {
+  const { lang } = useI18n(); const th = lang === 'th'; const services = useServices(); const districts = useDistricts()
+  const row = (k: string, v: ReactNode) => <div className="admin-kv"><span>{k}</span><b>{v || '–'}</b></div>
+  const dn = (id: number) => { const d = districts.find(x => x.id === id); return d ? (th ? d.name_th : d.name_en) : id }
+  const sn = (c: string) => { const sv = services?.find(x => x.code === c); return sv ? svcName(sv, lang) : c }
+  return <div className="admin-app">
+    {row(th ? 'ชื่อจริง' : 'Full name', a.full_name)}{row(th ? 'อายุ' : 'Age', age(a.birth_date) + (th ? ' ปี' : ' yrs'))}
+    {row(th ? 'โทร' : 'Phone', <a href={'tel:' + a.phone}>{a.phone}</a>)}{row('LINE', a.line_id)}
+    {row(th ? 'ประสบการณ์' : 'Experience', (a.experience_years != null ? EXP_TH[a.experience_years] : '') + (a.experience_note ? ' · ' + a.experience_note : ''))}
+    {row(th ? 'บริการที่ขอทำ' : 'Services', a.applied_services.map(sn).join(', '))}
+    {row(th ? 'วันที่ว่าง' : 'Days', a.available_days.map(d => DAY_TH[d] ?? d).join(' '))}{row(th ? 'ช่วงเวลา' : 'Times', a.available_times.map(x => TIME_TH[x] ?? x).join(', '))}
+    {row(th ? 'พื้นที่รับงาน' : 'Areas', a.service_districts.map(dn).join(', '))}
+    {row(th ? 'ผู้แนะนำ' : 'Reference', a.referee_name ? a.referee_name + (a.referee_phone ? ' · ' + a.referee_phone : '') : '')}
+    <div className="chips">
+      <button className="chip" onClick={() => onDoc(a.id_card_path)}>{th ? '📄 บัตรประชาชน' : '📄 ID card'}</button>
+      <button className="chip" onClick={() => onDoc(a.selfie_path)}>{th ? '🤳 เซลฟี่คู่บัตร' : '🤳 Selfie with ID'}</button>
+      {a.conduct_cert_path && <button className="chip" onClick={() => onDoc(a.conduct_cert_path!)}>{th ? '📑 ใบรับรองความประพฤติ' : '📑 Good conduct'}</button>}</div>
+    <small className="muted">{th ? 'ยินยอมตรวจประวัติเมื่อ ' : 'Consent given '}{fmtDate(a.consent_at, lang)}</small></div>
+}
+
 const MAID_STATUS: Record<string, [string, string]> = { pending: ['รออนุมัติ', 'Pending'], approved: ['อนุมัติแล้ว', 'Approved'], suspended: ['ถูกระงับ', 'Suspended'] }
 export function AdminMaids() {
-  const { t, lang } = useI18n(); const toast = useToast(); const services = useServices(); const [rows, setRows] = useState<MaidRow[] | null>(null); const [filter, setFilter] = useState<string | null>(null); const th = lang === 'th'; const [avg, setAvg] = useState<Record<string, { avg_rating: number; review_count: number }>>({})
+  const { t, lang } = useI18n(); const toast = useToast(); const services = useServices(); const [rows, setRows] = useState<MaidRow[] | null>(null); const [filter, setFilter] = useState<string | null>(null); const th = lang === 'th'; const [apps, setApps] = useState<Record<string, Application>>({}); const [openApp, setOpenApp] = useState<string | null>(null); const [docUrl, setDocUrl] = useState<{ url: string; pdf: boolean } | null>(null); const [avg, setAvg] = useState<Record<string, { avg_rating: number; review_count: number }>>({})
   useEffect(() => { sb.rpc('admin_maid_ratings').then(({ data }) => setAvg(Object.fromEntries(((data as { maid_id: string; avg_rating: number; review_count: number }[]) || []).map(x => [x.maid_id, x])))) }, [])
   const load = () => sb.from('maids').select('id,nickname,bio,status,id_verified,background_checked,created_at,services').order('created_at', { ascending: false }).then(({ data }) => setRows(data || []))
   useEffect(() => { load() }, [])
+  useEffect(() => { sb.rpc('admin_maid_applications').then(({ data }) => setApps(Object.fromEntries(((data as Application[]) || []).map(x => [x.id, x])))) }, [])
   if (useAdminGuard()) return <Navigate to="/" />
+  const showDoc = async (path: string) => { const { data } = await sb.storage.from('maid-docs').createSignedUrl(path, 300); if (data?.signedUrl) setDocUrl({ url: data.signedUrl, pdf: path.endsWith('.pdf') }) }
   const set = async (m: MaidRow, patch: Partial<MaidRow>) => { const n = { ...m, ...patch }; const { error } = await sb.rpc('admin_set_maid', { p_maid: m.id, p_status: n.status, p_id_verified: n.id_verified, p_background_checked: n.background_checked }); toast.show(error ? friendly(error, lang) : t('saved')); load() }
   const count = (st: string) => (rows || []).filter(m => m.status === st).length
   const cur = filter ?? (count('pending') ? 'pending' : 'all')
@@ -172,6 +202,8 @@ export function AdminMaids() {
     <div className="pad mt12 stack cols">{!rows ? <Loading /> : shown.length === 0 ? <div className="empty">{t('nothing')}</div> : shown.map(m => <div key={m.id} className="card stack">
       <div className="row"><Avatar name={m.nickname} seed={m.id} size={44} /><span style={{ flex: 1 }}><b className="disp">{m.nickname}</b><span className="small muted" style={{ display: 'block' }}>{m.bio}</span>{avg[m.id] && <span className="small" style={{ display: 'block', color: avg[m.id].avg_rating < 4.5 ? 'var(--brick)' : undefined, fontWeight: avg[m.id].avg_rating < 4.5 ? 700 : undefined }}>★ {avg[m.id].avg_rating} ({avg[m.id].review_count} {t('reviews')}){avg[m.id].avg_rating < 4.5 && ' · ' + t('a_low_avg')}</span>}</span>
         <span className={'pill ' + (m.status === 'approved' ? 'p-leaf' : m.status === 'pending' ? 'p-sun' : 'p-brick')}>{MAID_STATUS[m.status]?.[th ? 0 : 1] ?? m.status}</span></div>
+      {apps[m.id] ? <><button className="link" style={{ textAlign: 'start' }} onClick={() => setOpenApp(openApp === m.id ? null : m.id)}>{openApp === m.id ? (th ? '▾ ซ่อนใบสมัคร' : '▾ Hide application') : (th ? '▸ ดูใบสมัครและเอกสาร' : '▸ View application and documents')}</button>
+        {openApp === m.id && <ApplicationInfo a={apps[m.id]} onDoc={showDoc} />}</> : <small className="muted">{th ? 'สมัครด้วยแบบฟอร์มเดิม (ไม่มีรายละเอียดเพิ่ม)' : 'Applied with the old form (no extra details)'}</small>}
       <div className="chips"><button className={'chip' + (m.id_verified ? ' on' : '')} onClick={() => set(m, { id_verified: !m.id_verified })}>{t('id_ok')}</button>
         <button className={'chip' + (m.background_checked ? ' on' : '')} onClick={() => set(m, { background_checked: !m.background_checked })}>{t('bg_ok')}</button></div>
       <div className="small muted">{t('a_skills')}</div>
@@ -180,6 +212,9 @@ export function AdminMaids() {
       <div className="row">{m.status !== 'approved' && <button className="btn sm b-ocean" disabled={!m.id_verified || !m.background_checked} onClick={() => set(m, { status: 'approved' })}>{t('approve')}</button>}
         {m.status !== 'suspended' && <button className="btn sm b-red" onClick={() => set(m, { status: 'suspended' })}>{th ? 'ระงับ' : 'Suspend'}</button>}</div>
       {m.status !== 'approved' && (!m.id_verified || !m.background_checked) && <div className="admin-hint">{th ? 'ติ๊กตรวจบัตรและตรวจประวัติให้ครบก่อน จึงจะอนุมัติได้' : 'Tick both ID and background checks before approving'}</div>}</div>)}</div>
+    {docUrl && <div role="dialog" onClick={() => setDocUrl(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      {docUrl.pdf ? <iframe src={docUrl.url} title="document" style={{ width: 'min(900px,100%)', height: '90%', border: 0, borderRadius: 12, background: '#fff' }} /> : <img src={docUrl.url} alt="" style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 12 }} />}
+      <button className="btn sm b-glass" style={{ position: 'absolute', top: 16, right: 16 }} onClick={() => setDocUrl(null)}>{th ? 'ปิด ✕' : 'Close ✕'}</button></div>}
     <AdminTabs />{toast.node}</div>
 }
 
