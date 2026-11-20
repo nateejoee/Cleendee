@@ -10,6 +10,7 @@ import { Avatar, Icon, LangToggle, Loading, MaidTabs, StatusPill, TopBar, useToa
 import { Chat, JobProof } from './MyBookings'
 import { useServices, useAddons, svcName, svcUnit } from '../lib/services'
 import { useDistricts } from './Start'
+import { RatingForm } from '../components/Rating'
 
 function useMaidData() {
   const { session } = useAuth(); const [mine, setMine] = useState<Booking[] | null>(null); const [open, setOpen] = useState<Booking[]>([])
@@ -94,13 +95,13 @@ export function MaidHome() {
 // ข้อมูลที่แม่บ้านเห็นก่อนรับงาน: ชื่อลูกค้า ประวัติการจอง บริการ งานเสริม โน้ต (ไม่มีเบอร์และที่อยู่เต็ม)
 function JobInfo({ b, dark }: { b: Booking; dark: boolean }) {
   const { t, lang } = useI18n(); const services = useServices(); const addons = useAddons()
-  const [info, setInfo] = useState<{ first_name: string; jobs_done: number } | null>(null)
+  const [info, setInfo] = useState<{ first_name: string; jobs_done: number; rating: number | null; rating_count: number } | null>(null)
   useEffect(() => { sb.rpc('maid_job_info', { p_booking_id: b.id }).then(({ data }) => setInfo(data)) }, [b.id])
   const svc = services?.find(x => x.id === b.service_type_id)
   const c = dark ? '#D2DEE8' : '#8A3324'
   return <div className="small mt8" style={{ color: c, display: 'block' }}>
     <div><b>{svcName(svc, lang)} {b.qty ?? ''} {svcUnit(svc, lang)}</b>{b.addons?.length ? ' + ' + b.addons.map(x => { const a = addons?.find(y => y.code === x); return a ? (lang === 'th' ? a.name_th : a.name_en) : x }).join(', ') : ''}</div>
-    {info && <div>{t('m_customer')}: {info.first_name} · {info.jobs_done > 0 ? t('m_cust_jobs').replace('{n}', String(info.jobs_done)) : t('m_cust_new')}</div>}
+    {info && <div>{t('m_customer')}: {info.first_name} · {info.jobs_done > 0 ? t('m_cust_jobs').replace('{n}', String(info.jobs_done)) : t('m_cust_new')}{info.rating_count > 0 && <> · <span aria-label={t('m_cust_rating')}>★ {info.rating} ({info.rating_count})</span></>}</div>}
     {b.note && <div>“{b.note}”</div>}
   </div>
 }
@@ -153,7 +154,8 @@ function JobPhotos({ b }: { b: Booking }) {
 export function MaidJob() {
   const { id } = useParams(); const { t, lang } = useI18n(); const nav = useNavigate(); const toast = useToast()
   const [b, setB] = useState<Booking | null>(null); const [addr, setAddr] = useState<{ address: string; lat:number|null; lng:number|null } | null>(null)
-  const load = () => { sb.from('bookings').select('*').eq('id', id!).single().then(({ data }) => setB(data as Booking)); sb.from('booking_addresses').select('address,lat,lng').eq('booking_id', id!).maybeSingle().then(({ data }) => setAddr(data)) }
+  const [rated, setRated] = useState(true); const [custName, setCustName] = useState('')
+  const load = () => { sb.from('bookings').select('*').eq('id', id!).single().then(({ data }) => setB(data as Booking)); sb.from('customer_reviews').select('id').eq('booking_id', id!).maybeSingle().then(({ data }) => setRated(!!data)); sb.rpc('maid_job_info', { p_booking_id: Number(id) }).then(({ data }) => setCustName(data?.first_name ?? '')); sb.from('booking_addresses').select('address,lat,lng').eq('booking_id', id!).maybeSingle().then(({ data }) => setAddr(data)) }
   useEffect(load, [id])
   useEffect(() => {
     if (b?.status !== 'on_the_way' || !navigator.geolocation) return
@@ -179,6 +181,7 @@ export function MaidJob() {
         <div className="txt"><b style={{ color: i <= idx + 1 ? 'var(--ink)' : 'var(--ink3)' }}>{t(k)}</b>{d && i === idx + 1 && <span className="small muted">{t(d)}</span>}</div></div>)}
       {b.status === 'on_the_way' && <Arrival key={b.id} booking={b} side="helper" reload={load} />}
       <Checklist b={b} onSaved={load} />
+      {b.status === 'completed' && !rated && <div className="card mt16"><RatingForm bookingId={b.id} side="maid" name={custName} onDone={() => { setRated(true); toast.show(t('thanks_review')) }} /></div>}
       <JobPhotos b={b} />
       {(b.note || b.tags.length > 0) && <div className="infonote mt16"><Icon n="chat" /><div><b className="disp">{t('m_customer_note')}</b><div>{b.tags.map(x => t(x as Key)).join(' · ')}</div><div>{b.note}</div></div></div>}
       <div className="sec-title">{t('chat')}</div><Chat bookingId={b.id} />

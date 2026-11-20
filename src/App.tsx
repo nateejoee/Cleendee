@@ -15,6 +15,7 @@ import imgLogin from './assets/ill/login.webp'
 import imgChat from './assets/ill/chat.webp'
 import imgSched from './assets/ill/schedule.webp'
 import { useEffect, useState, type ReactNode } from 'react'
+import { RatePrompt } from './components/Rating'
 
 // หน้าที่ต้องเข้าสู่ระบบก่อน (คนที่ยังไม่สมัครดูได้แค่หน้าแรก บริการ และโปรไฟล์แม่บ้าน — แบบแอป bTaskee)
 // tab = หน้าที่อยู่ในเมนูหลัก (แสดงแถบเมนูด้วย) · ที่เหลือเป็นหน้าย่อย แสดงปุ่มย้อนกลับ
@@ -41,7 +42,7 @@ function Root() {
 
 export default function App() {
   return <I18nProvider><ThemeProvider><AuthProvider><BrowserRouter><div className="app">
-    <Motion /><TopProgress /><OfflineBar /><BackToTop />
+    <Motion /><TopProgress /><OfflineBar /><BackToTop /><RatePrompt />
     <Routes>
       <Route path="/" element={<Root />} />
       <Route path="/home" element={<Home />} />

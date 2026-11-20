@@ -27,6 +27,13 @@ export function useMaids() {
   return maids
 }
 
+// helpers this customer must not be matched with again (1-2 star rating either way)
+export function useBlockedMaids() {
+  const { session } = useAuth(); const [ids, setIds] = useState<string[]>([])
+  useEffect(() => { if (session) sb.rpc('my_blocked_maids').then(({ data }) => setIds(((data as unknown as string[]) || []))); else setIds([]) }, [session])
+  return ids
+}
+
 function bookingQuantity(draft: Draft, service: Service | undefined) {
   // แพ็กเกจรายเดือนใช้ได้กับทำความสะอาดทั่วไป 6 ชม. เท่านั้น
   return draft.plan === 'once' ? (draft.qty ?? service?.min_qty ?? 0) : 6
@@ -44,11 +51,11 @@ export function BookMaid() {
   const location = useContext(SelectedAddress)
   const [params] = useSearchParams()
   const suggested = params.get('helper')
-  const { t, lang } = useI18n(); const nav = useNavigate(); const maids = useMaids(); const services = useServices()
+  const { t, lang } = useI18n(); const nav = useNavigate(); const maids = useMaids(); const services = useServices(); const blocked = useBlockedMaids()
   const [d, setD] = useState<Draft>(getDraft())
   const s = services?.find(x => x.code === d.service)
   const pick = (id: string | null) => setD(setDraft({ maidId: id }))
-  const list = maids?.filter(m => (m.services || []).includes(d.service))
+  const list = maids?.filter(m => (m.services || []).includes(d.service) && !blocked.includes(m.id))
   if (suggested) list?.sort((a, b) => Number(b.id === suggested) - Number(a.id === suggested))
   const qty = bookingQuantity(d, s)
   const amount = s ? money(qty * s.price_per_unit + (d.maidId ? 20 : 0)) : '…'
@@ -105,10 +112,11 @@ export function BookMaid() {
 }
 
 export function MaidProfile() {
-  const { id } = useParams(); const { t } = useI18n(); const nav = useNavigate(); const maids = useMaids()
+  const { id } = useParams(); const { t } = useI18n(); const nav = useNavigate(); const maids = useMaids(); const blocked = useBlockedMaids()
   const [revs, setRevs] = useState<{ rating: number; comment: string | null; tags: string[]; created_at: string }[]>([])
   useEffect(() => { sb.from('reviews').select('rating,comment,tags,created_at').eq('maid_id', id!).order('created_at', { ascending: false }).limit(10).then(({ data }) => setRevs(data || [])) }, [id])
   const m = maids?.find(x => x.id === id)
+  if (maids && (!m || blocked.includes(m.id))) return <BookingLayout title={t('reviews')}><section className="booking-panel"><p className="muted">{t('not_available')}</p></section></BookingLayout>
   if (!m) return <Loading />
   return <BookingLayout title={m.nickname}
     action={{ label: t('choose') + ' ' + m.nickname, onClick: () => { setDraft({ maidId: null, hour: null }); nav('/book?helper=' + encodeURIComponent(m.id)) } }}>
@@ -135,6 +143,7 @@ export function MaidProfile() {
         {revs.length === 0 ? <p className="muted">{t('no_reviews')}</p> : <div className="stack">
           {revs.map((r, i) => <div key={i} className="booking-review">
             <span className="star" aria-label={r.rating + ' / 5'}>{'★'.repeat(r.rating)}</span>
+            {r.tags?.length > 0 && <div className="chips" style={{ marginTop: 4 }}>{r.tags.map(x => <span key={x} className="chip">{t(x as Key)}</span>)}</div>}
             {r.comment && <p>{r.comment}</p>}
           </div>)}
         </div>}

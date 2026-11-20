@@ -496,3 +496,16 @@ textarea.input{min-height:90px;resize:vertical}
 .lp-spin{width:18px;height:18px;border:2.5px solid rgba(19,41,75,.15);border-top-color:var(--ocean);border-radius:50%;animation:lpspin .8s linear infinite}
 @keyframes lpspin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.lp-pin{transition:none}.lp-spin{animation-duration:2s}}
+/* rating sheet (Grab / LINE MAN style) */
+.rate{text-align:center}
+.rate-q{font-size:19px}
+.rate-word{font-family:Anuphan,sans-serif;font-weight:600;min-height:22px;color:var(--ink2)}
+.rate .stars button{background:none;border:0;cursor:pointer;padding:2px;line-height:1;transition:transform .12s}
+.rate .stars button:active{transform:scale(1.2)}
+.rate-sheet-wrap{position:fixed;inset:0;z-index:3000;background:rgba(10,24,44,.45);display:flex;align-items:flex-end;justify-content:center}
+.rate-sheet{background:var(--card,#fff);width:100%;max-width:520px;border-radius:24px 24px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto;box-shadow:0 -10px 40px rgba(10,24,44,.2);animation:rateup .22s ease-out}
+.rate-thanks{font-size:52px;color:#E7A912;text-align:center;line-height:1}
+.rate-sheet[role=status]{text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center}
+@media (min-width:768px){.rate-sheet-wrap{align-items:center}.rate-sheet{border-radius:24px}}
+@keyframes rateup{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.rate-sheet{animation:none}.rate .stars button{transition:none}}

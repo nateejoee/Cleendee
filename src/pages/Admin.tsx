@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { sb, friendly, type Booking, type Service, type Addon } from '../lib/supabase'
 import { useServices, svcName, svcUnit } from '../lib/services'
-import { useI18n, money, fmtDate, fmtTime } from '../lib/i18n'
+import { useI18n, money, fmtDate, fmtTime, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { AdminTabs, Avatar, Icon, LangToggle, Loading, StatusPill, useToast } from '../components/ui'
 
@@ -36,8 +36,29 @@ function useAdminData() {
   return { d, reload: load }
 }
 
+type Low = { side: 'customer' | 'maid'; id: number; booking_id: number; rating: number; tags: string[]; comment: string | null; created_at: string; admin_seen: boolean; maid_name: string; customer_name: string | null }
+function useLowRatings() {
+  const [rows, setRows] = useState<Low[]>([])
+  const load = () => { sb.rpc('admin_low_ratings').then(({ data }) => setRows((data as Low[]) || [])) }
+  useEffect(load, [])
+  return { rows, load }
+}
+function LowRatings({ rows, reload }: { rows: Low[]; reload: () => void }) {
+  const { t, lang } = useI18n(); const toast = useToast()
+  if (!rows.length) return null
+  const ack = async (r: Low) => { const { error } = await sb.rpc('admin_ack_low_rating', { p_side: r.side, p_id: r.id }); if (error) toast.show(friendly(error, lang)); reload() }
+  return <><div id="low-ratings" className="sec-title">{t('a_low')}</div>
+    <div className="stack">{rows.map(r => <div key={r.side + r.id} className="card stack" style={{ opacity: r.admin_seen ? .6 : 1 }}>
+      <div className="between"><b className="disp">#{r.booking_id} · <span className="star">{'★'.repeat(r.rating)}</span></b><span className="small muted">{fmtDate(r.created_at, lang)}</span></div>
+      <div className="small">{r.side === 'customer' ? t('a_low_c2m') : t('a_low_m2c')}: {r.side === 'customer' ? (r.customer_name || '–') + ' → ' + r.maid_name : r.maid_name + ' → ' + (r.customer_name || '–')}</div>
+      {r.tags.length > 0 && <div className="chips">{r.tags.map(x => <span key={x} className="chip">{t(x as Key)}</span>)}</div>}
+      {r.comment && <div className="small">“{r.comment}”</div>}
+      {!r.admin_seen ? <button className="btn sm b-ocean" onClick={() => ack(r)}>{t('a_seen')}</button> : <span className="small muted">{t('a_seen')}</span>}
+    </div>)}</div>{toast.node}</>
+}
+
 export function AdminHome() {
-  const { t, lang } = useI18n(); const { d, reload } = useAdminData(); const toast = useToast()
+  const { t, lang } = useI18n(); const { d, reload } = useAdminData(); const toast = useToast(); const low = useLowRatings()
   if (useAdminGuard()) return <Navigate to="/" />
   if (!d) return <Loading />
   const income = d.month.reduce((a, b) => a + b.total_price - b.maid_payout, 0)
@@ -48,6 +69,7 @@ export function AdminHome() {
     [d.refunds.length, t('a_refunds'), money(d.refunds.reduce((a, p) => a + p.amount, 0)) + ' ' + t('baht'), 'var(--brick-l)', 'var(--brick)'],
     [d.claims.length, t('a_claims'), '', 'var(--brick-l)', 'var(--brick)'],
     [d.maidsPending, t('a_newmaids'), '', 'var(--leaf-l)', 'var(--leaf)'],
+    [low.rows.filter(r => !r.admin_seen).length, t('a_low'), t('a_low_d'), 'var(--brick-l)', 'var(--brick)'],
   ]
   const refundAll = async (b: Booking) => { const { error } = await sb.rpc('admin_refund_unmatched', { p_booking_id: b.id }); toast.show(error ? friendly(error, lang) : t('saved')); reload() }
   return <div className="page admin-overview">
@@ -56,12 +78,13 @@ export function AdminHome() {
       <div className="row small mt8"><span><b>{d.month.length}</b> {t('a_jobs')}</span><span><b>{d.maidsTotal}</b> {t('a_maids')}</span></div></div></div>
     <div className="pad"><div className="sec-title">{t('a_todo')}</div>
       <div className="admin-queues">{todo.map(([n, a, b, bg, c], i) => {
-        const target = ['#unmatched','/admin/money#slips','/admin/money#payouts','/admin/money#refunds','/admin/money#claims','/admin/maids'][i]
+        const target = ['#unmatched','/admin/money#slips','/admin/money#payouts','/admin/money#refunds','/admin/money#claims','/admin/maids','#low-ratings'][i]
         return <Link key={a} to={target} className="admin-queue"><span className="between"><b>{a}</b><span className="n" style={{background:bg,color:c}}>{n}</span></span>{b && <small>{b}</small>}</Link>
       })}</div><FunnelReport /><div id="unmatched" />
       {d.unmatched.length > 0 && <><div className="sec-title">{t('a_unmatched')}</div>{d.unmatched.map(b => <div key={b.id} className="card between mt8">
         <span><b className="disp">#{b.id} {fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}</b><span className="small muted" style={{ display: 'block' }}>{money(b.total_price)} ฿</span></span>
         <button className="btn sm b-red" onClick={() => refundAll(b)}>{t('a_refund_full')}</button></div>)}</>}
+      <LowRatings rows={low.rows} reload={low.load} />
     </div>
     <AdminTabs />{toast.node}
   </div>
@@ -117,14 +140,15 @@ export function AdminMoney() {
 
 type MaidRow = { id: string; nickname: string; bio: string | null; status: string; id_verified: boolean; background_checked: boolean; created_at: string; services: string[] }
 export function AdminMaids() {
-  const { t, lang } = useI18n(); const toast = useToast(); const services = useServices(); const [rows, setRows] = useState<MaidRow[] | null>(null)
+  const { t, lang } = useI18n(); const toast = useToast(); const services = useServices(); const [rows, setRows] = useState<MaidRow[] | null>(null); const [avg, setAvg] = useState<Record<string, { avg_rating: number; review_count: number }>>({})
+  useEffect(() => { sb.rpc('admin_maid_ratings').then(({ data }) => setAvg(Object.fromEntries(((data as { maid_id: string; avg_rating: number; review_count: number }[]) || []).map(x => [x.maid_id, x])))) }, [])
   const load = () => sb.from('maids').select('id,nickname,bio,status,id_verified,background_checked,created_at,services').order('created_at', { ascending: false }).then(({ data }) => setRows(data || []))
   useEffect(() => { load() }, [])
   if (useAdminGuard()) return <Navigate to="/" />
   const set = async (m: MaidRow, patch: Partial<MaidRow>) => { const n = { ...m, ...patch }; const { error } = await sb.rpc('admin_set_maid', { p_maid: m.id, p_status: n.status, p_id_verified: n.id_verified, p_background_checked: n.background_checked }); toast.show(error ? friendly(error, lang) : t('saved')); load() }
   return <div className="page"><div className="hero"><h1>{t('tab_maids')}</h1></div>
     <div className="pad mt12 stack cols">{!rows ? <Loading /> : rows.map(m => <div key={m.id} className="card stack">
-      <div className="row"><Avatar name={m.nickname} seed={m.id} size={44} /><span style={{ flex: 1 }}><b className="disp">{m.nickname}</b><span className="small muted" style={{ display: 'block' }}>{m.bio}</span></span>
+      <div className="row"><Avatar name={m.nickname} seed={m.id} size={44} /><span style={{ flex: 1 }}><b className="disp">{m.nickname}</b><span className="small muted" style={{ display: 'block' }}>{m.bio}</span>{avg[m.id] && <span className="small" style={{ display: 'block', color: avg[m.id].avg_rating < 4.5 ? 'var(--brick)' : undefined, fontWeight: avg[m.id].avg_rating < 4.5 ? 700 : undefined }}>★ {avg[m.id].avg_rating} ({avg[m.id].review_count} {t('reviews')}){avg[m.id].avg_rating < 4.5 && ' · ' + t('a_low_avg')}</span>}</span>
         <span className={'pill ' + (m.status === 'approved' ? 'p-leaf' : m.status === 'pending' ? 'p-sun' : 'p-brick')}>{m.status}</span></div>
       <div className="chips"><button className={'chip' + (m.id_verified ? ' on' : '')} onClick={() => set(m, { id_verified: !m.id_verified })}>{t('id_ok')}</button>
         <button className={'chip' + (m.background_checked ? ' on' : '')} onClick={() => set(m, { background_checked: !m.background_checked })}>{t('bg_ok')}</button></div>

@@ -9,9 +9,10 @@ import { useAuth } from '../lib/auth'
 import { clearDraft, setDraft, emptyDraft, bkkToday, startIso } from '../lib/draft'
 import { useServices, useAddons, svcName, svcUnit } from '../lib/services'
 import { AdminTabs, Avatar, CustomerTabs, Icon, Loading, MaidTabs, StatusPill, TopBar, useToast } from '../components/ui'
-import { useMaids, AddressForm, useAddresses } from './Book'
+import { useMaids, useBlockedMaids, AddressForm, useAddresses } from './Book'
 import { CountUp, confetti, relTime, useMinuteTick } from '../lib/fx'
 import { useTheme } from '../lib/theme'
+import { RatingForm } from '../components/Rating'
 
 function ThemePicker() {
   const { lang } = useI18n()
@@ -152,7 +153,7 @@ export function BookingDetail() {
       {b.maid_id && ['confirmed', 'on_the_way', 'working', 'completed'].includes(b.status) && <><div className="sec-title" style={{ margin: '6px 0 0' }}>{t('chat')}</div><Chat bookingId={b.id} /></>}
       {['completed', 'cancelled_by_customer'].includes(b.status) && !b.package_id && <button className="btn b-sun" onClick={rebook}><Icon n="redo" />{t('book_again')}</button>}
       {!['pending_payment', 'payment_review', 'payment_rejected'].includes(b.status) && <Link to={'/receipt/' + b.id} className="btn b-line"><Icon n="print" />{t('receipt')}</Link>}
-      {b.status === 'completed' && !reviewed && <Review b={b} onDone={() => { setReviewed(true); confetti(); toast.show(t('thanks_review')) }} />}
+      {b.status === 'completed' && !reviewed && b.maid_id && <div className="card"><RatingForm bookingId={b.id} side="customer" name={maids?.find(m => m.id === b.maid_id)?.nickname ?? ''} onDone={() => { setReviewed(true); confetti(); toast.show(t('thanks_review')) }} /></div>}
       {b.status === 'completed' && <Link to={'/claim/' + b.id} className="btn b-line">{t('claim')}</Link>}
       {['pending_payment', 'payment_review', 'awaiting_maid', 'confirmed', 'payment_rejected'].includes(b.status) && <><div className="small muted">{t('cancel_rules')}</div><button className="btn b-red" onClick={cancel}>{t('cancel_booking')}</button></>}
       {err && <div className="err">{err}</div>}
@@ -254,19 +255,6 @@ export function Receipt() {
   </div>
 }
 
-function Review({ b, onDone }: { b: Booking; onDone: () => void }) {
-  const { t, lang } = useI18n(); const [busy, setBusy] = useState(false); const [r, setR] = useState(0); const [tags, setTags] = useState<string[]>([]); const [c, setC] = useState(''); const [err, setErr] = useState('')
-  const opts: Key[] = ['r_ontime', 'r_clean', 'r_polite', 'r_detail']
-  const send = async () => { if (busy || !r) return; setBusy(true); const { error } = await sb.rpc('submit_review', { p_booking_id: b.id, p_rating: r, p_tags: tags, p_comment: c }); setBusy(false); if (error) setErr(friendly(error, lang)); else onDone() }
-  return <div className="card stack" style={{ textAlign: 'center' }}>
-    <b className="disp">{t('s_completed')} — {t('send_review')}</b>
-    <div className="stars">{[1, 2, 3, 4, 5].map(i => <button key={i} className={i <= r ? 'on' : ''} onClick={() => setR(i)} aria-label={lang === 'th' ? i + ' ดาว' : i + ' stars'} aria-pressed={i === r}>★</button>)}</div>
-    <div className="chips" style={{ justifyContent: 'center' }}>{opts.map(o => <button key={o} className={'chip' + (tags.includes(o) ? ' on' : '')} onClick={() => setTags(tags.includes(o) ? tags.filter(x => x !== o) : [...tags, o])}>{t(o)}</button>)}</div>
-    <textarea className="input" placeholder={t('review_ph')} value={c} onChange={e => setC(e.target.value)} />
-    {err && <div className="err">{err}</div>}<button className="btn b-sun" disabled={!r || busy} onClick={send}>{t('send_review')}</button>
-  </div>
-}
-
 export function Claim() {
   const { id } = useParams(); const { t, lang } = useI18n(); const nav = useNavigate(); const { session } = useAuth(); const toast = useToast()
   const [item, setItem] = useState(''); const [desc, setDesc] = useState(''); const [price, setPrice] = useState(''); const [year, setYear] = useState(''); const [files, setFiles] = useState<File[]>([]); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
@@ -350,7 +338,8 @@ export function Addresses() {
 
 export function Favorites() {
   const { t } = useI18n(); const nav = useNavigate(); const { list } = useMyBookings(); const maids = useMaids()
-  const ids = [...new Set((list || []).filter(b => b.status === 'completed' && b.maid_id).map(b => b.maid_id!))]
+  const blocked = useBlockedMaids()
+  const ids = [...new Set((list || []).filter(b => b.status === 'completed' && b.maid_id && !blocked.includes(b.maid_id)).map(b => b.maid_id!))]
   return <div className="page nobar"><TopBar title={t('favorites')} />
     <div className="mt12">{ids.length === 0 ? <div className="pad"><div className="empty muted">{t('nothing')}</div></div> : ids.map(id => { const m = maids?.find(x => x.id === id); if (!m) return null
       return <div key={id} className="listrow"><Avatar name={m.nickname} seed={m.id} size={44} /><b style={{ flex: 1 }}>{m.nickname}</b>

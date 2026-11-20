@@ -9,7 +9,7 @@ import { Avatar, Icon, LangToggle, Logo, CustomerTabs, TopBar, Loading, SiteFoot
 import { setDraft, emptyDraft } from '../lib/draft'
 import { useServices, svcName, svcUnit } from '../lib/services'
 import { CountUp, greetKey } from '../lib/fx'
-import { useMaids } from './Book'
+import { useMaids, useBlockedMaids } from './Book'
 import imgHero from '../assets/ill/hero.webp'
 import imgClean from '../assets/ill/cleaning.webp'
 import imgSched from '../assets/ill/schedule.webp'
@@ -87,7 +87,7 @@ export function Login() {
 }
 
 export function Home() {
-  const { t, lang } = useI18n(); const { profile } = useAuth(); const nav = useNavigate(); const districts = useDistricts(); const services = useServices(); const maids = useMaids()
+  const { t, lang } = useI18n(); const { profile } = useAuth(); const nav = useNavigate(); const districts = useDistricts(); const services = useServices(); const allMaids = useMaids(); const blocked = useBlockedMaids(); const maids = allMaids?.filter(m => !blocked.includes(m.id))
   const distId = profile?.district_id ?? Number(localStorage.getItem('cd_district') || 1)
   const d = districts.find(x => x.id === distId)
   const extra = [
