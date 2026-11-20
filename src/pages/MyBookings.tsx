@@ -27,7 +27,7 @@ export function Bookings() {
   return <div className="page">
     <div className="hero"><h1>{t('my_bookings')}</h1>
       <div className="seg mt12"><button className={tab === 'up' ? 'on' : ''} onClick={() => setTab('up')}>{t('upcoming')}</button><button className={tab === 'hist' ? 'on' : ''} onClick={() => setTab('hist')}>{t('history')}</button></div></div>
-    <div className="pad mt16 stack">
+    <div className="pad mt16 stack cols">
       {!list ? <Loading /> : rows.length === 0 ? <div className="empty"><div className="muted">{t('no_bookings')}</div><button className="btn b-sun mt12" onClick={() => nav('/book')}>{t('book_now')}</button></div> :
         rows.map((b, i) => { const m = maids?.find(x => x.id === b.maid_id)
           const big = tab === 'up' && i === 0

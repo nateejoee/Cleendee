@@ -30,7 +30,7 @@ export function BookMaid() {
       <button className={'choice' + (d.maidId === null ? ' on' : '')} onClick={() => pick(null)}><span className="radio" />
         <span style={{ flex: 1 }}><b>{t('auto_pick')}</b><span className="small muted">{t('auto_pick_d')}</span></span><b className="disp">{t('free')}</b></button>
       <div className="between" style={{ margin: '18px 0 8px' }}><b className="disp">{t('or_pick')} <span className="muted small">+20 {t('baht')}</span></b><span className="small muted">{t('sorted_reviews')}</span></div>
-      {!maids ? <Loading /> : <div className="stack">{maids.map(m => <div key={m.id} className={'card' + (d.maidId === m.id ? ' sel' : '')}>
+      {!maids ? <Loading /> : <div className="stack cols">{maids.map(m => <div key={m.id} className={'card' + (d.maidId === m.id ? ' sel' : '')}>
         <button className="row" style={{ width: '100%', textAlign: 'left' }} onClick={() => pick(m.id)}>
           <Avatar name={m.nickname} url={m.photo_url} seed={m.id} size={54} />
           <span style={{ flex: 1 }}><b className="disp" style={{ fontSize: 16.5 }}>{m.nickname}</b>

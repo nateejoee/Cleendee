@@ -185,3 +185,41 @@ textarea.input{min-height:90px;resize:vertical}
 .chk{width:24px;height:24px;border-radius:8px;border:2px solid #C6D3DE;flex:none;display:flex;align-items:center;justify-content:center;background:#fff}
 .chk.on{background:var(--ocean);border-color:var(--ocean);color:#fff}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== จอใหญ่: iPad / คอม ===== */
+/* iPad ขึ้นไป (≥768px): ปลดล็อก 480px, แถบเมนูล่างย้ายเป็นเมนูข้างซ้าย, เนื้อหาจัดกลางไม่ยืดเกิน */
+@media (min-width:768px){
+ body{background:var(--bg)}
+ .app{max-width:none;box-shadow:none}
+ .app:has(.tabbar){padding-left:96px} /* เว้นที่ให้เมนูข้าง */
+ .page{width:100%;max-width:1040px;margin:0 auto;padding-bottom:40px}
+ .page.nobar{max-width:760px;padding-bottom:110px} /* หน้าฟอร์ม/ขั้นตอนจองให้แคบกว่า อ่านง่าย */
+ .pad{padding:0 32px}
+ .hero{padding:24px 32px 26px;border-radius:0 0 32px 32px}
+ .hero.tall{padding-bottom:80px}
+ .promo{margin:-58px 32px 0}
+ .bottom-bar{max-width:760px;border:1px solid var(--line);border-bottom:0;border-radius:20px 20px 0 0}
+ .toast{bottom:40px}
+ /* เมนูข้างแบบไอคอน (iPad) */
+ .tabbar{top:0;bottom:0;left:0;transform:none;width:96px;max-width:none;flex-direction:column;justify-content:flex-start;align-items:center;gap:18px;padding:28px 6px;border-top:0;border-right:1px solid var(--line)}
+ .tab .mid{width:48px;height:48px;margin-top:0;box-shadow:none}
+ /* รายการการ์ดเป็น 2 คอลัมน์ */
+ .cols{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-items:start}
+ .cols>.empty,.cols>.loading{grid-column:1/-1}
+ .svc{grid-template-columns:repeat(6,1fr)}
+ .tgrid{grid-template-columns:repeat(6,1fr)}
+ .dist{grid-template-columns:repeat(3,1fr)}
+ .map{height:380px}
+}
+/* คอม (≥1100px): เมนูข้างกว้าง มีชื่อเมนูข้างไอคอน, การ์ด 3 คอลัมน์ */
+@media (min-width:1100px){
+ .app:has(.tabbar){padding-left:232px}
+ .tabbar{width:232px;align-items:stretch;gap:6px;padding:28px 16px}
+ .tab{flex-direction:row;gap:12px;font-size:15px;padding:12px 14px;border-radius:14px;min-width:0}
+ .tab.on{background:#EAF3FA}
+ .tab.center{order:-1;margin-bottom:10px;background:var(--sun);color:var(--ink)}
+ .tab.center .mid{width:28px;height:28px;background:none}
+ .cols{grid-template-columns:repeat(3,1fr)}
+ .page.nobar .cols{grid-template-columns:repeat(2,1fr)}
+ .dist{grid-template-columns:repeat(4,1fr)}
+}

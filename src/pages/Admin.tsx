@@ -115,7 +115,7 @@ export function AdminMaids() {
   if (useAdminGuard()) return <Navigate to="/" />
   const set = async (m: MaidRow, patch: Partial<MaidRow>) => { const n = { ...m, ...patch }; const { error } = await sb.rpc('admin_set_maid', { p_maid: m.id, p_status: n.status, p_id_verified: n.id_verified, p_background_checked: n.background_checked }); toast.show(error ? friendly(error, lang) : t('saved')); load() }
   return <div className="page"><div className="hero"><h1>{t('tab_maids')}</h1></div>
-    <div className="pad mt12 stack">{!rows ? <Loading /> : rows.map(m => <div key={m.id} className="card stack">
+    <div className="pad mt12 stack cols">{!rows ? <Loading /> : rows.map(m => <div key={m.id} className="card stack">
       <div className="row"><Avatar name={m.nickname} seed={m.id} size={44} /><span style={{ flex: 1 }}><b className="disp">{m.nickname}</b><span className="small muted" style={{ display: 'block' }}>{m.bio}</span></span>
         <span className={'pill ' + (m.status === 'approved' ? 'p-leaf' : m.status === 'pending' ? 'p-sun' : 'p-brick')}>{m.status}</span></div>
       <div className="chips"><button className={'chip' + (m.id_verified ? ' on' : '')} onClick={() => set(m, { id_verified: !m.id_verified })}>{t('id_ok')}</button>
