@@ -67,13 +67,14 @@ export function Steps({ at }: { at: number }) {
   return <div className="steps">{labels.map((l, i) => <div key={l} className={'st' + (i <= at ? ' done' : '')}><i /><span>{t(l)}</span></div>)}</div>
 }
 
-// ซิกเนเจอร์ปุ่มจอง: ประกายสะอาดกับฟองสบู่ลอยขึ้น (ใช้บนมือถือ; จอใหญ่ใช้ไอคอน + เดิม)
+// ซิกเนเจอร์ปุ่มจอง: หยดน้ำสีทองเจาะเป็นประกาย กับฟองสบู่ลอยขึ้น (ใช้บนมือถือ; จอใหญ่ใช้ไอคอน + เดิม)
 function BubbleSpark() {
-  return <svg className="sig-ico" viewBox="0 0 40 40" width="34" height="34" aria-hidden="true">
-    <path d="M20 6.5c.9 6.3 3.2 8.6 9.5 9.5-6.3.9-8.6 3.2-9.5 9.5-.9-6.3-3.2-8.6-9.5-9.5 6.3-.9 8.6-3.2 9.5-9.5Z" fill="currentColor" />
-    <circle className="bub b1" cx="30.5" cy="29" r="3.4" fill="none" stroke="currentColor" strokeWidth="1.8" />
-    <circle className="bub b2" cx="9.5" cy="27.5" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.6" />
-    <circle className="bub b3" cx="31.5" cy="9" r="1.7" fill="currentColor" />
+  return <svg className="sig-ico" viewBox="0 0 40 40" aria-hidden="true">
+    <defs><linearGradient id="sigG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#FFF1C4" /><stop offset=".5" stopColor="#F2C45A" /><stop offset="1" stopColor="#C9923A" /></linearGradient></defs>
+    <path d="M19 4.5C19 4.5 8 17 8 25a11 11 0 0 0 22 0C30 17 19 4.5 19 4.5Z" fill="url(#sigG)" />
+    <path d="M19 19c.6 3.4 1.9 4.7 5.3 5.3-3.4.6-4.7 1.9-5.3 5.3-.6-3.4-1.9-4.7-5.3-5.3 3.4-.6 4.7-1.9 5.3-5.3Z" fill="#0F2740" />
+    <circle className="bub b1" cx="32.5" cy="12" r="2.6" fill="none" stroke="url(#sigG)" strokeWidth="1.5" />
+    <circle className="bub b2" cx="35" cy="21" r="1.4" fill="url(#sigG)" />
   </svg>
 }
 
