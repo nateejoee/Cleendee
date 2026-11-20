@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { MapContainer, TileLayer, CircleMarker, useMapEvents } from 'react-leaflet'
-import 'leaflet/dist/leaflet.css'
+import { LocationPin } from '../components/LocationPin'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import generatePayload from 'promptpay-qr'
@@ -254,12 +253,6 @@ export function useAddresses() {
 }
 
 type Point = [number, number]
-function Pin({ point, onChange }: { point: Point | null; onChange: (point: Point) => void }) {
-  const map = useMapEvents({ click: e => onChange([e.latlng.lat, e.latlng.lng]) })
-  useEffect(() => { if (point) map.panTo(point) }, [point, map])
-  return point ? <CircleMarker center={point} radius={8} pathOptions={{color:'#fff',fillColor:'#174e85',fillOpacity:1}} /> : null
-}
-
 export function AddressForm({ onSaved, existing }: { onSaved: (id: number) => void; existing?: Addr }) {
   const { t, lang } = useI18n(); const { session } = useAuth(); const districts = useDistricts()
   const th = lang === 'th'
@@ -268,12 +261,7 @@ export function AddressForm({ onSaved, existing }: { onSaved: (id: number) => vo
   const [dist, setDist] = useState(existing?.district_id ?? Number(localStorage.getItem('cd_district') || 1))
   const [point, setPoint] = useState<Point | null>(existing?.lat != null && existing.lng != null ? [existing.lat,existing.lng] : null)
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
-  const locate = () => {
-    setErr('')
-    const fallback = () => setErr(th ? 'แตะแผนที่เพื่อระบุตำแหน่งบ้านได้เลย' : 'Tap the map to pin your address.')
-    if (!navigator.geolocation) return fallback()
-    navigator.geolocation.getCurrentPosition(p => setPoint([p.coords.latitude,p.coords.longitude]), fallback, { timeout: 10000 })
-  }
+  const [reading, setReading] = useState(false)
   const save = async () => {
     if (!session || !point || busy) return
     setBusy(true); setErr('')
@@ -288,14 +276,9 @@ export function AddressForm({ onSaved, existing }: { onSaved: (id: number) => vo
     <label className="field">{t('label')}<input className="input" value={label} onChange={e => setLabel(e.target.value)} /></label>
     <label className="field">{t('address')}<textarea className="input" value={addr} onChange={e => setAddr(e.target.value)} placeholder={t('addr_ph')} /></label>
     <label className="field">{t('district')}<select className="input" value={dist} onChange={e => setDist(Number(e.target.value))}>{districts.map(d => <option key={d.id} value={d.id}>{th ? d.name_th : d.name_en}</option>)}</select></label>
-    <b>{th ? 'แตะแผนที่ตรงทางเข้าบ้าน' : 'Tap the map at your entrance'}</b>
-    <MapContainer center={point ?? [10.493,99.18]} zoom={point ? 15 : 10} scrollWheelZoom={false} style={{height:240,zIndex:0}}>
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" /><Pin point={point} onChange={setPoint} />
-    </MapContainer>
-    <button className="btn b-line" onClick={locate}><Icon n="pin" />{th ? 'ใช้ตำแหน่งปัจจุบัน' : 'Use current location'}</button>
-    {point && <small>{point[0].toFixed(5)}, {point[1].toFixed(5)}</small>}
+    <LocationPin point={point} place={setPoint} onReading={setReading} disabled={busy} />
     {err && <div className="err" role="alert">{err}</div>}
-    <button className="btn b-ocean" disabled={busy || !point || !label.trim() || addr.trim().length < 5} onClick={save}>{t('save')}</button>
+    <button className="btn b-ocean" disabled={busy || reading || !point || !label.trim() || addr.trim().length < 5} onClick={save}>{t('save')}</button>
   </div>
 }
 
@@ -316,9 +299,11 @@ export function BookingLocation({children}: {children: ReactNode}) {
   return <BookingLayout title={th ? 'สถานที่รับบริการ' : 'Service location'}>
     <section className="booking-panel booking-location-panel">
       <h2>{th ? 'ให้แม่บ้านไปที่ไหน?' : 'Where do you need cleaning?'}</h2>
-      {list.map(a => <button key={a.id} className="choice" onClick={() => a.lat == null || a.lng == null ? setEdit(a) : choose(a.id)}>
+      {list.map(a => <div key={a.id} className="stack"><button className="choice" onClick={() => a.lat == null || a.lng == null ? setEdit(a) : choose(a.id)}>
         <Icon n="pin" /><span className="booking-grow"><b>{a.label}</b><span className="small muted">{a.address}</span></span><Icon n="next" size={16} />
-      </button>)}
+      </button>
+        {a.lat != null && a.lng != null && <button className="link" onClick={() => setEdit(a)}>{th ? 'ปรับหมุดของ ' : 'Adjust pin for '}{a.label}</button>}
+      </div>)}
       {edit || !list.length ? <AddressForm key={typeof edit === 'object' ? edit?.id : 'new'} existing={edit && edit !== 'new' ? edit : undefined} onSaved={next => { reload(); choose(next) }} /> :
         <button className="btn b-line" onClick={() => setEdit('new')}><Icon n="plus" size={17} />{t('add_address')}</button>}
     </section>
