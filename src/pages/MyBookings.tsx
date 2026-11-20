@@ -16,7 +16,7 @@ import { useTheme } from '../lib/theme'
 function ThemePicker() {
   const { lang } = useI18n()
   const { mode, setMode } = useTheme()
-  const labels = lang === 'th' ? ['ตามโทรศัพท์', 'สว่าง', 'มืด'] : ['Device', 'Light', 'Dark']
+  const labels = lang === 'th' ? ['ตามอุปกรณ์', 'สว่าง', 'มืด'] : ['Device', 'Light', 'Dark']
   return <div className="listrow"><div><b>{lang === 'th' ? 'รูปแบบการแสดงผล' : 'Appearance'}</b>
     <div className="chips mt8">{(['system','light','dark'] as const).map((option,i) =>
       <button key={option} aria-pressed={mode === option} className={'chip' + (mode === option ? ' on' : '')} onClick={() => setMode(option)}>{labels[i]}</button>)}</div></div></div>
