@@ -4,7 +4,7 @@ export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL ?? 'https://ybjwio
 const KEY = import.meta.env.VITE_SUPABASE_KEY ?? 'sb_publishable_m3iY8dh73BoLDGnkCfSS3w_Fxt5av3N'
 
 export const sb = createClient(SUPABASE_URL, KEY, {
-  auth: { persistSession: true, autoRefreshToken: true },
+  auth: { flowType: 'pkce', persistSession: true, autoRefreshToken: true },
 })
 
 export type Role = 'customer' | 'maid' | 'admin'

@@ -2,7 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { I18nProvider, localStorageGet } from './lib/i18n'
 import { AuthProvider, useAuth } from './lib/auth'
 import { Onboarding, Login, Home, Service, Guarantee } from './pages/Start'
-import { BookMaid, MaidProfile, BookTime, BookDetails, BookConfirm, Pay } from './pages/Book'
+import { BookingLocation, BookMaid, MaidProfile, BookTime, BookDetails, BookConfirm, Pay } from './pages/Book'
 import { Bookings, BookingDetail, Receipt, Claim, Messages, Account, Addresses, Favorites } from './pages/MyBookings'
 import { MaidHome, MaidJob, MaidAvailability, MaidIncome, MaidApply } from './pages/Maid'
 import { AdminHome, AdminMoney, AdminMaids, AdminSettings } from './pages/Admin'
@@ -50,11 +50,11 @@ export default function App() {
       <Route path="/service/:code" element={<Service />} />
       <Route path="/guarantee" element={<Guarantee />} />
       <Route path="/receipt/:id" element={<Member title="receipt" text="lw_page"><Receipt /></Member>} />
-            <Route path="/book" element={<Member tab title="tab_book" text="lw_book"><BookMaid /></Member>} />
+            <Route path="/book" element={<Member tab title="tab_book" text="lw_book"><BookingLocation><BookMaid /></BookingLocation></Member>} />
       <Route path="/maid-profile/:id" element={<MaidProfile />} />
-      <Route path="/book/time" element={<Member title="pick_date" text="lw_book"><BookTime /></Member>} />
-      <Route path="/book/details" element={<Member title="tell_maid" text="lw_book"><BookDetails /></Member>} />
-      <Route path="/book/confirm" element={<Member title="confirm_booking" text="lw_book"><BookConfirm /></Member>} />
+      <Route path="/book/time" element={<Member title="pick_date" text="lw_book"><BookingLocation><BookTime /></BookingLocation></Member>} />
+      <Route path="/book/details" element={<Member title="tell_maid" text="lw_book"><BookingLocation><BookDetails /></BookingLocation></Member>} />
+      <Route path="/book/confirm" element={<Member title="confirm_booking" text="lw_book"><BookingLocation><BookConfirm /></BookingLocation></Member>} />
       <Route path="/pay/:kind/:id" element={<Member title="pay_title" text="lw_page"><Pay /></Member>} />
       <Route path="/bookings" element={<Member tab title="my_bookings" text="lw_bookings" img={imgSched}><Bookings /></Member>} />
       <Route path="/bookings/:id" element={<Member title="details" text="lw_page"><BookingDetail /></Member>} />

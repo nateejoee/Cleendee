@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
+import { MapContainer, TileLayer, CircleMarker, useMapEvents } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import generatePayload from 'promptpay-qr'
@@ -27,7 +30,9 @@ function bookingQuantity(draft: Draft, service: Service | undefined) {
   return draft.plan === 'once' ? (draft.qty ?? service?.min_qty ?? 0) : 6
 }
 
+const SelectedAddress = createContext<{address:string; change:()=>void}>({address:'',change:()=>{}})
 export function BookMaid() {
+  const location = useContext(SelectedAddress)
   const { t, lang } = useI18n(); const nav = useNavigate(); const maids = useMaids(); const services = useServices()
   const [d, setD] = useState<Draft>(getDraft())
   const s = services?.find(x => x.code === d.service)
@@ -38,6 +43,7 @@ export function BookMaid() {
   return <div className="page nobar">
     <TopBar title={t('who_cleans')} /><Steps at={0} />
     <div className="pad mt16">
+      <button className="link" onClick={location.change}><Icon n="pin" />{location.address} · {lang === 'th' ? 'เปลี่ยน' : 'Change'}</button>
       {s && <div className="small muted" style={{ marginBottom: 10 }}>{svcName(s, lang)}</div>}
       <button className={'choice' + (d.maidId === null ? ' on' : '')} onClick={() => pick(null)}><span className="radio" />
         <span style={{ flex: 1 }}><b>{t('auto_pick')}</b><span className="small muted">{t('auto_pick_d')}</span></span><b className="disp">{t('free')}</b></button>
@@ -133,7 +139,12 @@ export function BookTime() {
     <TopBar title={t('pick_date')} /><Steps at={1} />
     <div className="pad mt16">
       <div className="small muted">{svcName(s, lang)}</div>
-      {s.code === 'general_cleaning' && <><div className="seg mt8">{(['once', 'biweekly', 'weekly'] as const).map(p => <button key={p} className={d.plan === p ? 'on' : ''} onClick={() => setD(setDraft({ plan: p }))}>{t(p)}</button>)}</div>
+      {s.code === 'general_cleaning' && <><div className="plan-grid mt12">{(['once', 'biweekly', 'weekly'] as const).map(p =>
+        <button key={p} aria-pressed={d.plan === p} className={'plan-card' + (d.plan === p ? ' chosen' : '')} onClick={() => setD(setDraft({ plan:p, hour:null }))}>
+          <span className="between"><b>{t(p)}</b><span className="radio" /></span>
+          <strong>{money(p === 'weekly' ? 5600 : p === 'biweekly' ? 2900 : s.min_qty*s.price_per_unit)} ฿</strong>
+          <small>{p === 'once' ? t('min_qty')+' '+s.min_qty+' '+unit : (p === 'weekly' ? '4' : '2') + (lang === 'th' ? ' ครั้ง · ครั้งละ 6 ชม.' : ' visits · 6 h each')}</small>
+        </button>)}</div>
         <p className="small muted mt8">{t('pkg_note')}</p></>}
       {pkgBlocked && <div className="infonote mt8">{t('pkg_need_maid')} <button className="link" onClick={() => nav('/book')}>{t('choose')}</button></div>}
       {!isPkg && <><div className="sec-title">{s.pricing === 'hourly' ? t('how_long') : t('how_many')}</div>
@@ -160,46 +171,89 @@ export function BookTime() {
   </div>
 }
 
-type Addr = { id: number; label: string; address: string; district_id: number }
+type Addr = { id: number; label: string; address: string; district_id: number; lat: number | null; lng: number | null }
 export function useAddresses() {
   const { session } = useAuth(); const [a, setA] = useState<Addr[] | null>(null)
-  const load = () => { if (session) sb.from('customer_addresses').select('*').order('id').then(({ data }) => setA((data as Addr[]) || [])) }
+  const load = () => { if (session) sb.from('customer_addresses').select('*').eq('customer_id',session.user.id).order('id').then(({ data }) => setA((data as Addr[]) || [])) }
   useEffect(load, [session])
   return { list: a, reload: load }
 }
 
-export function AddressForm({ onSaved }: { onSaved: (id: number) => void }) {
+type Point = [number, number]
+function Pin({ point, onChange }: { point: Point | null; onChange: (point: Point) => void }) {
+  const map = useMapEvents({ click: e => onChange([e.latlng.lat, e.latlng.lng]) })
+  useEffect(() => { if (point) map.panTo(point) }, [point, map])
+  return point ? <CircleMarker center={point} radius={8} pathOptions={{color:'#fff',fillColor:'#174e85',fillOpacity:1}} /> : null
+}
+
+export function AddressForm({ onSaved, existing }: { onSaved: (id: number) => void; existing?: Addr }) {
   const { t, lang } = useI18n(); const { session } = useAuth(); const districts = useDistricts()
-  const [label, setLabel] = useState(lang === 'th' ? 'บ้าน' : 'Home'); const [addr, setAddr] = useState(''); const [dist, setDist] = useState(Number(localStorage.getItem('cd_district') || 1)); const [err, setErr] = useState('')
-  const save = async () => {
+  const th = lang === 'th'
+  const [label, setLabel] = useState(existing?.label ?? (th ? 'บ้าน' : 'Home'))
+  const [addr, setAddr] = useState(existing?.address ?? '')
+  const [dist, setDist] = useState(existing?.district_id ?? Number(localStorage.getItem('cd_district') || 1))
+  const [point, setPoint] = useState<Point | null>(existing?.lat != null && existing.lng != null ? [existing.lat,existing.lng] : null)
+  const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
+  const locate = () => {
     setErr('')
-    const { data, error } = await sb.from('customer_addresses').insert({ customer_id: session!.user.id, label, address: addr, district_id: dist }).select('id').single()
-    if (error) setErr(friendly(error, lang)); else onSaved(data.id)
+    const fallback = () => setErr(th ? 'แตะแผนที่เพื่อระบุตำแหน่งบ้านได้เลย' : 'Tap the map to pin your address.')
+    if (!navigator.geolocation) return fallback()
+    navigator.geolocation.getCurrentPosition(p => setPoint([p.coords.latitude,p.coords.longitude]), fallback, { timeout: 10000 })
+  }
+  const save = async () => {
+    if (!session || !point || busy) return
+    setBusy(true); setErr('')
+    const values = {label: label.trim(), address: addr.trim(), district_id:dist, lat:point[0], lng:point[1]}
+    const query = existing ? sb.from('customer_addresses').update(values).eq('id', existing.id).eq('customer_id',session.user.id)
+      : sb.from('customer_addresses').insert({...values,customer_id:session.user.id})
+    const { data,error } = await query.select('id').single()
+    setBusy(false)
+    if (error) setErr(friendly(error,lang)); else onSaved(data.id)
   }
   return <div className="card stack">
-    <div className="field"><label>{t('label')}</label><input className="input" value={label} onChange={e => setLabel(e.target.value)} /></div>
-    <div className="field"><label>{t('address')}</label><textarea className="input" value={addr} onChange={e => setAddr(e.target.value)} placeholder={t('addr_ph')} /></div>
-    <div className="field"><label>{t('district')}</label><select className="input" value={dist} onChange={e => setDist(Number(e.target.value))}>
-      {districts.map(d => <option key={d.id} value={d.id}>{lang === 'th' ? d.name_th : d.name_en}</option>)}</select></div>
-    {err && <div className="err">{err}</div>}
-    <button className="btn b-ocean" disabled={addr.trim().length < 5} onClick={save}>{t('save')}</button>
+    <label className="field">{t('label')}<input className="input" value={label} onChange={e => setLabel(e.target.value)} /></label>
+    <label className="field">{t('address')}<textarea className="input" value={addr} onChange={e => setAddr(e.target.value)} placeholder={t('addr_ph')} /></label>
+    <label className="field">{t('district')}<select className="input" value={dist} onChange={e => setDist(Number(e.target.value))}>{districts.map(d => <option key={d.id} value={d.id}>{th ? d.name_th : d.name_en}</option>)}</select></label>
+    <b>{th ? 'แตะแผนที่ตรงทางเข้าบ้าน' : 'Tap the map at your entrance'}</b>
+    <MapContainer center={point ?? [10.493,99.18]} zoom={point ? 15 : 10} scrollWheelZoom={false} style={{height:240,zIndex:0}}>
+      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" /><Pin point={point} onChange={setPoint} />
+    </MapContainer>
+    <button className="btn b-line" onClick={locate}><Icon n="pin" />{th ? 'ใช้ตำแหน่งปัจจุบัน' : 'Use current location'}</button>
+    {point && <small>{point[0].toFixed(5)}, {point[1].toFixed(5)}</small>}
+    {err && <div className="err" role="alert">{err}</div>}
+    <button className="btn b-ocean" disabled={busy || !point || !label.trim() || addr.trim().length < 5} onClick={save}>{t('save')}</button>
   </div>
+}
+
+export function BookingLocation({children}: {children: ReactNode}) {
+  const {list,reload} = useAddresses()
+  const {lang,t} = useI18n()
+  const th = lang === 'th'
+  const [id,setId] = useState(getDraft().addressId)
+  const [edit,setEdit] = useState<Addr | 'new' | null>(null)
+  const address = list?.find(a => a.id === id)
+  const choose = (next: number) => {
+    const old = getDraft()
+    setDraft({addressId:next, ...(old.addressId && old.addressId !== next ? {maidId:null,hour:null} : {})})
+    setId(next); setEdit(null)
+  }
+  if (!list) return <Loading />
+  if (address && address.lat != null && address.lng != null && !edit) return <SelectedAddress.Provider value={{address: address.address, change: () => setId(null)}}>{children}</SelectedAddress.Provider>
+  return <div className="page nobar"><TopBar title={th ? 'สถานที่รับบริการ' : 'Service location'} /><div className="pad stack mt16">
+    <h2>{th ? 'ให้แม่บ้านไปที่ไหน?' : 'Where do you need cleaning?'}</h2>
+    {list.map(a => <button key={a.id} className="choice" onClick={() => a.lat == null || a.lng == null ? setEdit(a) : choose(a.id)}><Icon n="pin" /><span><b>{a.label}</b><span className="small muted">{a.address}</span></span></button>)}
+    {edit || !list.length ? <AddressForm key={typeof edit === 'object' ? edit?.id : 'new'} existing={edit && edit !== 'new' ? edit : undefined} onSaved={next => { reload(); choose(next) }} /> :
+      <button className="btn b-line" onClick={() => setEdit('new')}>{t('add_address')}</button>}
+  </div></div>
 }
 
 const TAGS: Key[] = ['tag_pets', 'tag_bath', 'tag_kitchen', 'tag_kids', 'tag_noparking']
 export function BookDetails() {
-  const { t } = useI18n(); const nav = useNavigate(); const { session } = useAuth(); const { list, reload } = useAddresses()
-  const [d, setD] = useState<Draft>(getDraft()); const [adding, setAdding] = useState(false)
-  useEffect(() => { if (list && list.length && !d.addressId) setD(setDraft({ addressId: list[0].id })) }, [list])
-  if (!session) return <div className="page nobar"><TopBar title={t('tell_maid')} /><div className="pad mt20 stack"><div className="infonote">{t('need_login')}</div><button className="btn b-ocean" onClick={() => nav('/login')}>{t('login')}</button></div></div>
+  const { t } = useI18n(); const nav = useNavigate()
+  const [d, setD] = useState<Draft>(getDraft())
   return <div className="page nobar">
     <TopBar title={t('tell_maid')} /><Steps at={2} />
     <div className="pad mt16">
-      <h3 style={{ fontSize: 16, marginBottom: 8 }}>{t('address')}</h3>
-      {!list ? <Loading /> : <div className="stack">{list.map(a => <button key={a.id} className={'choice' + (d.addressId === a.id ? ' on' : '')} onClick={() => setD(setDraft({ addressId: a.id }))}>
-        <Icon n="pin" style={{ color: 'var(--ocean)' }} /><span style={{ flex: 1 }}><b>{a.label}</b><span className="small muted">{a.address}</span></span></button>)}
-        {adding || list.length === 0 ? <AddressForm onSaved={id => { setAdding(false); setD(setDraft({ addressId: id })); reload() }} /> :
-          <button className="link" onClick={() => setAdding(true)}>+ {t('add_address')}</button>}</div>}
       <div className="sec-title">{t('anything')}</div>
       <div className="chips">{TAGS.map(k => <button key={k} className={'chip' + (d.tags.includes(k) ? ' on' : '')} onClick={() => setD(setDraft({ tags: d.tags.includes(k) ? d.tags.filter(x => x !== k) : [...d.tags, k] }))}>{t(k)}</button>)}</div>
       <textarea className="input mt12" value={d.note} placeholder={t('note_ph')} onChange={e => setD(setDraft({ note: e.target.value }))} maxLength={500} />
@@ -210,6 +264,7 @@ export function BookDetails() {
 }
 
 export function BookConfirm() {
+  const location = useContext(SelectedAddress)
   const { t, lang } = useI18n(); const nav = useNavigate(); const { refresh } = useAuth(); const maids = useMaids(); const services = useServices(); const allAddons = useAddons()
   const d = getDraft(); const [usePts, setUsePts] = useState(d.usePoints); const [q, setQ] = useState<Quote2 | null>(null); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
   const [code, setCode] = useState(d.promo); const [promo, setPromo] = useState(d.promo)
@@ -239,6 +294,7 @@ export function BookConfirm() {
   }
   return <div className="page nobar">
     <TopBar title={t('confirm_booking')} /><Steps at={3} />
+    <div className="pad mt12 row"><Icon n="pin" />{location.address}</div>
     <div className="pad mt16 stack">
       <div className="card">
         <div className="row">{m ? <Avatar name={m.nickname} seed={m.id} url={m.photo_url} size={44} /> : <span className="rico"><Icon n="team" /></span>}

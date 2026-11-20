@@ -12,6 +12,7 @@ import imgHero from '../assets/ill/hero.webp'
 import imgClean from '../assets/ill/cleaning.webp'
 import imgSched from '../assets/ill/schedule.webp'
 import imgSafe from '../assets/ill/safety.webp'
+import './Guarantee.css'
 import imgHome from '../assets/ill/chumphon.webp'
 
 export function useDistricts() {
@@ -63,7 +64,7 @@ export function Login() {
   }
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setErr(''); setBusy(true)
-    try { const { error } = await sb.auth.signInWithPassword({ email, password: pw }); if (error) throw error; await refresh(); nav('/') }
+    try { const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password: pw }); if (error) throw error; await refresh(); nav('/', { replace: true }) }
     catch (e2) { setErr(friendly(e2, lang)) } finally { setBusy(false) }
   }
   return <div className="page nobar">
@@ -74,12 +75,12 @@ export function Login() {
       {SOCIAL.map(s => <button key={s.id} className="btn" style={{ background: s.bg, color: s.fg, border: s.bg === '#fff' ? '1.5px solid var(--line)' : 0 }} onClick={() => social(s.id)}>{s.icon}{t('continue_with')} {s.label}</button>)}
       {err && <div className="err">{err}</div>}
       <p className="tiny muted" style={{ textAlign: 'center' }}>{t('login_terms')}</p>
-      <SiteFooter />
-      <button className="link mt16" onClick={() => setShowEmail(!showEmail)}>{t('staff_login')}</button>
+      <button className="btn b-line" aria-expanded={showEmail} onClick={() => setShowEmail(!showEmail)}>{t('staff_login')}</button>
       {showEmail && <form className="stack" onSubmit={submit}>
         <div className="field"><label>{t('email')}</label><input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" /></div>
         <div className="field"><label>{t('password')}</label><input className="input" type="password" value={pw} onChange={e => setPw(e.target.value)} required autoComplete="current-password" /></div>
         <button className="btn b-ocean" disabled={busy}>{t('login')}</button></form>}
+      <SiteFooter />
     </div>
   </div>
 }
@@ -208,8 +209,19 @@ export function Service() {
 
 // หน้าการันตีงาน: เขียนเฉพาะเงื่อนไขที่ระบบทำจริง (ไม่ใช่ประกันภัย)
 export function Guarantee() {
-  const { t } = useI18n(); const [s, setS] = useState<{ claim_cap: number; claim_report_days: number; reschedule_min_hours: number } | null>(null)
-  useEffect(() => { sb.from('settings').select('claim_cap,claim_report_days,reschedule_min_hours').maybeSingle().then(({ data }) => setS(data)) }, [])
+  const { t, lang } = useI18n()
+  const [s, setS] = useState<{ claim_cap: number; claim_report_days: number; reschedule_min_hours: number } | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
+  useEffect(() => {
+    let active = true
+    sb.from('settings').select('claim_cap,claim_report_days,reschedule_min_hours').maybeSingle().then(({ data, error }) => {
+      if (!active) return
+      setS(data)
+      setFailed(Boolean(error || !data))
+    })
+    return () => { active = false }
+  }, [attempt])
   const items: [string, string, string][] = s ? [
     ['team', t('g1'), t('g1d')],
     ['shield', t('g2'), t('g2d').replace('{cap}', money(s.claim_cap)).replace('{days}', String(s.claim_report_days))],
@@ -218,9 +230,19 @@ export function Guarantee() {
     ['wallet', t('g5'), t('cancel_rules')],
   ] : []
   return <div className="page nobar"><TopBar title={t('g_title')} />
-    <div className="pad mt16 stack">
-      {!s ? <Loading /> : items.map(([i, b, d]) => <div key={b} className="card row" style={{ alignItems: 'flex-start' }}>
-        <span className="rico" style={{ background: 'var(--leaf-l)', color: 'var(--leaf)' }}><Icon n={i} /></span><div><b className="disp">{b}</b><div className="small muted">{d}</div></div></div>)}
-      <div className="small muted">{t('g_note')}</div>
-    </div></div>
+    <main className="guarantee-layout">
+      <figure className="guarantee-photo">
+        <img src={imgSafe} alt={lang === 'th' ? 'แม่บ้านคลีนดีในชุดทำงาน' : 'CleenDee housekeeper in uniform'} />
+        <figcaption><Icon n="shield" size={26} /><span>{t('g_short')}</span></figcaption>
+      </figure>
+      <section className="guarantee-terms" aria-label={t('g_title')}>
+        {failed ? <div className="stack" role="status">
+          <p>{lang === 'th' ? 'โหลดเงื่อนไขการันตีไม่สำเร็จ' : 'The guarantee terms could not be loaded.'}</p>
+          <button className="btn b-line" onClick={() => { setFailed(false); setAttempt(n => n + 1) }}>{lang === 'th' ? 'ลองอีกครั้ง' : 'Try again'}</button>
+        </div> : !s ? <Loading /> : items.map(([icon, title, detail]) => <article key={icon}>
+          <span className="rico"><Icon n={icon} /></span><div><h2>{title}</h2><p className="muted">{detail}</p></div>
+        </article>)}
+        <p className="guarantee-note small muted">{t('g_note')}</p>
+      </section>
+    </main></div>
 }

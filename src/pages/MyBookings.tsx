@@ -5,24 +5,20 @@ import 'leaflet/dist/leaflet.css'
 import { sb, friendly, type Booking, type Service } from '../lib/supabase'
 import { useI18n, money, fmtDate, fmtTime, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
-import { setDraft, emptyDraft, bkkToday, startIso } from '../lib/draft'
+import { clearDraft, setDraft, emptyDraft, bkkToday, startIso } from '../lib/draft'
 import { useServices, useAddons, svcName, svcUnit } from '../lib/services'
 import { AdminTabs, Avatar, CustomerTabs, Icon, Loading, MaidTabs, StatusPill, TopBar, useToast } from '../components/ui'
 import { useMaids, AddressForm, useAddresses } from './Book'
 import { CountUp, confetti, relTime, useMinuteTick } from '../lib/fx'
-import { useTheme, BRANDS, BRAND_SWATCH } from '../lib/theme'
+import { useTheme } from '../lib/theme'
 
-// ตัวเลือกธีม: สีหลัก 5 สี + โหมดมืด + เอฟเฟกต์เรืองแสง (เหมือน Seafresh Loader)
 function ThemePicker() {
-  const { t } = useI18n(); const th = useTheme()
-  return <div className="listrow themepick">
-    <span className="rico"><Icon n="star" /></span>
-    <span style={{ flex: 1 }}><b>{t('theme')}</b>
-      <span className="swatches">{BRANDS.map(b => <button key={b} className={'sw-dot' + (th.brand === b ? ' on' : '')} style={{ background: BRAND_SWATCH[b] }} onClick={() => th.set({ brand: b })} aria-label={t(('th_' + b) as Key)} title={t(('th_' + b) as Key)} />)}</span>
-      <span className="row mt8" style={{ gap: 18, flexWrap: 'wrap' }}>
-        <button className="row small" style={{ gap: 8 }} onClick={() => th.set({ dark: !th.dark })}><span className={'sw' + (th.dark ? ' on' : '')} style={{ width: 42, height: 24 }} />{t('dark_mode')}</button>
-        <button className="row small" style={{ gap: 8 }} onClick={() => th.set({ glow: !th.glow })}><span className={'sw' + (th.glow ? ' on' : '')} style={{ width: 42, height: 24 }} />{t('glow')}</button>
-      </span></span></div>
+  const { lang } = useI18n()
+  const { mode, setMode } = useTheme()
+  const labels = lang === 'th' ? ['ตามโทรศัพท์', 'สว่าง', 'มืด'] : ['Device', 'Light', 'Dark']
+  return <div className="listrow"><div><b>{lang === 'th' ? 'รูปแบบการแสดงผล' : 'Appearance'}</b>
+    <div className="chips mt8">{(['system','light','dark'] as const).map((option,i) =>
+      <button key={option} aria-pressed={mode === option} className={'chip' + (mode === option ? ' on' : '')} onClick={() => setMode(option)}>{labels[i]}</button>)}</div></div></div>
 }
 
 const ACTIVE = ['pending_payment', 'payment_review', 'awaiting_maid', 'confirmed', 'on_the_way', 'working', 'payment_rejected']
@@ -257,15 +253,15 @@ export function Receipt() {
 }
 
 function Review({ b, onDone }: { b: Booking; onDone: () => void }) {
-  const { t, lang } = useI18n(); const [r, setR] = useState(5); const [tags, setTags] = useState<string[]>([]); const [c, setC] = useState(''); const [err, setErr] = useState('')
+  const { t, lang } = useI18n(); const [busy, setBusy] = useState(false); const [r, setR] = useState(0); const [tags, setTags] = useState<string[]>([]); const [c, setC] = useState(''); const [err, setErr] = useState('')
   const opts: Key[] = ['r_ontime', 'r_clean', 'r_polite', 'r_detail']
-  const send = async () => { const { error } = await sb.rpc('submit_review', { p_booking_id: b.id, p_rating: r, p_tags: tags, p_comment: c }); if (error) setErr(friendly(error, lang)); else onDone() }
+  const send = async () => { if (busy || !r) return; setBusy(true); const { error } = await sb.rpc('submit_review', { p_booking_id: b.id, p_rating: r, p_tags: tags, p_comment: c }); setBusy(false); if (error) setErr(friendly(error, lang)); else onDone() }
   return <div className="card stack" style={{ textAlign: 'center' }}>
     <b className="disp">{t('s_completed')} — {t('send_review')}</b>
-    <div className="stars">{[1, 2, 3, 4, 5].map(i => <button key={i} className={i <= r ? 'on' : ''} onClick={() => setR(i)} aria-label={String(i)}>★</button>)}</div>
+    <div className="stars">{[1, 2, 3, 4, 5].map(i => <button key={i} className={i <= r ? 'on' : ''} onClick={() => setR(i)} aria-label={lang === 'th' ? i + ' ดาว' : i + ' stars'} aria-pressed={i === r}>★</button>)}</div>
     <div className="chips" style={{ justifyContent: 'center' }}>{opts.map(o => <button key={o} className={'chip' + (tags.includes(o) ? ' on' : '')} onClick={() => setTags(tags.includes(o) ? tags.filter(x => x !== o) : [...tags, o])}>{t(o)}</button>)}</div>
     <textarea className="input" placeholder={t('review_ph')} value={c} onChange={e => setC(e.target.value)} />
-    {err && <div className="err">{err}</div>}<button className="btn b-sun" onClick={send}>{t('send_review')}</button>
+    {err && <div className="err">{err}</div>}<button className="btn b-sun" disabled={!r || busy} onClick={send}>{t('send_review')}</button>
   </div>
 }
 
@@ -331,7 +327,7 @@ export function Account() {
       {profile?.role === 'customer' && <Link to="/maid/apply" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico"><Icon n="team" /></span><span style={{ flex: 1 }}><b>{t('become_maid')}</b>{maidApp && <span className="small muted">{t('m_wait')}</span>}</span><Icon n="next" /></Link>}
       <button className="listrow" onClick={() => setLang(lang === 'th' ? 'en' : 'th')}><span className="rico"><Icon n="chat" /></span><b style={{ flex: 1 }}>{t('language')}: {lang === 'th' ? 'ไทย' : 'English'}</b></button>
       <ThemePicker />
-      <button className="listrow" onClick={async () => { await sb.auth.signOut(); nav('/') }}><span className="rico"><Icon n="logout" /></span><b style={{ flex: 1 }}>{t('logout')}</b></button>
+      <button className="listrow" onClick={async () => { await sb.auth.signOut(); clearDraft(); nav('/') }}><span className="rico"><Icon n="logout" /></span><b style={{ flex: 1 }}>{t('logout')}</b></button>
     </div>
     {profile?.role === 'maid' ? <MaidTabs /> : profile?.role === 'admin' ? <AdminTabs /> : <CustomerTabs />}
   </div>

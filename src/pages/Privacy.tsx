@@ -31,9 +31,10 @@ export function Privacy() {
   const { lang } = useI18n(); const p = TEXT[lang]
   return <div className="page nobar">
     <TopBar title={p.title} back="/" />
-    <div className="pad stack mt20">
-      <p className="tiny muted">{p.updated}</p>
-      {p.sections.map(([h, b]) => <div key={h}><h3>{h}</h3><p>{b}</p></div>)}
-    </div>
+    <article className="privacy-sheet">
+      <header><span className="privacy-brand">CleenDee</span><h1>{p.title}</h1><p className="muted">{p.updated}</p></header>
+      {p.sections.map(([h,b]) => <section key={h}><h2>{h}</h2><p>{b}</p></section>)}
+      <div className="chips"><a className="btn b-line" href="tel:+66936519324">093-651-9324</a><a className="btn b-line" href="tel:+66829390077">082-939-0077</a></div>
+    </article>
   </div>
 }

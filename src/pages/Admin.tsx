@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 import { sb, friendly, type Booking, type Service, type Addon } from '../lib/supabase'
 import { useServices, svcName, svcUnit } from '../lib/services'
 import { useI18n, money, fmtDate, fmtTime } from '../lib/i18n'
@@ -47,13 +47,15 @@ export function AdminHome() {
     [d.maidsPending, t('a_newmaids'), '', 'var(--leaf-l)', 'var(--leaf)'],
   ]
   const refundAll = async (b: Booking) => { const { error } = await sb.rpc('admin_refund_unmatched', { p_booking_id: b.id }); toast.show(error ? friendly(error, lang) : t('saved')); reload() }
-  return <div className="page">
+  return <div className="page admin-overview">
     <div className="hero tall"><div className="between"><span className="sub">{fmtDate(new Date().toISOString(), lang, { weekday: 'long', day: 'numeric', month: 'short' })}</span><LangToggle /></div><h1>{t('a_title')}</h1></div>
     <div className="pad" style={{ marginTop: -54, position: 'relative', zIndex: 2 }}><div className="kpi"><div className="small">{t('a_income')}</div><div className="v">{money(income)} ฿</div>
       <div className="row small mt8"><span><b>{d.month.length}</b> {t('a_jobs')}</span><span><b>{d.maidsTotal}</b> {t('a_maids')}</span></div></div></div>
     <div className="pad"><div className="sec-title">{t('a_todo')}</div>
-      {todo.map(([n, a, b, bg, c]) => <Link key={a} to={a === t('a_newmaids') ? '/admin/maids' : '/admin/money'} className="row" style={{ padding: '11px 0', borderBottom: '1px solid #EDF2F6', color: 'var(--ink)' }}>
-        <span className="n" style={{ background: bg, color: c }}>{n}</span><span style={{ flex: 1 }}><b className="disp">{a}</b>{b && <span className="small muted" style={{ display: 'block' }}>{b}</span>}</span><Icon n="next" /></Link>)}
+      <div className="admin-queues">{todo.map(([n, a, b, bg, c], i) => {
+        const target = ['#unmatched','/admin/money#slips','/admin/money#payouts','/admin/money#refunds','/admin/money#claims','/admin/maids'][i]
+        return <Link key={a} to={target} className="admin-queue"><span className="between"><b>{a}</b><span className="n" style={{background:bg,color:c}}>{n}</span></span>{b && <small>{b}</small>}</Link>
+      })}</div><div id="unmatched" />
       {d.unmatched.length > 0 && <><div className="sec-title">{t('a_unmatched')}</div>{d.unmatched.map(b => <div key={b.id} className="card between mt8">
         <span><b className="disp">#{b.id} {fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}</b><span className="small muted" style={{ display: 'block' }}>{money(b.total_price)} ฿</span></span>
         <button className="btn sm b-red" onClick={() => refundAll(b)}>{t('a_refund_full')}</button></div>)}</>}
@@ -64,6 +66,8 @@ export function AdminHome() {
 
 export function AdminMoney() {
   const { t, lang } = useI18n(); const { d, reload } = useAdminData(); const toast = useToast(); const [sel, setSel] = useState<number[]>([]); const [slipUrl, setSlipUrl] = useState<string | null>(null)
+  const {hash} = useLocation()
+  useEffect(() => { if (d && hash) document.getElementById(hash.slice(1))?.scrollIntoView() }, [hash,d])
   const [claimAmt, setClaimAmt] = useState<Record<number, string>>({})
   if (useAdminGuard()) return <Navigate to="/" />
   if (!d) return <Loading />
@@ -75,7 +79,7 @@ export function AdminMoney() {
       <div className="split"><div style={{ flex: 800, background: 'var(--sun)' }} /><div style={{ flex: 700, background: '#fff' }} /></div>
       <div className="between small"><b style={{ color: 'var(--sun)' }}>{t('tab_maids')} 800</b><b>CleenDee 700 (+20)</b></div></div>
     <div className="pad">
-      <div className="sec-title">{t('a_slips')}</div>
+      <h2 className="desk-heading" id="slips">{t('a_slips')}</h2>
       {d.pays.length === 0 ? <div className="muted">{t('nothing')}</div> : d.pays.map(p => <div key={p.id} className="card mt8">
         <div className="between"><b className="disp">{p.booking_id ? '#' + p.booking_id : 'Package ' + p.package_id}</b><b className="disp" style={{ fontSize: 19 }}>{money(p.amount)}</b></div>
         <div className="small muted">{fmtDate(p.created_at, lang)} {fmtTime(p.created_at)}</div>
@@ -83,17 +87,17 @@ export function AdminMoney() {
           <button className="btn sm b-ocean" style={{ flex: 1 }} onClick={() => run('admin_review_payment', { p_payment_id: p.id, p_approve: true })}>{t('approve')}</button>
           <button className="btn sm b-red" onClick={() => run('admin_review_payment', { p_payment_id: p.id, p_approve: false })}>{t('reject')}</button></div></div>)}
 
-      <div className="between"><div className="sec-title">{t('a_payouts')}</div><button className="link" onClick={() => setSel(d.payouts.map(p => p.payout_id))}>✓ All</button></div>
+      <div className="between"><h2 className="desk-heading" id="payouts">{t('a_payouts')}</h2><button className="link" onClick={() => setSel(d.payouts.map(p => p.payout_id))}>✓ All</button></div>
       {d.payouts.length === 0 ? <div className="muted">{t('nothing')}</div> : d.payouts.map(p => <button key={p.payout_id} className="listrow" style={{ padding: '12px 0' }} onClick={() => setSel(sel.includes(p.payout_id) ? sel.filter(x => x !== p.payout_id) : [...sel, p.payout_id])}>
         <span className={'chk' + (sel.includes(p.payout_id) ? ' on' : '')}>{sel.includes(p.payout_id) && <Icon n="check" size={14} />}</span><Avatar name={p.nickname} size={40} seed={p.nickname} />
         <span style={{ flex: 1 }}><b>{p.nickname}</b><span className="small muted">#{p.booking_id} · {p.bank_name} {p.bank_account}</span></span><b className="disp">{money(p.amount)}</b></button>)}
       {sel.length > 0 && <button className="btn b-sun mt12" onClick={async () => { await run('admin_mark_payouts_done', { p_ids: sel }); setSel([]) }}>{t('a_mark_paid')} {sel.length} ({money(d.payouts.filter(p => sel.includes(p.payout_id)).reduce((a, p) => a + p.amount, 0))} ฿)</button>}
 
-      <div className="sec-title">{t('a_refunds')}</div>
+      <h2 className="desk-heading" id="refunds">{t('a_refunds')}</h2>
       {d.refunds.length === 0 ? <div className="muted">{t('nothing')}</div> : d.refunds.map(r => <div key={r.id} className="card between mt8"><span><b className="disp">#{r.booking_id}</b> <span className="small muted">{money(r.amount)} ฿{r.points_returned ? ` + ${r.points_returned} pts` : ''}</span></span>
         <button className="btn sm b-line" onClick={() => run('admin_mark_refund_done', { p_id: r.id })}>{t('a_mark_refunded')}</button></div>)}
 
-      <div className="sec-title">{t('a_claims')}</div>
+      <h2 className="desk-heading" id="claims">{t('a_claims')}</h2>
       {d.claims.length === 0 ? <div className="muted">{t('nothing')}</div> : d.claims.map(c => <div key={c.id} className="card mt8 stack">
         <div className="between"><b className="disp">#{c.booking_id}: {c.item}</b><span className="pill p-sun">{fmtDate(c.created_at, lang)}</span></div>
         {c.description && <div className="small">{c.description}</div>}

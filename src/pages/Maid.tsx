@@ -4,7 +4,8 @@ import { sb, friendly, type Booking } from '../lib/supabase'
 import { useI18n, money, fmtDate, fmtTime, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { bkkToday } from '../lib/draft'
-import { Icon, LangToggle, Loading, MaidTabs, StatusPill, TopBar, useToast } from '../components/ui'
+import maidPortrait from '../assets/ill/safety.webp'
+import { Avatar, Icon, LangToggle, Loading, MaidTabs, StatusPill, TopBar, useToast } from '../components/ui'
 import { Chat, JobProof } from './MyBookings'
 import { useServices, useAddons, svcName, svcUnit } from '../lib/services'
 import { useDistricts } from './Start'
@@ -24,6 +25,33 @@ function useMaidData() {
   return { mine, open, payouts, reload: load }
 }
 
+function MaidPhoto({id, name}: {id:string; name:string}) {
+  const {lang} = useI18n(); const th = lang === 'th'
+  const [url,setUrl] = useState<string | null>(null)
+  const [busy,setBusy] = useState(false); const [message,setMessage] = useState('')
+  useEffect(() => { sb.from('maids').select('photo_url').eq('id',id).maybeSingle().then(({data}) => setUrl(data?.photo_url ?? null)) },[id])
+  const upload = async (file?:File) => {
+    if (!file || busy) return
+    const formats: Record<string,string> = {'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}
+    if (!formats[file.type] || file.size > 5*1024*1024) {setMessage(th ? 'เลือกรูป JPG, PNG หรือ WebP ขนาดไม่เกิน 5 MB' : 'Choose a JPG, PNG or WebP up to 5 MB');return}
+    setBusy(true); setMessage('')
+    try {
+      const bucket = sb.storage.from('avatars')
+      const path = id+'/'+crypto.randomUUID()+'.'+formats[file.type]
+      const result = await bucket.upload(path,file,{contentType:file.type})
+      if (result.error) throw result.error
+      const photo = bucket.getPublicUrl(path).data.publicUrl
+      const saved = await sb.from('maids').update({photo_url:photo}).eq('id',id).select('id').single()
+      if (saved.error) throw saved.error
+      setUrl(photo); setMessage(th ? 'บันทึกรูปแล้ว' : 'Photo saved')
+    } catch (e) { setMessage(friendly(e,lang)) } finally { setBusy(false) }
+  }
+  return <div><label className="photo-control"><Avatar name={name} url={url} seed={id} size={54} />
+    <span>{busy ? '…' : th ? 'เปลี่ยนรูปโปรไฟล์' : 'Change profile photo'}</span>
+    <input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={e => {void upload(e.target.files?.[0]);e.target.value=''}} /></label>
+    <small role="status">{message}</small></div>
+}
+
 export function MaidHome() {
   const { t, lang } = useI18n(); const { profile } = useAuth(); const { mine, open, payouts, reload } = useMaidData(); const toast = useToast(); const districts = useDistricts()
   const [nick, setNick] = useState('')
@@ -36,9 +64,11 @@ export function MaidHome() {
   const dn = (id: number) => { const d = districts.find(x => x.id === id); return d ? (lang === 'th' ? 'อ.' + d.name_th : d.name_en) : '' }
   const act = async (fn: string, args: object) => { const { error } = await sb.rpc(fn, args); if (error) toast.show(friendly(error, lang)); reload() }
   return <div className="page">
-    <div className="hero tall"><div className="between"><span className="sub">{t('hello')}</span><LangToggle /></div><h1>{nick || profile?.full_name}</h1></div>
+    <div className="hero tall"><div className="between"><span className="sub">{t('hello')}</span><LangToggle /></div><div className="between"><h1>{nick || profile?.full_name}</h1>{profile?.role === 'maid' && <MaidPhoto id={profile.id} name={nick || profile.full_name || 'C'} />}</div></div>
     <div className="pad" style={{ marginTop: -50, position: 'relative', zIndex: 2 }}><div className="earn"><div><span>{t('m_month')}</span><b>{money(earned)} ฿</b></div><div style={{ background: 'var(--sun)' }}><span style={{ color: 'var(--ink)' }}>{t('m_pending')}</span><b>{money(pending)} ฿</b></div></div></div>
     <div className="pad mt16 stack">
+      <div className="desk-nav"><a href="#maid-offers">{lang === 'th' ? 'รอตอบรับ' : 'Offers'} <b>{req.length + open.length}</b></a><a href="#maid-active">{t('m_my_jobs')} <b>{jobs.length}</b></a></div>
+      <h2 id="maid-offers" className="desk-heading">{lang === 'th' ? 'งานที่รอตอบรับ' : 'Job offers'}</h2>
       {open.map(b => <div key={b.id} className="urgent"><span className="rico" style={{ background: '#fff', color: 'var(--brick)' }}><Icon n="clock" /></span>
         <span style={{ flex: 1 }}><b className="disp">{t('m_urgent')} {fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}</b><span className="small" style={{ display: 'block', color: '#8A3324' }}>{dn(b.district_id)} · {money(b.maid_payout)} ฿</span><JobInfo b={b} dark={false} /></span>
         <button className="btn sm b-red" onClick={() => act('maid_take_job', { p_booking_id: b.id })}>{t('m_take')}</button></div>)}
@@ -51,7 +81,7 @@ export function MaidHome() {
         <div className="row mt12"><button className="btn b-sun" style={{ flex: 2 }} onClick={() => act('maid_respond', { p_booking_id: b.id, p_accept: true })}>{t('m_accept')}</button>
           <button className="btn b-dark2" style={{ flex: 1 }} onClick={() => act('maid_respond', { p_booking_id: b.id, p_accept: false })}>{t('m_reject')}</button></div></div>)}
       {open.length === 0 && req.length === 0 && <div className="empty muted">{t('m_no_jobs')}</div>}
-      <div className="sec-title">{t('m_my_jobs')}</div>
+      <h2 id="maid-active" className="desk-heading">{t('m_my_jobs')}</h2>
       {!mine ? <Loading /> : jobs.length === 0 ? <div className="muted">{t('nothing')}</div> : jobs.map(b => <Link key={b.id} to={'/maid/job/' + b.id} className="card row" style={{ color: 'var(--ink)' }}>
         <div style={{ width: 56, textAlign: 'center', background: 'var(--foam)', borderRadius: 14, padding: '6px 0' }}><div className="tiny muted">{fmtDate(b.start_at, lang, { weekday: 'short' })}</div><b className="disp" style={{ fontSize: 21 }}>{fmtDate(b.start_at, lang, { day: 'numeric' })}</b></div>
         <span style={{ flex: 1 }}><b className="disp">{fmtTime(b.start_at)}–{fmtTime(b.end_at)}</b><span className="small muted" style={{ display: 'block' }}>{dn(b.district_id)}</span></span><StatusPill s={b.status} /></Link>)}
@@ -121,8 +151,8 @@ function JobPhotos({ b }: { b: Booking }) {
 
 export function MaidJob() {
   const { id } = useParams(); const { t, lang } = useI18n(); const nav = useNavigate(); const toast = useToast()
-  const [b, setB] = useState<Booking | null>(null); const [addr, setAddr] = useState<{ address: string } | null>(null)
-  const load = () => { sb.from('bookings').select('*').eq('id', id!).single().then(({ data }) => setB(data as Booking)); sb.from('booking_addresses').select('address').eq('booking_id', id!).maybeSingle().then(({ data }) => setAddr(data)) }
+  const [b, setB] = useState<Booking | null>(null); const [addr, setAddr] = useState<{ address: string; lat:number|null; lng:number|null } | null>(null)
+  const load = () => { sb.from('bookings').select('*').eq('id', id!).single().then(({ data }) => setB(data as Booking)); sb.from('booking_addresses').select('address,lat,lng').eq('booking_id', id!).maybeSingle().then(({ data }) => setAddr(data)) }
   useEffect(load, [id])
   useEffect(() => {
     if (b?.status !== 'on_the_way' || !navigator.geolocation) return
@@ -141,7 +171,8 @@ export function MaidJob() {
   return <div className="page nobar">
     <div className="hero"><div className="between"><button className="back" onClick={() => nav('/maid')} aria-label="Back"><Icon n="back" /></button><LangToggle /></div>
       <div className="sub mt12">{fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}–{fmtTime(b.end_at)}</div><h1>{money(b.maid_payout)} {t('baht')}</h1>
-      {addr && <div className="sub" style={{ display: 'flex', gap: 6 }}><Icon n="pin" size={16} />{addr.address}</div>}</div>
+      {addr && <div className="sub" style={{ display: 'flex', gap: 6 }}><Icon n="pin" size={16} />{addr.address}</div>}
+      {addr?.lat != null && addr.lng != null && <a className="btn b-glass mt8" href={'https://www.google.com/maps/dir/?api=1&destination='+addr.lat+','+addr.lng} target="_blank" rel="noreferrer">{lang === 'th' ? 'เปิดเส้นทางไปบ้านลูกค้า' : 'Get directions'}</a>}</div>
     <div className="pad mt20">
       {steps.map(([k, d], i) => <div key={k} className="sv-step"><div className="rail"><div className={'c' + (i < idx + 1 ? '' : i === idx + 1 ? ' now' : ' off')}>{i <= idx && <Icon n="check" size={15} />}</div>{i < 3 && <div className={'l' + (i < idx + 1 ? '' : ' off')} />}</div>
         <div className="txt"><b style={{ color: i <= idx + 1 ? 'var(--ink)' : 'var(--ink3)' }}>{t(k)}</b>{d && i === idx + 1 && <span className="small muted">{t(d)}</span>}</div></div>)}
@@ -210,7 +241,8 @@ export function MaidApply() {
   const submit = async () => { const { error } = await sb.from('maids').insert({ id: session.user.id, ...f }); if (error) setErr(friendly(error, lang)); else setDone(true) }
   return <div className="page nobar"><TopBar title={t('m_apply_t')} />
     {done ? <div className="pad mt20"><div className="ok-note"><Icon n="check" />{t('m_wait')}</div><button className="btn b-ghost mt16" onClick={() => nav('/')}>{t('tab_home')}</button></div> :
-      <div className="pad mt16 stack"><div className="infonote">{t('m_apply_d')}</div>
+      <div className="pad mt16 stack"><header className="join-banner"><div><h2>{lang === 'th' ? 'ร่วมงานกับ CleenDee' : 'Work with CleenDee'}</h2><p>{t('m_apply_d')}</p></div><img src={maidPortrait} alt="" /></header>
+        <h3 className="desk-heading">{lang === 'th' ? 'ข้อมูลผู้สมัคร' : 'Your application'}</h3>
         {([['nickname', 'm_nick'], ['bio', 'm_bio'], ['bank_name', 'm_bank_name'], ['bank_account', 'm_bank_acc']] as const).map(([k, l]) =>
           <div key={k} className="field"><label>{t(l)}</label><input className="input" value={f[k]} onChange={e => setF({ ...f, [k]: e.target.value })} /></div>)}
         <div className="field"><label>{t('district')}</label><select className="input" value={f.district_id} onChange={e => setF({ ...f, district_id: Number(e.target.value) })}>{districts.map(d => <option key={d.id} value={d.id}>{lang === 'th' ? d.name_th : d.name_en}</option>)}</select></div>
