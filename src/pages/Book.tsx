@@ -1,3 +1,5 @@
+import { bookingStep } from '../lib/bookingMetrics'
+import { SlotAlternatives } from '../components/SlotAlternatives'
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { addressForPin } from '../lib/pinAddress'
 import { MAX_PIN_ERROR_METERS, type DeviceFix } from '../lib/deviceLocation'
@@ -169,13 +171,25 @@ export function BookTime() {
   const hours = jobHours(s, qty, chosen)
   const [slots, setSlots] = useState<{ h: number; urgent: boolean }[] | null>(null)
   const [q, setQ] = useState<Quote2 | null>(null)
+  const [slotError, setSlotError] = useState(false)
+  const [retry, setRetry] = useState(0)
+  const [loadedKey, setLoadedKey] = useState('')
+  const slotKey = JSON.stringify([date, d.maidId, s?.code, hours, d.plan])
   useEffect(() => {
     if (!s) return
-    setSlots(null)
-    sb.rpc('available_slots_v2', { p_date: date, p_maid: d.maidId, p_service_code: s.code, p_hours: hours })
-      .then(({ data }) => setSlots(((data as { start_time: string; urgent: boolean }[]) || []).map(x => ({ h: Number(x.start_time.slice(0, 2)), urgent: x.urgent }))))
-  }, [date, d.maidId, s?.code, hours])
-  const picked = d.hour !== null && d.date === date ? slots?.find(x => x.h === d.hour) : undefined
+    let active = true
+    setSlots(null); setSlotError(false)
+    sb.rpc('booking_times', { p_date: date, p_maid: d.maidId, p_service_code: s.code, p_hours: hours, p_plan: d.plan })
+      .then(({ data, error }) => {
+        if (!active) return
+        setSlotError(!!error); setLoadedKey(slotKey)
+        const rows = (data ?? []) as { start_time: string; urgent: boolean }[]
+        setSlots(rows.map(x => ({ h: Number(x.start_time.slice(0, 2)), urgent: x.urgent })))
+        if (!error && !rows.length && (!isPkg || d.maidId)) void bookingStep(s.code, 'full')
+      })
+    return () => { active = false }
+  }, [slotKey, retry])
+  const picked = loadedKey === slotKey && d.hour !== null && d.date === date ? slots?.find(x => x.h === d.hour) : undefined
   useEffect(() => {
     if (!s || isPkg) return
     sb.rpc('quote_booking_v2', { p_service_code: s.code, p_qty: qty, p_addons: d.addons, p_chose_maid: !!d.maidId, p_start_at: picked ? startIso(date, picked.h) : null })
@@ -235,7 +249,11 @@ export function BookTime() {
           <small>{fmtDate(x + 'T12:00:00+07:00', lang, { weekday: 'short' })}</small><b>{Number(x.slice(8))}</b>
         </button>)}</div>
         <h2>{t('start_time')}</h2>
-        {!slots ? <Loading /> : slots.length === 0 ? <div className="empty muted">{t('no_slots')}</div> :
+        {loadedKey !== slotKey || !slots ? <Loading /> : slotError ? <button className="btn b-line" onClick={() => setRetry(n => n+1)}>{lang === 'th' ? 'โหลดคิวไม่สำเร็จ · ลองอีกครั้ง' : 'Could not load times · Retry'}</button> :
+          slots.length === 0 ? (pkgBlocked ? <p>{t('pkg_need_maid')}</p> : <SlotAlternatives key={slotKey} date={date} maid={d.maidId} service={s.code} hours={hours} plan={d.plan} choose={row => {
+            void bookingStep(s.code, 'alternative')
+            setD(setDraft({ date: row.visit_date, hour: Number(row.slot_time.slice(0, 2)), maidId: row.helper_id }))
+          }} />) :
           <div className="tgrid">{slots.map(x => <button key={x.h} aria-pressed={picked?.h === x.h} className={'tc' + (picked?.h === x.h ? ' on' : '')} onClick={() => setD(setDraft({ date, hour: x.h }))}>
             {String(x.h).padStart(2, '0')}:00{x.urgent && <span className="tiny booking-urgent">{t('urgent_tag')}</span>}
           </button>)}</div>}
@@ -373,10 +391,10 @@ export function BookConfirm() {
     try {
       if (d.plan === 'once') {
         const { data, error } = await sb.rpc('create_booking_v2', { p_service_code: d.service, p_qty: d.qty, p_addons: d.addons, p_maid_id: d.maidId, p_start_at: start, p_address_id: d.addressId, p_note: d.note, p_tags: d.tags, p_use_points: usePts, p_promo: promo || null })
-        if (error) throw error; clearDraft(); await refresh(); nav('/pay/booking/' + data, { replace: true })
+        if (error) throw error; void bookingStep(d.service, 'booked', Number(data)); clearDraft(); await refresh(); nav('/pay/booking/' + data, { replace: true })
       } else {
         const { data, error } = await sb.rpc('create_package', { p_plan: d.plan, p_maid_id: d.maidId, p_first_start: start, p_address_id: d.addressId, p_note: d.note, p_tags: d.tags })
-        if (error) throw error; clearDraft(); nav('/pay/package/' + data, { replace: true })
+        if (error) throw error; void bookingStep(d.service, 'booked', Number(data), true); clearDraft(); nav('/pay/package/' + data, { replace: true })
       }
     } catch (e) { setErr(friendly(e, lang)) } finally { setBusy(false) }
   }

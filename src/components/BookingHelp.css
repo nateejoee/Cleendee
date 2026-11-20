@@ -1,0 +1,12 @@
+.cd-help { display: grid; gap: 12px; margin-block: 20px; min-width: 0; }
+.cd-help h2 { margin: 0; font-size: 1.12rem; line-height: 1.45; }
+.cd-help p { margin: 0; }
+.cd-faq { gap: 0; }
+.cd-faq h2 { margin-bottom: 8px; }
+.cd-faq details { border-bottom: 1px solid var(--line); padding: 12px 0; }
+.cd-faq summary { cursor: pointer; font-weight: 600; }
+.cd-faq details[open] p { margin: 8px 0; }
+.cd-arrival-code { font: 600 1.25rem monospace; letter-spacing: .09em; overflow-wrap: anywhere; }
+.cd-arrival-qr { justify-self: center; background: white; padding: 12px; max-width: 100%; }
+.cd-arrival-qr svg { display: block; max-width: 100%; height: auto; }
+.cd-help .btn { white-space: normal; height: auto; min-height: 44px; }

@@ -1,3 +1,4 @@
+import { Arrival } from '../components/Arrival'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { sb, friendly, type Booking } from '../lib/supabase'
@@ -167,7 +168,7 @@ export function MaidJob() {
   }
   const idx = ['confirmed', 'on_the_way', 'working', 'completed'].indexOf(b.status)
   const steps: [Key, Key | null][] = [['m_step1', null], ['m_step2', 'm_step2d'], ['m_step3', null], ['m_step4', null]]
-  const next = b.status === 'confirmed' ? ['on_the_way', t('m_start_trip')] : b.status === 'on_the_way' ? ['working', t('m_arrived')] : b.status === 'working' ? ['completed', t('m_done')] : null
+  const next = b.status === 'confirmed' ? ['on_the_way', t('m_start_trip')] : b.status === 'working' ? ['completed', t('m_done')] : null
   return <div className="page nobar">
     <div className="hero"><div className="between"><button className="back" onClick={() => nav('/maid')} aria-label="Back"><Icon n="back" /></button><LangToggle /></div>
       <div className="sub mt12">{fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}–{fmtTime(b.end_at)}</div><h1>{money(b.maid_payout)} {t('baht')}</h1>
@@ -176,6 +177,7 @@ export function MaidJob() {
     <div className="pad mt20">
       {steps.map(([k, d], i) => <div key={k} className="sv-step"><div className="rail"><div className={'c' + (i < idx + 1 ? '' : i === idx + 1 ? ' now' : ' off')}>{i <= idx && <Icon n="check" size={15} />}</div>{i < 3 && <div className={'l' + (i < idx + 1 ? '' : ' off')} />}</div>
         <div className="txt"><b style={{ color: i <= idx + 1 ? 'var(--ink)' : 'var(--ink3)' }}>{t(k)}</b>{d && i === idx + 1 && <span className="small muted">{t(d)}</span>}</div></div>)}
+      {b.status === 'on_the_way' && <Arrival key={b.id} booking={b} side="helper" reload={load} />}
       <Checklist b={b} onSaved={load} />
       <JobPhotos b={b} />
       {(b.note || b.tags.length > 0) && <div className="infonote mt16"><Icon n="chat" /><div><b className="disp">{t('m_customer_note')}</b><div>{b.tags.map(x => t(x as Key)).join(' · ')}</div><div>{b.note}</div></div></div>}

@@ -121,7 +121,7 @@ export function Loading() {
 // หน้าสำหรับคนที่ยังไม่เข้าสู่ระบบ (แบบแอป bTaskee): รูป + ข้อความ + ปุ่ม "เข้าสู่ระบบตอนนี้"
 export function LoginWall({ title, text, img, tabs = true }: { title: string; text: string; img: string; tabs?: boolean }) {
   const { t } = useI18n(); const loc = useLocation(); const nav = useNavigate()
-  const go = () => { try { sessionStorage.setItem('cd_next', loc.pathname + loc.search) } catch { /* ignore */ } nav('/login') }
+  const go = () => { try { sessionStorage.setItem('cd_next', loc.pathname + loc.search + loc.hash) } catch { /* ignore */ } nav('/login') }
   return <div className={'page' + (tabs ? '' : ' nobar')}>
     {tabs ? <div className="hero"><h1>{title}</h1></div> : <TopBar title={title} />}
     <div className="lwall"><img src={img} alt="" /><p>{text}</p>

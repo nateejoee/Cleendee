@@ -1,3 +1,5 @@
+import { ServiceFAQ, HoursGuide } from '../components/ServiceGuide'
+import { bookingStep } from '../lib/bookingMetrics'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { sb, friendly, type District } from '../lib/supabase'
@@ -180,6 +182,9 @@ export function Home() {
 export function Service() {
   const { t, lang } = useI18n(); const nav = useNavigate(); const { code = 'general_cleaning' } = useParams(); const services = useServices()
   const s = services?.find(x => x.code === code)
+  useEffect(() => { if (s?.active) void bookingStep(s.code, 'view') }, [s?.active, s?.code])
+  const [estimate, setEstimate] = useState<number | null>(null)
+  const book = (qty: number | null = s?.code === 'general_cleaning' ? estimate : null) => { setDraft({ ...emptyDraft, service: code, qty }); nav('/book') }
   if (!services) return <Loading />
   if (!s || !s.active) return <div className="page nobar"><TopBar title={t('services')} /><div className="pad mt20"><div className="empty muted">{t('service_closed')}</div></div></div>
   const inc = lang === 'th' ? s.included_th : s.included_en, exc = lang === 'th' ? s.excluded_th : s.excluded_en
@@ -195,13 +200,15 @@ export function Service() {
         {t('min_qty')} {s.min_qty}{'\u00a0'}{svcUnit(s, lang)} · {money(s.min_qty * s.price_per_unit)}{'\u00a0'}{t('baht')}
       </div>
       <div className="small muted">{money(s.price_per_unit)} {t('baht')} / {svcUnit(s, lang)}</div>
+      {s.code === 'general_cleaning' && s.pricing === 'hourly' && <HoursGuide service={s} onBook={book} onEstimate={setEstimate} />}
       <div className="stack mt12">{ben.map(([i, b, d]) => <div key={b} className="row" style={{ alignItems: 'flex-start' }}>
         <span className="rico" style={{ background: 'var(--sun-l)', color: '#8A6200' }}><Icon n={i} /></span><div><b className="disp">{b}</b><div className="small muted">{d}</div></div></div>)}</div>
       {inc.length > 0 && <><div className="sec-title">{t('included')}</div><div className="stack">{inc.map(x => <div key={x} className="row small"><Icon n="check" size={18} style={{ color: 'var(--leaf)' }} />{x}</div>)}</div></>}
       {exc.length > 0 && <><div className="sec-title">{t('not_included')}</div><div className="stack">{exc.map(x => <div key={x} className="row small muted"><span style={{ width: 18, textAlign: 'center', color: 'var(--brick)' }}>✕</span>{x}</div>)}</div></>}
+      <ServiceFAQ general={s.code === 'general_cleaning'} onBook={() => book()} />
       <div className="infonote mt16"><Icon n="clock" />{t('cancel_rules')}</div>
       <Link to="/guarantee" className="link mt12" style={{ display: 'inline-block' }}>{t('g_title')} →</Link>
     </div>
-    <div className="bottom-bar"><button className="btn b-sun" onClick={() => { setDraft({ ...emptyDraft, service: s.code }); nav('/book') }}>{t('book_now')}</button></div>
+    <div className="bottom-bar"><button className="btn b-sun" onClick={() => book()}>{t('book_now')}</button></div>
   </div>
 }

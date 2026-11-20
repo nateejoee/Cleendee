@@ -1,3 +1,4 @@
+import { Arrival } from '../components/Arrival'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { MapContainer, TileLayer, CircleMarker } from 'react-leaflet'
@@ -123,6 +124,7 @@ export function BookingDetail() {
   return <div className="page nobar">
     <TopBar title={t('details')} back="/bookings" />
     <div className="pad mt16 stack">
+      {b.maid_id && ['confirmed','on_the_way'].includes(b.status) && <Arrival key={b.id} booking={b} helper={m} side="customer" reload={load} />}
       {b.status === 'on_the_way' && <Track bookingId={b.id} home={addr?.lat && addr?.lng ? [addr.lat, addr.lng] : null} />}
       <div className="ticket">
         <div className="between"><StatusPill s={b.status} />{m && <Avatar name={m.nickname} seed={m.id} url={m.photo_url} size={40} />}</div>

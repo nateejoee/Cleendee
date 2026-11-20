@@ -1,3 +1,4 @@
+import { FunnelReport } from '../components/FunnelReport'
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { sb, friendly, type Booking, type Service, type Addon } from '../lib/supabase'
@@ -57,7 +58,7 @@ export function AdminHome() {
       <div className="admin-queues">{todo.map(([n, a, b, bg, c], i) => {
         const target = ['#unmatched','/admin/money#slips','/admin/money#payouts','/admin/money#refunds','/admin/money#claims','/admin/maids'][i]
         return <Link key={a} to={target} className="admin-queue"><span className="between"><b>{a}</b><span className="n" style={{background:bg,color:c}}>{n}</span></span>{b && <small>{b}</small>}</Link>
-      })}</div><div id="unmatched" />
+      })}</div><FunnelReport /><div id="unmatched" />
       {d.unmatched.length > 0 && <><div className="sec-title">{t('a_unmatched')}</div>{d.unmatched.map(b => <div key={b.id} className="card between mt8">
         <span><b className="disp">#{b.id} {fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}</b><span className="small muted" style={{ display: 'block' }}>{money(b.total_price)} ฿</span></span>
         <button className="btn sm b-red" onClick={() => refundAll(b)}>{t('a_refund_full')}</button></div>)}</>}
