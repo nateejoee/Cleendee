@@ -359,7 +359,7 @@ export function BookingLocation({children}: {children: ReactNode}) {
       </button>
         {hasPrecisePin(a) && <button className="link" onClick={() => setEdit(a)}>{th ? 'ปรับหมุดของ ' : 'Adjust pin for '}{a.label}</button>}
       </div>)}
-      {edit || !list.length ? <AddressForm key={typeof edit === 'object' ? edit?.id : 'new'} existing={edit && edit !== 'new' ? edit : undefined} onSaved={next => { reload(); choose(next) }} /> :
+      {edit || !list.length ? <AddressForm key={typeof edit === 'object' ? edit?.id : 'new'} existing={edit && edit !== 'new' ? edit : undefined} onSaved={next => { reload(); choose(next) }} onDeleted={() => { const gone = typeof edit === 'object' && edit ? edit.id : null; if (gone && getDraft().addressId === gone) { setDraft({addressId:null,maidId:null,hour:null}); setId(null) } setEdit(null); reload() }} /> :
         <button className="btn b-line" onClick={() => setEdit('new')}><Icon n="plus" size={17} />{t('add_address')}</button>}
     </section>
   </BookingLayout>
