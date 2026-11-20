@@ -1,13 +1,13 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { I18nProvider, localStorageGet } from './lib/i18n'
 import { AuthProvider, useAuth } from './lib/auth'
-import { Onboarding, Login, Home, Service, Guarantee } from './pages/Start'
+import { Onboarding, Login, Home, Service } from './pages/Start'
 import { BookingLocation, BookMaid, MaidProfile, BookTime, BookDetails, BookConfirm, Pay } from './pages/Book'
 import { Bookings, BookingDetail, Receipt, Claim, Messages, Account, Addresses, Favorites } from './pages/MyBookings'
 import { MaidHome, MaidJob, MaidAvailability, MaidIncome, MaidApply } from './pages/Maid'
-import { AdminHome, AdminMoney, AdminMaids, AdminSettings } from './pages/Admin'
+import { AdminHome, AdminMoney, AdminMaids, AdminSettings, AdminPublicPages } from './pages/Admin'
 import { Loading, LoginWall } from './components/ui'
-import { Privacy } from './pages/Privacy'
+import { Guarantee, Privacy } from './pages/PublicPages'
 import { ThemeProvider } from './lib/theme'
 import { Motion, TopProgress, BackToTop, OfflineBar } from './lib/fx'
 import { useI18n, type Key } from './lib/i18n'
@@ -74,6 +74,7 @@ export default function App() {
       <Route path="/admin/money" element={<Member title="tab_money" text="lw_page"><AdminMoney /></Member>} />
       <Route path="/admin/maids" element={<Member title="tab_maids" text="lw_page"><AdminMaids /></Member>} />
       <Route path="/admin/settings" element={<Member title="tab_settings" text="lw_page"><AdminSettings /></Member>} />
+      <Route path="/admin/settings/pages" element={<Member title="tab_settings" text="lw_page"><AdminPublicPages /></Member>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   </div></BrowserRouter></AuthProvider></ThemeProvider></I18nProvider>

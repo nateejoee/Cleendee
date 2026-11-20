@@ -12,7 +12,6 @@ import imgHero from '../assets/ill/hero.webp'
 import imgClean from '../assets/ill/cleaning.webp'
 import imgSched from '../assets/ill/schedule.webp'
 import imgSafe from '../assets/ill/safety.webp'
-import './Guarantee.css'
 import imgHome from '../assets/ill/chumphon.webp'
 
 export function useDistricts() {
@@ -205,44 +204,4 @@ export function Service() {
     </div>
     <div className="bottom-bar"><button className="btn b-sun" onClick={() => { setDraft({ ...emptyDraft, service: s.code }); nav('/book') }}>{t('book_now')}</button></div>
   </div>
-}
-
-// หน้าการันตีงาน: เขียนเฉพาะเงื่อนไขที่ระบบทำจริง (ไม่ใช่ประกันภัย)
-export function Guarantee() {
-  const { t, lang } = useI18n()
-  const [s, setS] = useState<{ claim_cap: number; claim_report_days: number; reschedule_min_hours: number } | null>(null)
-  const [failed, setFailed] = useState(false)
-  const [attempt, setAttempt] = useState(0)
-  useEffect(() => {
-    let active = true
-    sb.from('settings').select('claim_cap,claim_report_days,reschedule_min_hours').maybeSingle().then(({ data, error }) => {
-      if (!active) return
-      setS(data)
-      setFailed(Boolean(error || !data))
-    })
-    return () => { active = false }
-  }, [attempt])
-  const items: [string, string, string][] = s ? [
-    ['team', t('g1'), t('g1d')],
-    ['shield', t('g2'), t('g2d').replace('{cap}', money(s.claim_cap)).replace('{days}', String(s.claim_report_days))],
-    ['check', t('g3'), t('g3d')],
-    ['cal', t('g4'), t('g4d').replace('{h}', String(s.reschedule_min_hours))],
-    ['wallet', t('g5'), t('cancel_rules')],
-  ] : []
-  return <div className="page nobar"><TopBar title={t('g_title')} />
-    <main className="guarantee-layout">
-      <figure className="guarantee-photo">
-        <img src={imgSafe} alt={lang === 'th' ? 'แม่บ้านคลีนดีในชุดทำงาน' : 'CleenDee housekeeper in uniform'} />
-        <figcaption><Icon n="shield" size={26} /><span>{t('g_short')}</span></figcaption>
-      </figure>
-      <section className="guarantee-terms" aria-label={t('g_title')}>
-        {failed ? <div className="stack" role="status">
-          <p>{lang === 'th' ? 'โหลดเงื่อนไขการันตีไม่สำเร็จ' : 'The guarantee terms could not be loaded.'}</p>
-          <button className="btn b-line" onClick={() => { setFailed(false); setAttempt(n => n + 1) }}>{lang === 'th' ? 'ลองอีกครั้ง' : 'Try again'}</button>
-        </div> : !s ? <Loading /> : items.map(([icon, title, detail]) => <article key={icon}>
-          <span className="rico"><Icon n={icon} /></span><div><h2>{title}</h2><p className="muted">{detail}</p></div>
-        </article>)}
-        <p className="guarantee-note small muted">{t('g_note')}</p>
-      </section>
-    </main></div>
 }

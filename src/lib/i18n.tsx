@@ -172,12 +172,14 @@ const D = {
 } as const
 export type Key = keyof typeof D.th
 
+export function translate(lang: Lang, key: Key) { return D[lang][key] ?? D.th[key] ?? key }
+
 const Ctx = createContext<{ lang: Lang; setLang: (l: Lang) => void; t: (k: Key) => string }>({ lang: 'th', setLang: () => {}, t: k => k })
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLang] = useState<Lang>(() => (localStorageGet('cd_lang') as Lang) || (navigator.language?.startsWith('th') ? 'th' : 'en') /* ลูกค้าต่างชาติ: เครื่องไม่ใช่ภาษาไทย เปิดมาเป็นอังกฤษ */)
   useEffect(() => { localStorageSet('cd_lang', lang); document.documentElement.lang = lang }, [lang])
-  const t = (k: Key) => D[lang][k] ?? D.th[k] ?? k
+  const t = (k: Key) => translate(lang, k)
   return <Ctx.Provider value={{ lang, setLang, t }}>{children}</Ctx.Provider>
 }
 export const useI18n = () => useContext(Ctx)

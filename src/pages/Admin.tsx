@@ -6,6 +6,8 @@ import { useI18n, money, fmtDate, fmtTime } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { AdminTabs, Avatar, Icon, LangToggle, Loading, StatusPill, useToast } from '../components/ui'
 
+import { PublicPageEditor } from './PublicPageEditor'
+
 function useAdminGuard() { const { profile, ready } = useAuth(); return ready && profile?.role !== 'admin' }
 
 type Pay = { id: number; booking_id: number | null; package_id: number | null; amount: number; slip_path: string | null; created_at: string }
@@ -140,6 +142,7 @@ export function AdminSettings() {
   const save = async () => { const { error } = await sb.rpc('admin_set_promptpay', { p_id: id.replace(/\D/g, ''), p_name: name }); toast.show(error ? friendly(error, lang) : t('saved')) }
   return <div className="page"><div className="hero"><div className="between"><h1>{t('tab_settings')}</h1><LangToggle /></div></div>
     <div className="pad mt16 stack">
+      <Link to="/admin/settings/pages" className="btn b-line"><Icon n="grid" size={18} />{lang === 'th' ? 'จัดการการันตีและนโยบายความเป็นส่วนตัว' : 'Manage guarantee and privacy pages'}</Link>
       <div className="field"><label>{t('a_pp')}</label><input className="input" inputMode="numeric" value={id} onChange={e => setId(e.target.value)} placeholder="08xxxxxxxx / 13 หลัก" /></div>
       <div className="field"><label>{t('a_pp_name')}</label><input className="input" value={name} onChange={e => setName(e.target.value)} /></div>
       <button className="btn b-sun" onClick={save}>{t('save')}</button>
@@ -149,6 +152,22 @@ export function AdminSettings() {
       <PromoEditor toast={toast.show} />
       <Link to="/account" className="btn b-line mt16">{t('account')}</Link>
     </div><AdminTabs />{toast.node}</div>
+}
+
+export function AdminPublicPages() {
+  const { lang, t } = useI18n()
+  const { ready } = useAuth()
+  const denied = useAdminGuard()
+  if (!ready) return <Loading />
+  if (denied) return <Navigate to="/" replace />
+  return <div className="page">
+    <div className="hero"><div className="between"><h1>{lang === 'th' ? 'จัดการเนื้อหาหน้าสาธารณะ' : 'Manage public pages'}</h1><LangToggle /></div></div>
+    <div className="pad mt16 stack">
+      <Link to="/admin/settings" className="link">{t('booking_back')} · {t('tab_settings')}</Link>
+      <PublicPageEditor />
+    </div>
+    <AdminTabs />
+  </div>
 }
 
 // ช่องตัวเลขสั้นๆ ใช้ซ้ำในหน้าตั้งค่า
