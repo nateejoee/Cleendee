@@ -111,8 +111,8 @@ export function BookingDetail() {
   // จองอีกครั้ง: ใช้บริการ แม่บ้าน ที่อยู่ งานเสริม และโน้ตเดิม แล้วไปเลือกวันเวลาใหม่
   const rebook = async () => {
     const { data } = await sb.from('customer_addresses').select('id').order('id')
-    setDraft({ ...emptyDraft, service: svc?.code ?? 'general_cleaning', qty: b.qty, addons: b.addons || [], maidId: b.maid_id, tags: b.tags, note: b.note ?? '', addressId: (data || [])[0]?.id ?? null })
-    nav('/book/time')
+    setDraft({ ...emptyDraft, service: svc?.code ?? 'general_cleaning', qty: b.qty, addons: b.addons || [], maidId: null, tags: b.tags, note: b.note ?? '', addressId: (data || [])[0]?.id ?? null })
+    nav(b.maid_id ? '/book?helper=' + encodeURIComponent(b.maid_id) : '/book')
   }
   const step = ['confirmed', 'on_the_way', 'working', 'completed'].indexOf(b.status)
   const cancel = async () => {
@@ -350,5 +350,5 @@ export function Favorites() {
   return <div className="page nobar"><TopBar title={t('favorites')} />
     <div className="mt12">{ids.length === 0 ? <div className="pad"><div className="empty muted">{t('nothing')}</div></div> : ids.map(id => { const m = maids?.find(x => x.id === id); if (!m) return null
       return <div key={id} className="listrow"><Avatar name={m.nickname} seed={m.id} size={44} /><b style={{ flex: 1 }}>{m.nickname}</b>
-        <button className="btn b-ghost sm" onClick={() => { setDraft({ maidId: id, plan: 'once' }); nav('/book/time') }}>{t('s_rebook').replace('\n', '')}</button></div> })}</div></div>
+        <button className="btn b-ghost sm" onClick={() => { setDraft({ maidId:null, plan:'once', hour:null }); nav('/book?helper=' + encodeURIComponent(id)) }}>{t('s_rebook').replace('\n', '')}</button></div> })}</div></div>
 }

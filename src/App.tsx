@@ -14,7 +14,7 @@ import { useI18n, type Key } from './lib/i18n'
 import imgLogin from './assets/ill/login.webp'
 import imgChat from './assets/ill/chat.webp'
 import imgSched from './assets/ill/schedule.webp'
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 
 // หน้าที่ต้องเข้าสู่ระบบก่อน (คนที่ยังไม่สมัครดูได้แค่หน้าแรก บริการ และโปรไฟล์แม่บ้าน — แบบแอป bTaskee)
 // tab = หน้าที่อยู่ในเมนูหลัก (แสดงแถบเมนูด้วย) · ที่เหลือเป็นหน้าย่อย แสดงปุ่มย้อนกลับ
@@ -27,10 +27,12 @@ function Member({ children, title, text, img = imgLogin, tab = false }: { childr
 
 function Root() {
   const { profile, ready } = useAuth()
+  const [next] = useState(() => {
+    try { const path = sessionStorage.getItem('cd_next'); return path?.startsWith('/') && !path.startsWith('//') && !path.includes('\\') ? path : null } catch { return null }
+  })
+  useEffect(() => { if (profile && next) { try { sessionStorage.removeItem('cd_next') } catch { /* storage unavailable */ } } }, [profile, next])
   if (!ready) return <Loading />
-  // กลับไปหน้าที่ตั้งใจจะเข้าก่อนถูกขอให้เข้าสู่ระบบ
-  if (profile) { let next: string | null = null; try { next = sessionStorage.getItem('cd_next'); sessionStorage.removeItem('cd_next') } catch { /* ignore */ }
-    if (next && next !== '/') return <Navigate to={next} replace /> }
+  if (profile && next && next !== '/') return <Navigate to={next} replace />
   if (!localStorageGet('cd_onboarded') && !profile) return <Navigate to="/welcome" replace />
   if (profile?.role === 'admin') return <Navigate to="/admin" replace />
   if (profile?.role === 'maid') return <Navigate to="/maid" replace />

@@ -38,7 +38,10 @@ export function BookMaid() {
   const s = services?.find(x => x.code === d.service)
   const pick = (id: string | null) => setD(setDraft({ maidId: id }))
   // แสดงเฉพาะแม่บ้านที่ทำบริการนี้ได้
+  const [params] = useSearchParams()
+  const suggested = params.get('helper')
   const list = maids?.filter(m => (m.services || []).includes(d.service))
+  if (suggested) list?.sort((a,b) => Number(b.id === suggested) - Number(a.id === suggested))
   const qty = bookingQuantity(d, s)
   return <div className="page nobar">
     <TopBar title={t('who_cleans')} /><Steps at={0} />
@@ -86,7 +89,7 @@ export function MaidProfile() {
       {revs.length === 0 ? <div className="muted">{t('no_reviews')}</div> : <div className="stack">{revs.map((r, i) => <div key={i} className="card" style={{ background: 'var(--foam)', border: 0 }}>
         <span className="star">{'★'.repeat(r.rating)}</span><div className="muted">{r.comment}</div></div>)}</div>}
     </div>
-    <div className="bottom-bar"><button className="btn b-sun" onClick={() => { setDraft({ maidId: m.id }); nav('/book/time') }}>{t('choose')} {m.nickname}</button></div>
+    <div className="bottom-bar"><button className="btn b-sun" onClick={() => { setDraft({ maidId:null, hour:null }); nav('/book?helper=' + encodeURIComponent(m.id)) }}>{t('choose')} {m.nickname}</button></div>
   </div>
 }
 
@@ -99,14 +102,14 @@ function FreeDays({ maidId }: { maidId: string }) {
   useEffect(() => { if (s) sb.rpc('maid_free_days', { p_maid: maidId, p_service_code: s.code, p_hours: hours }).then(({ data }) => setDays((data as string[]) || [])) }, [maidId, s?.code, hours])
   return <><div className="sec-title">{t('free_days')}</div>
     {!days ? <Loading /> : days.length === 0 ? <div className="muted">{t('no_free_days')}</div> :
-      <div className="cal">{days.map(x => <button key={x} className="cd" onClick={() => { setDraft({ maidId, date: x, hour: null }); nav('/book/time') }}>
+      <div className="cal">{days.map(x => <button key={x} className="cd" onClick={() => { setDraft({ maidId:null, date:x, hour:null }); nav('/book?helper=' + encodeURIComponent(maidId)) }}>
         <small>{fmtDate(x + 'T12:00:00+07:00', lang, { weekday: 'short' })}</small><b>{Number(x.slice(8))}</b></button>)}</div>}</>
 }
 
 export function BookTime() {
   const { t, lang } = useI18n(); const nav = useNavigate(); const [sp] = useSearchParams(); const services = useServices(); const allAddons = useAddons()
   const urgentMode = sp.get('urgent') === '1'
-  const [d, setD] = useState<Draft>(() => { const p = sp.get('plan'); return p ? setDraft({ plan: p as Draft['plan'], service: 'general_cleaning' }) : getDraft() })
+  const [d, setD] = useState<Draft>(() => { const p = sp.get('plan'); return p === 'weekly' || p === 'biweekly' ? setDraft({ plan:p, service:'general_cleaning' }) : getDraft() })
   const days = useMemo(() => Array.from({ length: 14 }, (_, i) => bkkToday(i)), [])
   const date = d.date ?? (urgentMode ? days[0] : days[1])
   const s = services?.find(x => x.code === d.service)
