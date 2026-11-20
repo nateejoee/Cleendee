@@ -1,9 +1,8 @@
 import { bookingStep } from '../lib/bookingMetrics'
 import { SlotAlternatives } from '../components/SlotAlternatives'
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { addressForPin } from '../lib/pinAddress'
-import { MAX_PIN_ERROR_METERS, type DeviceFix } from '../lib/deviceLocation'
-import { LocationPin } from '../components/LocationPin'
+import { LocationPin, type MapPin } from '../components/LocationPin'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import generatePayload from 'promptpay-qr'
@@ -273,7 +272,7 @@ export function useAddresses() {
 }
 
 function hasPrecisePin(address: Addr) {
-  return address.lat != null && address.lng != null && address.gps_accuracy_m != null && address.gps_accuracy_m > 0 && address.gps_accuracy_m <= MAX_PIN_ERROR_METERS
+  return address.lat != null && address.lng != null
 }
 export function AddressForm({ onSaved, existing }: { onSaved: (id: number) => void; existing?: Addr }) {
   const { t, lang } = useI18n(); const { session } = useAuth(); const districts = useDistricts()
@@ -281,23 +280,26 @@ export function AddressForm({ onSaved, existing }: { onSaved: (id: number) => vo
   const [label, setLabel] = useState(existing?.label ?? (th ? 'บ้าน' : 'Home'))
   const [addr, setAddr] = useState(existing?.address ?? '')
   const [dist, setDist] = useState(existing?.district_id ?? Number(localStorage.getItem('cd_district') || 1))
-  const [fix, setFix] = useState<DeviceFix | null>(null)
-  const [lookup, setLookup] = useState<'idle' | 'loading' | 'done' | 'missing'>('idle')
+  const startPoint: [number, number] | null = existing?.lat != null && existing?.lng != null ? [existing.lat, existing.lng] : null
+  const [fix, setFix] = useState<MapPin | null>(startPoint ? { point: startPoint, accuracy: existing?.gps_accuracy_m ?? null } : null)
+  const [lookup, setLookup] = useState<'idle' | 'loading' | 'done' | 'missing'>(startPoint ? 'done' : 'idle')
   const [districtName,setDistrictName] = useState<string>()
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
-  const place = (next: DeviceFix | null) => {
-    setFix(next); setErr(''); setAddr(''); setDistrictName(undefined); setLookup(next ? 'loading' : 'idle')
-  }
+  const typed = useRef(!!existing?.address) // the customer wrote the address; don't overwrite it from the map
+  const place = (next: MapPin | null) => { setFix(next); setErr('') }
   useEffect(() => {
-    if (!fix) return
+    if (!fix || typed.current) return
     let current = true
+    setLookup('loading')
     const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 6000)
-    addressForPin(fix.point, controller.signal).then(result => {
-      if (!current) return
-      setAddr(result.text); setDistrictName(result.district); setLookup(result.text ? 'done' : 'missing')
-    }).catch(() => { if (current) setLookup('missing') }).finally(() => clearTimeout(timer))
-    return () => { current = false; clearTimeout(timer); controller.abort() }
+    const wait = setTimeout(() => {
+      const timer = setTimeout(() => controller.abort(), 6000)
+      addressForPin(fix.point, controller.signal).then(result => {
+        if (!current || typed.current) return
+        setAddr(result.text); setDistrictName(result.district); setLookup(result.text ? 'done' : 'missing')
+      }).catch(() => { if (current) setLookup('missing') }).finally(() => clearTimeout(timer))
+    }, 500)
+    return () => { current = false; clearTimeout(wait); controller.abort() }
   }, [fix])
   useEffect(() => {
     const match = districts.find(d => d.name_th === districtName)
@@ -315,9 +317,9 @@ export function AddressForm({ onSaved, existing }: { onSaved: (id: number) => vo
   }
   return <div className="card stack">
     <label className="field">{t('label')}<input className="input" value={label} onChange={e => setLabel(e.target.value)} /></label>
-    <LocationPin fix={fix} place={place} disabled={busy} />
+    <LocationPin start={startPoint} onPin={place} disabled={busy} />
     {fix && <small role="status">{lookup === 'loading' ? (th ? 'กำลังเติมที่อยู่จากหมุด…' : 'Looking up the address…') : lookup === 'missing' ? (th ? 'ค้นที่อยู่ไม่พบ กรุณากรอกที่อยู่สำหรับหมุดนี้' : 'No address found. Enter the address for this pin.') : (th ? 'ตรวจที่อยู่และเติมบ้านเลขที่หรือซอย หากแผนที่หาไม่พบ' : 'Review the address and add a missing house number or lane.')}</small>}
-    <label className="field">{t('address')}<textarea disabled={!fix || lookup === 'loading' || busy} className="input" value={addr} onChange={e => setAddr(e.target.value)} placeholder={t('addr_ph')} /></label>
+    <label className="field">{t('address')}<textarea disabled={!fix || lookup === 'loading' || busy} className="input" value={addr} onChange={e => { typed.current = true; setLookup('done'); setAddr(e.target.value) }} placeholder={t('addr_ph')} /></label>
     <label className="field">{t('district')}<select className="input" value={dist} onChange={e => setDist(Number(e.target.value))}>{districts.map(d => <option key={d.id} value={d.id}>{th ? d.name_th : d.name_en}</option>)}</select></label>
     <small><a href="/geo/NOTICE.txt" target="_blank" rel="noreferrer">GeoThai · OCHA COD-AB · Royal Thai Survey Department</a> · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap</a></small>
     {err && <div className="err" role="alert">{err}</div>}
