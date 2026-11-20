@@ -116,16 +116,38 @@ textarea.input{min-height:90px;resize:vertical}
 .recv,.cd,.tc{font-variant-numeric:tabular-nums}
 
 /* services grid */
-.svc{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 8px}
-.sv{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:8px 2px;position:relative;min-width:0}
-.sv .ic{width:56px;height:56px;border-radius:18px;background:var(--soft);display:grid;place-items:center;flex:none}
-.sv-name{min-height:2.8em;max-width:100%;font-weight:600;font-size:.875rem;line-height:1.4;text-wrap:balance}
-.sv-price{margin-top:auto;line-height:1.35;font-size:.875rem;font-weight:650;font-variant-numeric:tabular-nums}
-.sv-price .min-qty{display:block;color:var(--ink2);font-size:.75rem;font-weight:450}
-.sv-price .min-separator{display:none}
-.sv .soon{position:absolute;top:2px;right:4px;background:var(--foam);color:var(--ink2);font-size:.6875rem;padding:1px 6px;border-radius:9px;font-weight:600}
-.sv.dim .ic{background:var(--foam);filter:grayscale(1);opacity:.6}
-.sv.dim .sv-name{color:var(--ink2)}
+.svc{
+ display:grid;
+ grid-template-columns:repeat(3,minmax(0,1fr));
+ grid-auto-rows:1fr;
+ gap:8px;
+}
+.sv{
+ display:flex;
+ flex-direction:column;
+ align-items:center;
+ min-width:0;
+ gap:6px;
+ padding:11px 6px 9px;
+ background:var(--card);
+ border:1px solid var(--line);
+ border-radius:16px;
+ text-align:center;
+}
+.sv .ic{
+ display:grid;
+ place-items:center;
+ flex:none;
+ width:36px;
+ height:36px;
+ border-radius:12px;
+ background:var(--sun-l);
+ color:var(--ocean);
+}
+.sv-name{max-width:100%;font-weight:600;font-size:.8125rem;line-height:1.38;text-wrap:balance;overflow-wrap:anywhere}
+.sv.dim{background:color-mix(in srgb,var(--card) 35%,var(--bg));border-style:dashed;color:var(--ink2)}
+.sv.dim .ic{background:var(--foam);color:inherit}
+.sv .soon{margin-top:auto;font-size:.6875rem;line-height:1.35;color:var(--ink2)}
 .service-title{font-size:clamp(1.5rem,3.2vw,2rem);text-wrap:balance}
 .service-description{max-width:36rem;margin-top:6px;text-wrap:pretty}
 .service-minimum{font-size:1.125rem;font-weight:650;font-variant-numeric:tabular-nums}
@@ -224,7 +246,9 @@ textarea.input{min-height:90px;resize:vertical}
  /* รายการการ์ดเป็น 2 คอลัมน์ */
  .cols{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-items:start}
  .cols>.empty,.cols>.loading{grid-column:1/-1}
- .svc{grid-template-columns:repeat(4,minmax(0,1fr));column-gap:12px}
+ .svc{gap:12px}
+ .sv{padding:14px 10px 12px}
+ .sv-name{font-size:.875rem}
  .tgrid{grid-template-columns:repeat(6,1fr)}
  .dist{grid-template-columns:repeat(3,1fr)}
  .map{height:380px}
@@ -263,7 +287,7 @@ textarea.input{min-height:90px;resize:vertical}
 [data-dark="1"] .p-ocean,[data-dark="1"] .choice.on,[data-dark="1"] .card.sel,[data-dark="1"] .di.on{color:var(--ink)}
 [data-dark="1"] .avatar{color:#fff}
 /* โหมดมืด: ตัวหนังสือ/ไอคอนที่ใช้สีหลัก (กรมท่า) จะกลืนพื้น → ใช้สีทองแทน */
-[data-dark="1"] .link,[data-dark="1"] a:not(.btn):not(.tab):not(.sv):not(.mcard):not(.listrow):not(.side-logo):not(.card):not(.ticket),[data-dark="1"] .tab.on,[data-dark="1"] .home .svc .ic,[data-dark="1"] .feat .rico,[data-dark="1"] .hstep,[data-dark="1"] .rico{color:var(--sun)}
+[data-dark="1"] .link,[data-dark="1"] a:not(.btn):not(.tab):not(.sv):not(.mcard):not(.listrow):not(.side-logo):not(.card):not(.ticket),[data-dark="1"] .tab.on,[data-dark="1"] .svc button.sv .ic,[data-dark="1"] .feat .rico,[data-dark="1"] .hstep,[data-dark="1"] .rico{color:var(--sun)}
 [data-dark="1"] .b-ocean{background:linear-gradient(135deg,color-mix(in srgb,var(--ocean) 70%,#4a6a9a),var(--ocean));border:1px solid color-mix(in srgb,var(--sun) 35%,transparent)}
 /* เอฟเฟกต์เรืองแสง (ขอบทองเรือง) */
 [data-glow="1"] .card,[data-glow="1"] .choice,[data-glow="1"] .mcard,[data-glow="1"] .feat,[data-glow="1"] .hstep,[data-glow="1"] .kpi,[data-glow="1"] .promo{box-shadow:0 0 0 1px color-mix(in srgb,var(--sun) 45%,transparent),0 10px 34px color-mix(in srgb,var(--sun) 22%,transparent)}
@@ -295,8 +319,6 @@ textarea.input{min-height:90px;resize:vertical}
 .promo.lux h3{color:var(--sun);font-size:clamp(1.25rem,2.4vw,1.625rem);font-weight:600;margin-top:6px}
 .promo.lux .small{color:rgba(255,255,255,.8)}
 .promo.lux img{width:35%;height:100%;top:0;bottom:0;right:0;border-radius:0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 40%);mask-image:linear-gradient(90deg,transparent,#000 40%)}
-.home .svc .ic{background:var(--card);border:1px solid var(--line);color:var(--ocean)}
-.home .sv:hover .ic{border-color:var(--sun)}
 
 /* จุดเด่น / แม่บ้านแนะนำ / ขั้นตอน */
 .feats{display:grid;gap:10px}
@@ -328,9 +350,9 @@ textarea.input{min-height:90px;resize:vertical}
 
 /* ชี้เมาส์: การ์ดลอยขึ้น · กดบนจอสัมผัส: ปุ่มยุบลงเล็กน้อย */
 @media (hover:hover) and (prefers-reduced-motion:no-preference){
- .card,.choice,.mcard,.feat,.hstep,.sv .ic,.listrow,.btn,.promo{transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease,background .2s}
+ .card,.choice,.mcard,.feat,.hstep,.sv,.listrow,.btn,.promo{transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease,background .2s}
  a.card:hover,.mcard:hover,.feat:hover,.hstep:hover,.choice:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(11,27,51,.10)}
- .sv:hover .ic{transform:translateY(-3px)}
+ button.sv:hover{border-color:var(--sun);background:color-mix(in srgb,var(--card) 65%,var(--sun-l))}
  .btn:not(:disabled):hover{transform:translateY(-1px);filter:brightness(1.05)}
  .listrow:hover{background:var(--soft)}
  .mcard:hover>svg{transform:translateX(3px);transition:transform .25s}
