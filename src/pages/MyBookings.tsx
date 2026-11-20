@@ -9,6 +9,21 @@ import { setDraft, emptyDraft, bkkToday, startIso } from '../lib/draft'
 import { useServices, useAddons, svcName, svcUnit } from '../lib/services'
 import { AdminTabs, Avatar, CustomerTabs, Icon, Loading, MaidTabs, StatusPill, TopBar, useToast } from '../components/ui'
 import { useMaids, AddressForm, useAddresses } from './Book'
+import { CountUp, confetti, relTime, useMinuteTick } from '../lib/fx'
+import { useTheme, BRANDS, BRAND_SWATCH } from '../lib/theme'
+
+// ตัวเลือกธีม: สีหลัก 5 สี + โหมดมืด + เอฟเฟกต์เรืองแสง (เหมือน Seafresh Loader)
+function ThemePicker() {
+  const { t } = useI18n(); const th = useTheme()
+  return <div className="listrow themepick">
+    <span className="rico"><Icon n="star" /></span>
+    <span style={{ flex: 1 }}><b>{t('theme')}</b>
+      <span className="swatches">{BRANDS.map(b => <button key={b} className={'sw-dot' + (th.brand === b ? ' on' : '')} style={{ background: BRAND_SWATCH[b] }} onClick={() => th.set({ brand: b })} aria-label={t(('th_' + b) as Key)} title={t(('th_' + b) as Key)} />)}</span>
+      <span className="row mt8" style={{ gap: 18, flexWrap: 'wrap' }}>
+        <button className="row small" style={{ gap: 8 }} onClick={() => th.set({ dark: !th.dark })}><span className={'sw' + (th.dark ? ' on' : '')} style={{ width: 42, height: 24 }} />{t('dark_mode')}</button>
+        <button className="row small" style={{ gap: 8 }} onClick={() => th.set({ glow: !th.glow })}><span className={'sw' + (th.glow ? ' on' : '')} style={{ width: 42, height: 24 }} />{t('glow')}</button>
+      </span></span></div>
+}
 
 const ACTIVE = ['pending_payment', 'payment_review', 'awaiting_maid', 'confirmed', 'on_the_way', 'working', 'payment_rejected']
 
@@ -42,8 +57,9 @@ export function Bookings() {
 }
 
 function Chat({ bookingId }: { bookingId: number }) {
-  const { t } = useI18n(); const { session } = useAuth(); const [msgs, setMsgs] = useState<{ id: number; sender_id: string; body: string }[]>([]); const [txt, setTxt] = useState('')
-  const load = () => sb.from('messages').select('id,sender_id,body').eq('booking_id', bookingId).order('created_at').then(({ data }) => setMsgs(data || []))
+  const { t } = useI18n(); const { session } = useAuth(); const [msgs, setMsgs] = useState<{ id: number; sender_id: string; body: string; created_at: string }[]>([]); const [txt, setTxt] = useState('')
+  useMinuteTick()
+  const load = () => sb.from('messages').select('id,sender_id,body,created_at').eq('booking_id', bookingId).order('created_at').then(({ data }) => setMsgs(data || []))
   useEffect(() => {
     load()
     const ch = sb.channel('m' + bookingId).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `booking_id=eq.${bookingId}` }, load).subscribe()
@@ -52,7 +68,7 @@ function Chat({ bookingId }: { bookingId: number }) {
   }, [bookingId])
   const send = async () => { if (!txt.trim()) return; const body = txt; setTxt(''); await sb.from('messages').insert({ booking_id: bookingId, body }); load() }
   return <div className="card stack">
-    <div className="chatbox">{msgs.map(m => <div key={m.id} className={'bub' + (m.sender_id === session?.user.id ? ' me' : '')}>{m.body}</div>)}</div>
+    <div className="chatbox">{msgs.map(m => <div key={m.id} className={'bub' + (m.sender_id === session?.user.id ? ' me' : '')}>{m.body}<small className="bt">{relTime(m.created_at, t)}</small></div>)}</div>
     <div className="tiny muted" style={{ textAlign: 'center' }}>{t('masked_note')}</div>
     <div className="row"><input className="input" value={txt} onChange={e => setTxt(e.target.value)} placeholder={t('type_msg')} onKeyDown={e => e.key === 'Enter' && send()} />
       <button className="btn b-ocean sm" onClick={send}>{t('send')}</button></div>
@@ -138,7 +154,7 @@ export function BookingDetail() {
       {b.maid_id && ['confirmed', 'on_the_way', 'working', 'completed'].includes(b.status) && <><div className="sec-title" style={{ margin: '6px 0 0' }}>{t('chat')}</div><Chat bookingId={b.id} /></>}
       {['completed', 'cancelled_by_customer'].includes(b.status) && !b.package_id && <button className="btn b-sun" onClick={rebook}><Icon n="redo" />{t('book_again')}</button>}
       {!['pending_payment', 'payment_review', 'payment_rejected'].includes(b.status) && <Link to={'/receipt/' + b.id} className="btn b-line"><Icon n="print" />{t('receipt')}</Link>}
-      {b.status === 'completed' && !reviewed && <Review b={b} onDone={() => { setReviewed(true); toast.show(t('thanks_review')) }} />}
+      {b.status === 'completed' && !reviewed && <Review b={b} onDone={() => { setReviewed(true); confetti(); toast.show(t('thanks_review')) }} />}
       {b.status === 'completed' && <Link to={'/claim/' + b.id} className="btn b-line">{t('claim')}</Link>}
       {['pending_payment', 'payment_review', 'awaiting_maid', 'confirmed', 'payment_rejected'].includes(b.status) && <><div className="small muted">{t('cancel_rules')}</div><button className="btn b-red" onClick={cancel}>{t('cancel_booking')}</button></>}
       {err && <div className="err">{err}</div>}
@@ -293,11 +309,19 @@ export function Account() {
   const { t, lang, setLang } = useI18n(); const { profile, session } = useAuth(); const nav = useNavigate()
   const [maidApp, setMaidApp] = useState<{ status: string } | null>(null)
   useEffect(() => { if (session) sb.from('maids').select('status').eq('id', session.user.id).maybeSingle().then(({ data }) => setMaidApp(data)) }, [session])
-  if (!session) return <div className="page"><div className="hero"><h1>{t('account')}</h1></div><div className="pad mt20 stack"><Link to="/login" className="btn b-ocean">{t('login')} / {t('signup')}</Link>
-    <button className="btn b-line" onClick={() => setLang(lang === 'th' ? 'en' : 'th')}>{t('language')}: {lang === 'th' ? 'ไทย' : 'English'}</button></div><CustomerTabs /></div>
+  // ยังไม่เข้าสู่ระบบ (แบบแอป bTaskee): ปุ่มสมัครสมาชิก / เข้าสู่ระบบ ด้านบน + การตั้งค่าและช่วยเหลือด้านล่าง
+  if (!session) return <div className="page"><div className="hero tall"><h1>{t('account')}</h1><p>{t('lw_book')}</p></div>
+    <div className="pad" style={{ marginTop: -54, position: 'relative', zIndex: 2 }}><div className="card guestcard"><Link to="/login" className="btn b-ghost">{t('signup')}</Link><Link to="/login" className="btn b-ocean">{t('login')}</Link></div></div>
+    <div className="pad"><div className="sec-title">{t('settings')}</div></div>
+    <button className="listrow" onClick={() => setLang(lang === 'th' ? 'en' : 'th')}><span className="rico"><Icon n="chat" /></span><b style={{ flex: 1 }}>{t('language')}: {lang === 'th' ? 'ไทย' : 'English'}</b></button>
+    <ThemePicker />
+    <div className="pad"><div className="sec-title">{t('help')}</div></div>
+    <Link to="/service" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico"><Icon n="broom" /></span><b style={{ flex: 1 }}>{t('svc_title')}</b><Icon n="next" /></Link>
+    <Link to="/privacy" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico"><Icon n="shield" /></span><b style={{ flex: 1 }}>Privacy</b><Icon n="next" /></Link>
+    <CustomerTabs /></div>
   return <div className="page">
     <div className="hero tall"><div className="row"><Avatar name={profile?.full_name || 'C'} size={54} seed={session.user.id} /><div><h1 style={{ fontSize: 21 }}>{profile?.full_name}</h1><div className="sub">{session.user.email}</div></div></div></div>
-    <div className="pad" style={{ marginTop: -54, position: 'relative', zIndex: 2 }}><div className="kpi"><div className="small">{t('my_points')}</div><div className="v">{money(profile?.points ?? 0)} {t('points')}</div><div className="small mt8">{t('points_rule')}</div></div></div>
+    <div className="pad" style={{ marginTop: -54, position: 'relative', zIndex: 2 }}><div className="kpi"><div className="small">{t('my_points')}</div><div className="v"><CountUp value={profile?.points ?? 0} /> {t('points')}</div><div className="small mt8">{t('points_rule')}</div></div></div>
     <div className="mt16">
       {profile?.role === 'admin' && <Link to="/admin" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--sun-l)' }}><Icon n="grid" /></span><b style={{ flex: 1 }}>Admin</b><Icon n="next" /></Link>}
       {profile?.role === 'maid' && <Link to="/maid" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--sun-l)' }}><Icon n="grid" /></span><b style={{ flex: 1 }}>{t('tab_jobs')}</b><Icon n="next" /></Link>}
@@ -306,6 +330,7 @@ export function Account() {
       <Link to="/book/time?plan=weekly" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--leaf-l)' }}><Icon n="cal" /></span><span style={{ flex: 1 }}><b>{t('monthly_pkg')}</b><span className="small muted">{t('pkg_none')}</span></span><Icon n="next" /></Link>
       {profile?.role === 'customer' && <Link to="/maid/apply" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico"><Icon n="team" /></span><span style={{ flex: 1 }}><b>{t('become_maid')}</b>{maidApp && <span className="small muted">{t('m_wait')}</span>}</span><Icon n="next" /></Link>}
       <button className="listrow" onClick={() => setLang(lang === 'th' ? 'en' : 'th')}><span className="rico"><Icon n="chat" /></span><b style={{ flex: 1 }}>{t('language')}: {lang === 'th' ? 'ไทย' : 'English'}</b></button>
+      <ThemePicker />
       <button className="listrow" onClick={async () => { await sb.auth.signOut(); nav('/') }}><span className="rico"><Icon n="logout" /></span><b style={{ flex: 1 }}>{t('logout')}</b></button>
     </div>
     {profile?.role === 'maid' ? <MaidTabs /> : profile?.role === 'admin' ? <AdminTabs /> : <CustomerTabs />}

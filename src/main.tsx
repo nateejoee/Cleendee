@@ -6,6 +6,7 @@ import '@fontsource/anuphan/700.css'
 import '@fontsource/ibm-plex-sans-thai-looped/400.css'
 import '@fontsource/ibm-plex-sans-thai-looped/600.css'
 import '@fontsource/nunito/600.css'
+import '@fontsource/cormorant-garamond/600.css' // หัวข้อใหญ่ภาษาอังกฤษแบบหรู (ภาษาไทยใช้ Anuphan)
 import './styles.css'
 import App from './App'
 

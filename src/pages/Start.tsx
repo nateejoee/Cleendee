@@ -3,9 +3,12 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { sb, friendly, type District } from '../lib/supabase'
 import { useI18n, localStorageSet, money } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
-import { Icon, LangToggle, Logo, CustomerTabs, TopBar, Loading, SiteFooter } from '../components/ui'
+import { Avatar, Icon, LangToggle, Logo, CustomerTabs, TopBar, Loading, SiteFooter } from '../components/ui'
 import { setDraft, emptyDraft } from '../lib/draft'
 import { useServices, svcName, svcUnit } from '../lib/services'
+import { CountUp, greetKey } from '../lib/fx'
+import { useMaids } from './Book'
+import imgHero from '../assets/ill/hero.webp'
 import imgClean from '../assets/ill/cleaning.webp'
 import imgSched from '../assets/ill/schedule.webp'
 import imgSafe from '../assets/ill/safety.webp'
@@ -82,38 +85,60 @@ export function Login() {
 }
 
 export function Home() {
-  const { t, lang } = useI18n(); const { profile } = useAuth(); const nav = useNavigate(); const districts = useDistricts(); const services = useServices()
+  const { t, lang } = useI18n(); const { profile } = useAuth(); const nav = useNavigate(); const districts = useDistricts(); const services = useServices(); const maids = useMaids()
   const distId = profile?.district_id ?? Number(localStorage.getItem('cd_district') || 1)
   const d = districts.find(x => x.id === distId)
   // ปุ่มลัดเดิม (แพ็กเกจ / จองคนเดิม) ต่อท้ายรายการบริการจากฐานข้อมูล
   const extra = [
-    { to: '/book/time?plan=weekly', icon: 'cal', label: t('s_monthly'), bg: 'var(--leaf-l)', c: 'var(--leaf)', svc: 'general_cleaning' },
-    { to: '/account/favorites', icon: 'heart', label: t('s_rebook'), bg: '#F3EAF9', c: '#7B4BA3', svc: '' },
+    { to: '/book/time?plan=weekly', icon: 'cal', label: t('s_monthly'), svc: 'general_cleaning' },
+    { to: '/account/favorites', icon: 'heart', label: t('s_rebook'), svc: '' },
   ]
   const open = (code: string, to: string) => { if (code) setDraft({ ...emptyDraft, service: code }); nav(to) }
-  return <div className="page">
-    <div className="hero tall">
-      <div className="between"><Logo white h={30} /><LangToggle /></div>
-      <div className="mt16 sub">{d ? (lang === 'th' ? 'อ.' + d.name_th : d.name_en) : ''}</div>
-      <h1>{t('hello')} {profile?.full_name ?? t('guest')}</h1>
+  // จุดเด่น 3 ข้อ และขั้นตอนการจอง 4 ขั้น (ใช้ข้อความเดิมของหน้าบริการ/แถบขั้นตอน)
+  const why = [['clock', t('ben1'), t('ben1d')], ['wallet', t('ben2'), t('ben2d')], ['shield', t('ben3'), t('ben3d')]]
+  const steps: [string, string][] = [['team', t('st_maid')], ['cal', t('st_time')], ['pin', t('st_detail')], ['wallet', t('st_pay')]]
+  return <div className="page home">
+    {/* ภาพใหญ่หัวหน้า: ภาพถ่ายวิลล่า + ไล่สีกรมท่า ทับด้วยคำทักทายและปุ่มจอง */}
+    <div className="lux-hero" style={{ backgroundImage: `url(${imgHero})` }}>
+      <div className="between"><span className="mob-only"><Logo white h={30} /></span><span className="lh-loc"><Icon n="pin" size={15} />{d ? (lang === 'th' ? 'อ.' + d.name_th + ' ชุมพร' : d.name_en + ', Chumphon') : 'Chumphon'}</span><LangToggle /></div>
+      <div className="lh-body">
+        <div className="lh-greet">{t(greetKey())}{profile?.full_name ? ', ' + profile.full_name : ''}</div>
+        <h1>{t('tagline')}</h1>
+        <p>{t('hero_d')}</p>
+        <div className="lh-cta"><Link to="/book" className="btn b-sun">{t('book_now')}</Link><Link to="/guarantee" className="btn b-glass">{t('g_title')}</Link></div>
+      </div>
     </div>
-    <div className="promo"><h3>{t('promo_t')}</h3><div className="small mt8">{t('promo_d')}</div><img src={imgHome} alt="" /></div>
-    <div className="pad mt16"><button className="urgent" style={{ width: '100%', textAlign: 'left' }} onClick={() => open('general_cleaning', '/book/time?urgent=1')}>
-      <span className="rico" style={{ background: '#fff', color: 'var(--brick)' }}><Icon n="clock" /></span>
-      <span style={{ flex: 1 }}><b className="disp">{t('urgent_t')}</b><span className="small" style={{ display: 'block', color: '#8A3324' }}>{t('urgent_d')}</span></span><Icon n="next" /></button></div>
-    <div className="pad"><div className="sec-title">{t('services')}</div></div>
-    <div className="svc pad">
-      {(services || []).filter(s => s.active || s.coming_soon).map(s => s.active
-        ? <button key={s.code} className="sv" onClick={() => open(s.code, '/service/' + s.code)}><span className="ic"><Icon n={s.icon} size={30} /></span><span>{svcName(s, lang)}</span></button>
-        : <div key={s.code} className="sv dim"><span className="soon">{t('soon')}</span><span className="ic"><Icon n={s.icon} size={30} /></span><span>{svcName(s, lang)}</span></div>)}
-      {extra.map(s => <button key={s.to} className="sv" onClick={() => open(s.svc, s.to)}><span className="ic" style={{ background: s.bg, color: s.c }}><Icon n={s.icon} size={30} /></span><span style={{ whiteSpace: 'pre-line' }}>{s.label}</span></button>)}
+    <div className="home-grid">
+      <div className="hg-main">
+        <div className="promo lux"><div><span className="eyebrow">CleenDee</span><h3>{t('promo_t')}</h3><div className="small mt8">{t('promo_d')}</div></div><img src={imgHome} alt="" /></div>
+        <div className="pad mt16"><button className="urgent" style={{ width: '100%', textAlign: 'left' }} onClick={() => open('general_cleaning', '/book/time?urgent=1')}>
+          <span className="rico" style={{ background: 'var(--card)', color: 'var(--brick)' }}><Icon n="clock" /></span>
+          <span style={{ flex: 1 }}><b className="disp">{t('urgent_t')}</b><span className="small" style={{ display: 'block', color: 'var(--brick)' }}>{t('urgent_d')}</span></span><Icon n="next" /></button></div>
+        <div className="pad"><div className="sec-title">{t('services')}</div></div>
+        <div className="svc pad">
+          {!services ? <Loading /> : services.filter(s => s.active || s.coming_soon).map(s => s.active
+            ? <button key={s.code} className="sv" onClick={() => open(s.code, '/service/' + s.code)}><span className="ic"><Icon n={s.icon} size={28} /></span><span>{svcName(s, lang)}</span></button>
+            : <div key={s.code} className="sv dim"><span className="soon">{t('soon')}</span><span className="ic"><Icon n={s.icon} size={28} /></span><span>{svcName(s, lang)}</span></div>)}
+          {extra.map(s => <button key={s.to} className="sv" onClick={() => open(s.svc, s.to)}><span className="ic"><Icon n={s.icon} size={28} /></span><span style={{ whiteSpace: 'pre-line' }}>{s.label}</span></button>)}
+        </div>
+        <div className="pad mt12"><Link to="/guarantee" className="choice" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--leaf-l)', color: 'var(--leaf)' }}><Icon n="shield" /></span>
+          <span style={{ flex: 1 }}><b>{t('g_title')}</b><span className="small muted">{t('g_short')}</span></span><Icon n="next" /></Link></div>
+        <div className="pad"><div className="sec-title">{t('why_us')}</div></div>
+        <div className="pad feats">{why.map(([i, b, x]) => <div key={b} className="feat"><span className="rico"><Icon n={i} /></span><b className="disp">{b}</b><span className="small muted">{x}</span></div>)}</div>
+      </div>
+      <aside className="hg-side">
+        {profile ? <div className="pad"><div className="sec-title">{t('my_points')}</div>
+          <button className="kpi lux-kpi" onClick={() => nav('/account')}><div className="small">{t('my_points')}</div><div className="v"><CountUp value={profile.points} /> {t('points')}</div><div className="small mt8">{t('points_rule')}</div></button></div>
+          : <div className="pad mt20"><div className="card guestcard col"><b className="disp">{t('lw_book')}</b><Link to="/login" className="btn b-ocean">{t('login')} / {t('signup')}</Link></div></div>}
+        <div className="pad"><div className="between"><div className="sec-title">{t('top_maids')}</div><Link to="/book" className="link">{t('see_all')}</Link></div>
+          <div className="stack">{(maids || []).slice(0, 3).map(m => <Link key={m.id} to={'/maid-profile/' + m.id} className="mcard" style={{ color: 'var(--ink)' }}>
+            <Avatar name={m.nickname} url={m.photo_url} seed={m.id} size={52} />
+            <span style={{ flex: 1 }}><b className="disp">{m.nickname}</b><span className="small muted" style={{ display: 'block' }}><span className="star">★</span> {m.avg_rating ?? '–'} · {m.jobs_done ?? 0} {t('homes_done')}</span></span><Icon n="next" /></Link>)}
+            {maids && maids.length === 0 && <div className="empty muted">{t('nothing')}</div>}</div></div>
+        <div className="pad"><div className="sec-title">{t('how_it_works')}</div>
+          <div className="hsteps">{steps.map(([i, l], k) => <div key={l} className="hstep"><span className="n">{k + 1}</span><Icon n={i} /><b className="disp">{l}</b></div>)}</div></div>
+      </aside>
     </div>
-    <div className="pad mt12"><Link to="/guarantee" className="choice" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--leaf-l)', color: 'var(--leaf)' }}><Icon n="shield" /></span>
-      <span style={{ flex: 1 }}><b>{t('g_title')}</b><span className="small muted">{t('g_short')}</span></span><Icon n="next" /></Link></div>
-    {profile && <><div className="pad"><div className="sec-title">{t('my_points')}</div></div>
-      <div className="pad"><button className="choice" onClick={() => nav('/account')}><span className="rico" style={{ background: 'var(--sun)' }}><Icon n="star" /></span>
-        <span style={{ flex: 1 }}><b>{money(profile.points)} {t('points')}</b><span className="small muted">{t('points_rule')}</span></span></button></div></>}
-    {!profile && <div className="pad mt20"><Link to="/login" className="btn b-ocean">{t('login')} / {t('signup')}</Link></div>}
     <SiteFooter />
     <CustomerTabs />
   </div>

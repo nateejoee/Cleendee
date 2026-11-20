@@ -9,6 +9,7 @@ import { useAuth } from '../lib/auth'
 import { getDraft, setDraft, clearDraft, startIso, bkkToday, type Draft } from '../lib/draft'
 import { Avatar, Icon, Steps, TopBar, Loading, useToast } from '../components/ui'
 import { useDistricts } from './Start'
+import { confetti } from '../lib/fx'
 
 export function useMaids() {
   const [maids, setMaids] = useState<(Maid & Partial<Rating>)[] | null>(null)
@@ -281,7 +282,7 @@ export function Pay() {
       const up = await sb.storage.from('slips').upload(path, file); if (up.error) throw up.error
       const { error } = kind === 'booking' ? await sb.rpc('submit_payment_slip', { p_booking_id: Number(id), p_slip_path: path }) : await sb.rpc('submit_package_slip', { p_package_id: Number(id), p_slip_path: path })
       if (error) throw error
-      toast.show(t('slip_sent')); setTimeout(() => nav('/bookings', { replace: true }), 1200)
+      confetti(); toast.show(t('slip_sent')); setTimeout(() => nav('/bookings', { replace: true }), 1800)
     } catch (e) { setErr(friendly(e, lang)) } finally { setBusy(false) }
   }
   return <div className="page nobar">

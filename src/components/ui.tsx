@@ -70,7 +70,7 @@ export function Steps({ at }: { at: number }) {
 type Tab = { to: string; icon: string; label: Key; center?: boolean }
 export function TabBar({ tabs }: { tabs: Tab[] }) {
   const { t } = useI18n(); const loc = useLocation()
-  return <nav className="tabbar">{tabs.map(tb => {
+  return <nav className="tabbar"><Link to="/" className="side-logo"><img src="/brand/CleenDee_logo_white.svg" alt="CleenDee" /></Link>{tabs.map(tb => {
     const on = tb.to === loc.pathname || (tb.to !== '/' && loc.pathname.startsWith(tb.to + '/'))
     if (tb.center) return <Link key={tb.to} to={tb.to} className="tab center"><span className="mid"><Icon n="plus" size={28} /></span>{t(tb.label)}</Link>
     return <Link key={tb.to} to={tb.to} className={'tab' + (on ? ' on' : '')}><Icon n={tb.icon} />{t(tb.label)}</Link>
@@ -93,10 +93,16 @@ export function StatusPill({ s }: { s: BookingStatus }) {
   return <span className={'pill ' + cls}>{t(('s_' + s) as Key)}</span>
 }
 
+// แจ้งเตือน: เครื่องหมายถูกค่อย ๆ วาด แล้วเลื่อนออกนุ่ม ๆ ก่อนหายไป
 export function useToast() {
-  const [msg, setMsg] = useState<string | null>(null)
-  useEffect(() => { if (msg) { const id = setTimeout(() => setMsg(null), 2600); return () => clearTimeout(id) } }, [msg])
-  return { show: setMsg, node: msg ? <div className="toast" role="status">{msg}</div> : null }
+  const [msg, setMsg] = useState<string | null>(null); const [out, setOut] = useState(false)
+  useEffect(() => {
+    if (!msg) return
+    setOut(false)
+    const a = setTimeout(() => setOut(true), 2350), b = setTimeout(() => setMsg(null), 2600)
+    return () => { clearTimeout(a); clearTimeout(b) }
+  }, [msg])
+  return { show: setMsg, node: msg ? <div className={'toast' + (out ? ' out' : '')} role="status"><span className="tick"><Icon n="check" size={14} /></span>{msg}</div> : null }
 }
 
 // ท้ายหน้า: ชื่อแอปเป็นตัวหนังสือ + ลิงก์นโยบายความเป็นส่วนตัว (กูเกิลใช้ตรวจชื่อแอปบนหน้าแรก)
@@ -106,4 +112,21 @@ export function SiteFooter({ dark = false }: { dark?: boolean }) {
     © CleenDee คลีนดี · <Link to="/privacy" style={{ color: 'inherit', textDecoration: 'underline' }}>{lang === 'th' ? 'นโยบายความเป็นส่วนตัว' : 'Privacy Policy'}</Link></div>
 }
 
-export function Loading() { const { t } = useI18n(); return <div className="loading">{t('loading')}</div> }
+// ระหว่างโหลด: โครงร่างแถบเทามีแสงวิ่ง (skeleton) แทนข้อความ "กำลังโหลด…"
+export function Loading() {
+  const { t } = useI18n()
+  return <div className="skel-wrap" role="status" aria-label={t('loading')}><div className="skel" /><div className="skel" /><div className="skel short" /></div>
+}
+
+// หน้าสำหรับคนที่ยังไม่เข้าสู่ระบบ (แบบแอป bTaskee): รูป + ข้อความ + ปุ่ม "เข้าสู่ระบบตอนนี้"
+export function LoginWall({ title, text, img, tabs = true }: { title: string; text: string; img: string; tabs?: boolean }) {
+  const { t } = useI18n(); const loc = useLocation(); const nav = useNavigate()
+  const go = () => { try { sessionStorage.setItem('cd_next', loc.pathname + loc.search) } catch { /* ignore */ } nav('/login') }
+  return <div className={'page' + (tabs ? '' : ' nobar')}>
+    {tabs ? <div className="hero"><h1>{title}</h1></div> : <TopBar title={title} />}
+    <div className="lwall"><img src={img} alt="" /><p>{text}</p>
+      <button className="btn b-ocean" onClick={go}>{t('login_now')}</button>
+      <button onClick={go} className="link">{t('signup')}</button></div>
+    {tabs && <CustomerTabs />}
+  </div>
+}

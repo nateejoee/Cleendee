@@ -69,6 +69,14 @@ const D = {
     a_biz_name: 'ชื่อร้าน (บนใบเสร็จ)', a_biz_addr: 'ที่อยู่ร้าน (บนใบเสร็จ)', a_prices: 'ราคาบริการ', a_open: 'เปิด', a_closed: 'ปิด', a_price_per: 'ราคาต่อ', a_payout_pct: 'ให้แม่บ้าน (%)',
     a_default: 'ค่าเริ่มต้น', a_min_per_unit: 'นาทีต่อหน่วย', a_new_addon: 'เพิ่มงานเสริม', a_code: 'รหัส (ภาษาอังกฤษ)', a_name_th: 'ชื่อภาษาไทย', a_name_en: 'ชื่อภาษาอังกฤษ', a_to_maid: 'ให้แม่บ้าน',
     a_kind: 'แบบ', a_value: 'ลด', a_max_disc: 'ลดสูงสุด', a_min_total: 'ยอดขั้นต่ำ', a_max_uses: 'ใช้ได้กี่ครั้ง', a_ends: 'หมดอายุ (ไม่ใส่ = ไม่หมด)', a_add_promo: 'สร้างโค้ด', a_used: 'ใช้แล้ว', a_until: 'ถึง',
+    // หน้าบังคับเข้าสู่ระบบ / ธีม / ลูกเล่น / หน้าแรกบนคอม (เพิ่ม 20/11/69)
+    login_now: 'เข้าสู่ระบบตอนนี้', lw_book: 'เข้าสู่ระบบหรือสมัครสมาชิกก่อนจองแม่บ้าน ใช้ Google หรือ LINE ได้เลย ไม่ถึงนาที',
+    lw_bookings: 'หลังจากจองแล้ว งานของคุณจะโชว์ที่นี่เพื่อติดตามสถานะ และดูประวัติย้อนหลังได้', lw_msgs: 'เข้าสู่ระบบเพื่อคุยกับแม่บ้านที่ดูแลบ้านคุณ',
+    lw_page: 'หน้านี้สำหรับสมาชิกเท่านั้น กรุณาเข้าสู่ระบบก่อน', settings: 'การตั้งค่า', help: 'ช่วยเหลือ',
+    theme: 'ธีมสี', dark_mode: 'โหมดมืด', glow: 'เอฟเฟกต์เรืองแสง', th_navy: 'กรมท่า-ทอง', th_ocean: 'ฟ้าทะเล', th_leaf: 'เขียวใบไม้', th_grape: 'ม่วง', th_rose: 'ชมพู', th_sunset: 'ส้ม',
+    greet_morning: 'อรุณสวัสดิ์', greet_afternoon: 'สวัสดียามบ่าย', greet_evening: 'สวัสดียามเย็น', offline: 'ไม่ได้เชื่อมต่ออินเทอร์เน็ต', back_top: 'กลับขึ้นบนสุด',
+    just_now: 'เมื่อสักครู่', min_ago: 'นาทีที่แล้ว', hr_ago: 'ชม.ที่แล้ว', day_ago: 'วันที่แล้ว',
+    hero_d: 'แม่บ้านคนชุมพร ยืนยันตัวตนและตรวจประวัติทุกคน จองง่าย ราคาชัดเจน มีการันตีงาน', why_us: 'ทำไมต้องคลีนดี', how_it_works: 'จองง่าย 4 ขั้นตอน', top_maids: 'แม่บ้านแนะนำ', see_all: 'ดูทั้งหมด',
     nothing: 'ไม่มีรายการ', saved: 'บันทึกแล้ว', error: 'เกิดข้อผิดพลาด', loading: 'กำลังโหลด…', need_login: 'กรุณาเข้าสู่ระบบก่อนจอง',
   },
   en: {
@@ -138,6 +146,13 @@ const D = {
     a_biz_name: 'Shop name (receipt)', a_biz_addr: 'Shop address (receipt)', a_prices: 'Service prices', a_open: 'Open', a_closed: 'Closed', a_price_per: 'Price per', a_payout_pct: 'Helper share (%)',
     a_default: 'Default', a_min_per_unit: 'Minutes per unit', a_new_addon: 'New add-on', a_code: 'Code (English)', a_name_th: 'Thai name', a_name_en: 'English name', a_to_maid: 'To helper',
     a_kind: 'Type', a_value: 'Discount', a_max_disc: 'Max discount', a_min_total: 'Minimum total', a_max_uses: 'Max uses', a_ends: 'Expires (blank = never)', a_add_promo: 'Create code', a_used: 'used', a_until: 'until',
+    login_now: 'Log in now', lw_book: 'Log in or sign up before booking a helper. Use Google or LINE, it takes under a minute',
+    lw_bookings: 'After you book, your jobs show here so you can track them and see your history', lw_msgs: 'Log in to chat with the helper who cleans your home',
+    lw_page: 'This page is for members only. Please log in first', settings: 'Settings', help: 'Help',
+    theme: 'Colour theme', dark_mode: 'Dark mode', glow: 'Glow effect', th_navy: 'Navy & gold', th_ocean: 'Ocean', th_leaf: 'Leaf', th_grape: 'Grape', th_rose: 'Rose', th_sunset: 'Sunset',
+    greet_morning: 'Good morning', greet_afternoon: 'Good afternoon', greet_evening: 'Good evening', offline: 'You are offline', back_top: 'Back to top',
+    just_now: 'just now', min_ago: 'min ago', hr_ago: 'h ago', day_ago: 'd ago',
+    hero_d: 'Local Chumphon helpers, ID-verified and background-checked. Easy booking, clear prices, guaranteed work', why_us: 'Why CleenDee', how_it_works: 'Book in 4 easy steps', top_maids: 'Recommended helpers', see_all: 'See all',
     nothing: 'Nothing here', saved: 'Saved', error: 'Something went wrong', loading: 'Loading…', need_login: 'Please log in to book',
   },
 } as const
@@ -146,7 +161,7 @@ export type Key = keyof typeof D.th
 const Ctx = createContext<{ lang: Lang; setLang: (l: Lang) => void; t: (k: Key) => string }>({ lang: 'th', setLang: () => {}, t: k => k })
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [lang, setLang] = useState<Lang>(() => (localStorageGet('cd_lang') as Lang) || (navigator.language?.startsWith('th') ? 'th' : 'th'))
+  const [lang, setLang] = useState<Lang>(() => (localStorageGet('cd_lang') as Lang) || (navigator.language?.startsWith('th') ? 'th' : 'en') /* ลูกค้าต่างชาติ: เครื่องไม่ใช่ภาษาไทย เปิดมาเป็นอังกฤษ */)
   useEffect(() => { localStorageSet('cd_lang', lang); document.documentElement.lang = lang }, [lang])
   const t = (k: Key) => D[lang][k] ?? D.th[k] ?? k
   return <Ctx.Provider value={{ lang, setLang, t }}>{children}</Ctx.Provider>
