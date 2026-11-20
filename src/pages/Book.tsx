@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { addressForPin } from '../lib/pinAddress'
+import { MAX_PIN_ERROR_METERS, type DeviceFix } from '../lib/deviceLocation'
 import { LocationPin } from '../components/LocationPin'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
@@ -244,7 +246,7 @@ export function BookTime() {
   </BookingLayout>
 }
 
-type Addr = { id: number; label: string; address: string; district_id: number; lat: number | null; lng: number | null }
+type Addr = { gps_accuracy_m: number | null; id: number; label: string; address: string; district_id: number; lat: number | null; lng: number | null }
 export function useAddresses() {
   const { session } = useAuth(); const [a, setA] = useState<Addr[] | null>(null)
   const load = () => { if (session) sb.from('customer_addresses').select('*').eq('customer_id',session.user.id).order('id').then(({ data }) => setA((data as Addr[]) || [])) }
@@ -252,20 +254,41 @@ export function useAddresses() {
   return { list: a, reload: load }
 }
 
-type Point = [number, number]
+function hasPrecisePin(address: Addr) {
+  return address.lat != null && address.lng != null && address.gps_accuracy_m != null && address.gps_accuracy_m > 0 && address.gps_accuracy_m <= MAX_PIN_ERROR_METERS
+}
 export function AddressForm({ onSaved, existing }: { onSaved: (id: number) => void; existing?: Addr }) {
   const { t, lang } = useI18n(); const { session } = useAuth(); const districts = useDistricts()
   const th = lang === 'th'
   const [label, setLabel] = useState(existing?.label ?? (th ? 'บ้าน' : 'Home'))
   const [addr, setAddr] = useState(existing?.address ?? '')
   const [dist, setDist] = useState(existing?.district_id ?? Number(localStorage.getItem('cd_district') || 1))
-  const [point, setPoint] = useState<Point | null>(existing?.lat != null && existing.lng != null ? [existing.lat,existing.lng] : null)
+  const [fix, setFix] = useState<DeviceFix | null>(null)
+  const [lookup, setLookup] = useState<'idle' | 'loading' | 'done' | 'missing'>('idle')
+  const [districtName,setDistrictName] = useState<string>()
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
-  const [reading, setReading] = useState(false)
+  const place = (next: DeviceFix | null) => {
+    setFix(next); setErr(''); setAddr(''); setDistrictName(undefined); setLookup(next ? 'loading' : 'idle')
+  }
+  useEffect(() => {
+    if (!fix) return
+    let current = true
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 6000)
+    addressForPin(fix.point, controller.signal).then(result => {
+      if (!current) return
+      setAddr(result.text); setDistrictName(result.district); setLookup(result.text ? 'done' : 'missing')
+    }).catch(() => { if (current) setLookup('missing') }).finally(() => clearTimeout(timer))
+    return () => { current = false; clearTimeout(timer); controller.abort() }
+  }, [fix])
+  useEffect(() => {
+    const match = districts.find(d => d.name_th === districtName)
+    if (match) setDist(match.id)
+  }, [districts,districtName])
   const save = async () => {
-    if (!session || !point || busy) return
+    if (!session || !fix || busy || lookup === 'loading' || !addr.trim()) return
     setBusy(true); setErr('')
-    const values = {label: label.trim(), address: addr.trim(), district_id:dist, lat:point[0], lng:point[1]}
+    const values = {label:label.trim(),address:addr.trim(),district_id:dist,lat:fix.point[0],lng:fix.point[1],gps_accuracy_m:fix.accuracy}
     const query = existing ? sb.from('customer_addresses').update(values).eq('id', existing.id).eq('customer_id',session.user.id)
       : sb.from('customer_addresses').insert({...values,customer_id:session.user.id})
     const { data,error } = await query.select('id').single()
@@ -274,11 +297,13 @@ export function AddressForm({ onSaved, existing }: { onSaved: (id: number) => vo
   }
   return <div className="card stack">
     <label className="field">{t('label')}<input className="input" value={label} onChange={e => setLabel(e.target.value)} /></label>
-    <label className="field">{t('address')}<textarea className="input" value={addr} onChange={e => setAddr(e.target.value)} placeholder={t('addr_ph')} /></label>
+    <LocationPin fix={fix} place={place} disabled={busy} />
+    {fix && <small role="status">{lookup === 'loading' ? (th ? 'กำลังเติมที่อยู่จากหมุด…' : 'Looking up the address…') : lookup === 'missing' ? (th ? 'ค้นที่อยู่ไม่พบ กรุณากรอกที่อยู่สำหรับหมุดนี้' : 'No address found. Enter the address for this pin.') : (th ? 'ตรวจที่อยู่และเติมบ้านเลขที่หรือซอย หากแผนที่หาไม่พบ' : 'Review the address and add a missing house number or lane.')}</small>}
+    <label className="field">{t('address')}<textarea disabled={!fix || lookup === 'loading' || busy} className="input" value={addr} onChange={e => setAddr(e.target.value)} placeholder={t('addr_ph')} /></label>
     <label className="field">{t('district')}<select className="input" value={dist} onChange={e => setDist(Number(e.target.value))}>{districts.map(d => <option key={d.id} value={d.id}>{th ? d.name_th : d.name_en}</option>)}</select></label>
-    <LocationPin point={point} place={setPoint} onReading={setReading} disabled={busy} />
+    <small><a href="/geo/NOTICE.txt" target="_blank" rel="noreferrer">GeoThai · OCHA COD-AB · Royal Thai Survey Department</a> · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap</a></small>
     {err && <div className="err" role="alert">{err}</div>}
-    <button className="btn b-ocean" disabled={busy || reading || !point || !label.trim() || addr.trim().length < 5} onClick={save}>{t('save')}</button>
+    <button className="btn b-ocean" disabled={busy || lookup === 'loading' || !fix || !label.trim() || addr.trim().length < 5} onClick={save}>{t('save')}</button>
   </div>
 }
 
@@ -295,14 +320,14 @@ export function BookingLocation({children}: {children: ReactNode}) {
     setId(next); setEdit(null)
   }
   if (!list) return <Loading />
-  if (address && address.lat != null && address.lng != null && !edit) return <SelectedAddress.Provider value={{address: address.address, change: () => setId(null)}}>{children}</SelectedAddress.Provider>
+  if (address && hasPrecisePin(address) && !edit) return <SelectedAddress.Provider value={{address: address.address, change: () => setId(null)}}>{children}</SelectedAddress.Provider>
   return <BookingLayout title={th ? 'สถานที่รับบริการ' : 'Service location'}>
     <section className="booking-panel booking-location-panel">
       <h2>{th ? 'ให้แม่บ้านไปที่ไหน?' : 'Where do you need cleaning?'}</h2>
-      {list.map(a => <div key={a.id} className="stack"><button className="choice" onClick={() => a.lat == null || a.lng == null ? setEdit(a) : choose(a.id)}>
+      {list.map(a => <div key={a.id} className="stack"><button className="choice" onClick={() => hasPrecisePin(a) ? choose(a.id) : setEdit(a)}>
         <Icon n="pin" /><span className="booking-grow"><b>{a.label}</b><span className="small muted">{a.address}</span></span><Icon n="next" size={16} />
       </button>
-        {a.lat != null && a.lng != null && <button className="link" onClick={() => setEdit(a)}>{th ? 'ปรับหมุดของ ' : 'Adjust pin for '}{a.label}</button>}
+        {hasPrecisePin(a) && <button className="link" onClick={() => setEdit(a)}>{th ? 'ปรับหมุดของ ' : 'Adjust pin for '}{a.label}</button>}
       </div>)}
       {edit || !list.length ? <AddressForm key={typeof edit === 'object' ? edit?.id : 'new'} existing={edit && edit !== 'new' ? edit : undefined} onSaved={next => { reload(); choose(next) }} /> :
         <button className="btn b-line" onClick={() => setEdit('new')}><Icon n="plus" size={17} />{t('add_address')}</button>}

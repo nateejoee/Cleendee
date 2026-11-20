@@ -1,67 +1,45 @@
 import { useEffect, useRef, useState } from 'react'
-import { Circle, CircleMarker, MapContainer, TileLayer, useMapEvents } from 'react-leaflet'
+import { Circle, CircleMarker, MapContainer, TileLayer, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
-import { readDeviceLocation, type LocationResult } from '../lib/deviceLocation'
+import { readDeviceLocation, type DeviceFix, type LocationResult } from '../lib/deviceLocation'
 import { useI18n } from '../lib/i18n'
 import { Icon } from './ui'
 
-type Point = [number, number]
-
-function Pin({ point, accuracy, place }: { point: Point | null; accuracy: number | null; place: (p: Point) => void }) {
-  const map = useMapEvents({ click: e => place([e.latlng.lat, e.latlng.lng]) })
-  useEffect(() => {
-    if (!point) return
-    if (accuracy === null) map.panTo(point)
-    else map.setView(point, accuracy <= 30 ? 18 : accuracy <= 100 ? 17 : accuracy <= 500 ? 15 : 13)
-  }, [point, accuracy, map])
-  return point && <>
-    {accuracy !== null && <Circle center={point} radius={accuracy} pathOptions={{ color:'#2476af', weight:1, fillOpacity:0.13 }} />}
-    <CircleMarker center={point} radius={7} pathOptions={{ color:'#fff', weight:2, fillColor:'#174e85', fillOpacity:1 }} />
+function ConfirmedPin({fix}: {fix: DeviceFix}) {
+  const map = useMap()
+  useEffect(() => { map.setView(fix.point, 18) }, [map, fix])
+  return <>
+    <Circle center={fix.point} radius={fix.accuracy} pathOptions={{color:'#2476af',weight:1,fillOpacity:0.13}} />
+    <CircleMarker center={fix.point} radius={7} pathOptions={{color:'#fff',weight:2,fillColor:'#174e85',fillOpacity:1}} />
   </>
 }
 
-export function LocationPin({point, place, onReading, disabled}: {point: Point | null; place: (p: Point) => void; onReading: (value: boolean) => void; disabled: boolean}) {
+export function LocationPin({fix, place, disabled}: {fix: DeviceFix | null; place: (value: DeviceFix | null) => void; disabled: boolean}) {
   const th = useI18n().lang === 'th'
-  const [accuracy, setAccuracy] = useState<number | null>(null)
-  const [status, setStatus] = useState<LocationResult | 'reading' | null>(null)
+  const [status,setStatus] = useState<LocationResult | 'reading' | null>(null)
   const cancel = useRef<(() => void) | null>(null)
   useEffect(() => () => cancel.current?.(), [])
-  const stop = () => {
-    cancel.current?.()
-    cancel.current = null
-    setStatus(null)
-    onReading(false)
-  }
   const locate = () => {
-    stop()
+    cancel.current?.()
+    place(null)
+    if (status === 'reading') { setStatus(null); return }
     if (!navigator.geolocation) { setStatus('unavailable'); return }
     setStatus('reading')
-    onReading(true)
-    cancel.current = readDeviceLocation(navigator.geolocation, fix => {
-      place(fix.point)
-      setAccuracy(fix.accuracy)
-    }, result => { setStatus(result); onReading(false) })
+    cancel.current = readDeviceLocation(navigator.geolocation, place, setStatus)
   }
-  const manual = (next: Point) => {
-    if (disabled) return
-    stop()
-    setAccuracy(null)
-    place(next)
-  }
-  const help = status === 'denied' ? (th ? 'อนุญาตให้เบราว์เซอร์เข้าถึงตำแหน่ง หรือแตะแผนที่เพื่อวางหมุด' : 'Allow location in browser settings or tap the map to place a pin.')
-    : status === 'timeout' || status === 'unavailable' ? (th ? 'อ่านตำแหน่งไม่ได้ ลองอีกครั้งหรือแตะแผนที่ตรงทางเข้า' : 'Location unavailable. Try again or tap the entrance on the map.')
-    : status === 'reading' ? (th ? 'กำลังหาพิกัดที่แม่นที่สุดจากเครื่อง…' : 'Refining your device location…')
-    : (th ? 'ตรวจหมุดตรงทางเข้าบ้าน แตะแผนที่เพื่อปรับได้' : 'Check the pin at your entrance. Tap the map to adjust it.')
+  let help = th ? 'ยืนตรงทางเข้าบ้าน แล้วกดอ่าน GPS ระบบจะยืนยันหมุดเมื่อความคลาดเคลื่อนไม่เกิน 10 เมตร' : 'Stand at the entrance and read your location. The pin needs accuracy within 10 m.'
+  if (status === 'denied') help = th ? 'เปิดสิทธิ์ตำแหน่งที่ตั้งแบบแม่นยำให้เบราว์เซอร์ แล้วลองอีกครั้ง' : 'Allow precise location in your browser settings and try again.'
+  if (status === 'imprecise' || status === 'timeout' || status === 'unavailable') help = th ? 'ยังยืนยันพิกัดไม่ได้ ลองยืนในที่โล่งใกล้ทางเข้า เปิดตำแหน่งแบบแม่นยำ แล้วกดอ่านอีกครั้ง' : 'Could not confirm an accurate pin. Move to an open area near the entrance, enable precise location and retry.'
+  if (status === 'reading') help = th ? 'กำลังรอพิกัดที่คลาดเคลื่อนไม่เกิน 10 เมตร…' : 'Waiting for a fix within 10 metres…'
+  if (fix) help = th ? 'ยืนยันหมุดแล้ว · คลาดเคลื่อนประมาณ ' + Math.ceil(fix.accuracy) + ' เมตร' : 'Pin confirmed · estimated accuracy ' + Math.ceil(fix.accuracy) + ' m'
   return <>
     <b>{th ? 'ตำแหน่งทางเข้าบ้าน' : 'Entrance location'}</b>
-    <button type="button" className="btn b-line" disabled={disabled} onClick={status === 'reading' ? stop : locate}><Icon n="pin" />
-      {status === 'reading' ? (th ? 'หยุดอ่านตำแหน่ง' : 'Stop locating') : (th ? 'ใช้ GPS จากเครื่องนี้' : 'Use device location')}</button>
+    <small>{th ? 'เมื่อกดอ่าน GPS ระบบจะใช้พิกัดค้นที่อยู่กับ Photon / OpenStreetMap' : 'Reading your location shares the pin with Photon / OpenStreetMap for address lookup.'}</small>
+    <button type="button" className="btn b-line" disabled={disabled} onClick={locate}><Icon n="pin" />
+      {status === 'reading' ? (th ? 'หยุดอ่านตำแหน่ง' : 'Stop locating') : (th ? 'อ่าน GPS และเติมที่อยู่' : 'Locate and fill address')}</button>
     <small role="status">{help}</small>
-    <MapContainer center={point ?? [10.493,99.18]} zoom={point ? 17 : 10} scrollWheelZoom={false} style={{height:260,zIndex:0}}>
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" />
-      <Pin point={point} accuracy={accuracy} place={manual} />
-    </MapContainer>
-    {accuracy !== null && <small>{th ? 'รัศมีความคลาดเคลื่อนประมาณ ' : 'Estimated accuracy radius: '}{Math.ceil(accuracy)} {th ? 'เมตร' : 'm'}</small>}
-    {point && <small>{point[0].toFixed(6)}, {point[1].toFixed(6)}</small>}
+    {fix && <MapContainer center={fix.point} zoom={18} scrollWheelZoom={false} style={{height:260,zIndex:0}}>
+      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" /><ConfirmedPin fix={fix} />
+    </MapContainer>}
   </>
 }
