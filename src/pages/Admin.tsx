@@ -1,6 +1,7 @@
 import { FunnelReport } from '../components/FunnelReport'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
+import { bkkToday } from '../lib/draft'
 import { sb, friendly, type Booking, type Service, type Addon } from '../lib/supabase'
 import { useServices, svcName, svcUnit } from '../lib/services'
 import { useI18n, money, fmtDate, fmtTime, type Key } from '../lib/i18n'
@@ -28,7 +29,7 @@ type Claim = { id: number; booking_id: number; item: string; description: string
 function useAdminData() {
   const [d, setD] = useState<{ pays: Pay[]; payouts: Payout[]; refunds: Refund[]; claims: Claim[]; unmatched: Booking[]; month: Booking[]; maidsPending: number; maidsTotal: number } | null>(null)
   const load = async () => {
-    const m0 = new Date(); m0.setDate(1); m0.setHours(0, 0, 0, 0)
+    const m0 = new Date(bkkToday().slice(0, 7) + '-01T00:00:00+07:00') // ต้นเดือนตามเวลาไทย
     const [pays, payouts, refunds, claims, unmatched, month, mp, mt] = await Promise.all([
       sb.from('payments').select('*').eq('status', 'pending').order('created_at'),
       sb.rpc('admin_pending_payouts'),
@@ -68,6 +69,8 @@ function LowRatings({ rows, reload }: { rows: Low[]; reload: () => void }) {
 
 export function AdminHome() {
   const { t, lang } = useI18n(); const { d, reload } = useAdminData(); const toast = useToast(); const low = useLowRatings()
+  const { hash, key } = useLocation()
+  useEffect(() => { if (d && hash) document.getElementById(hash.slice(1))?.scrollIntoView() }, [hash, key, d, low.rows.length])
   if (useAdminGuard()) return <Navigate to="/" />
   if (!d) return <Loading />
   const income = d.month.reduce((a, b) => a + b.total_price - b.maid_payout, 0)

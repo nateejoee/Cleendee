@@ -4,11 +4,19 @@ import { sb, type Addon, type Service } from './supabase'
 // โหลดรายการบริการและงานเสริม (เก็บไว้ในหน่วยความจำ ไม่ต้องโหลดซ้ำทุกหน้า)
 let svcCache: Service[] | null = null
 let addonCache: Addon[] | null = null
-export function useServices() {
+// failed = โหลดไม่สำเร็จ (ไม่ใช่ "ไม่มีบริการ") ให้หน้าจอแสดงปุ่มลองอีกครั้งได้
+export function useServicesLoad() {
   const [s, setS] = useState<Service[] | null>(svcCache)
-  useEffect(() => { sb.from('service_types').select('*').order('sort').then(({ data }) => { svcCache = (data as Service[]) || []; setS(svcCache) }) }, [])
-  return s
+  const [failed, setFailed] = useState(false); const [attempt, setAttempt] = useState(0)
+  useEffect(() => {
+    sb.from('service_types').select('*').order('sort').then(({ data, error }) => {
+      if (error) { setFailed(!svcCache); setS(svcCache ?? []); return }
+      svcCache = (data as Service[]) || []; setFailed(false); setS(svcCache)
+    })
+  }, [attempt])
+  return { services: s, failed, retry: () => { setFailed(false); setS(svcCache); setAttempt(n => n + 1) } }
 }
+export function useServices() { return useServicesLoad().services }
 export function useAddons() {
   const [a, setA] = useState<Addon[] | null>(addonCache)
   useEffect(() => { sb.from('service_addons').select('*').order('sort').then(({ data }) => { addonCache = (data as Addon[]) || []; setA(addonCache) }) }, [])

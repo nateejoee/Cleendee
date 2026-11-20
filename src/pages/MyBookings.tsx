@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { MapContainer, TileLayer, CircleMarker } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
-import { sb, friendly, type Booking, type Service } from '../lib/supabase'
+import { sb, friendly, type Booking, type Maid, type Service } from '../lib/supabase'
 import { useI18n, money, fmtDate, fmtTime, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { clearDraft, setDraft, emptyDraft, bkkToday, startIso } from '../lib/draft'
@@ -32,8 +32,16 @@ export function useMyBookings() {
   return { list: b, reload: load }
 }
 
+// แม่บ้านของการจองของฉันทุกคน (รวมคนที่ถูกระงับแล้ว) ใช้แสดงชื่อ/รูปในงานเดิม
+type Helper = Pick<Maid, 'id' | 'nickname' | 'photo_url'>
+function useBookingHelpers() {
+  const { session } = useAuth(); const [h, setH] = useState<Helper[]>([])
+  useEffect(() => { if (session) sb.rpc('my_booking_helpers').then(({ data }) => setH((data as Helper[]) || [])) }, [session])
+  return h
+}
+
 export function Bookings() {
-  const { t, lang } = useI18n(); const nav = useNavigate(); const { session } = useAuth(); const { list } = useMyBookings(); const maids = useMaids()
+  const { t, lang } = useI18n(); const nav = useNavigate(); const { session } = useAuth(); const { list } = useMyBookings(); const maids = useMaids(); const helpers = useBookingHelpers(); const services = useServices()
   const [tab, setTab] = useState<'up' | 'hist'>('up')
   if (!session) return <div className="page"><div className="hero"><h1>{t('my_bookings')}</h1></div><div className="pad mt20"><Link className="btn b-ocean" to="/login">{t('login')}</Link></div><CustomerTabs /></div>
   const rows = (list || []).filter(b => (tab === 'up') === ACTIVE.includes(b.status))
@@ -43,11 +51,11 @@ export function Bookings() {
       <div className="seg mt12"><button className={tab === 'up' ? 'on' : ''} onClick={() => setTab('up')}>{t('upcoming')}</button><button className={tab === 'hist' ? 'on' : ''} onClick={() => setTab('hist')}>{t('history')}</button></div></div>
     <div className="pad mt16 stack cols">
       {!list ? <Loading /> : rows.length === 0 ? <div className="empty"><div className="muted">{t('no_bookings')}</div><button className="btn b-sun mt12" onClick={() => nav('/book')}>{t('book_now')}</button></div> :
-        rows.map((b, i) => { const m = maids?.find(x => x.id === b.maid_id)
+        rows.map((b, i) => { const m: Helper | undefined = helpers.find(x => x.id === b.maid_id) ?? maids?.find(x => x.id === b.maid_id); const svc = services?.find(x => x.id === b.service_type_id)
           const big = tab === 'up' && i === 0
           return <Link key={b.id} to={'/bookings/' + b.id} className={big ? 'ticket' : 'card'} style={{ color: 'var(--ink)', display: 'block' }}>
             <div className="between"><span className="disp" style={{ fontWeight: 700 }}>{fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}</span><StatusPill s={b.status} /></div>
-            <div className="small mt8">{m ? m.nickname : t('auto_pick')} · {t('clean_6h')} · {money(b.total_price)} {t('baht')}{b.package_id ? ' · ' + t('monthly_pkg') : ''}</div>
+            <div className="small mt8">{m ? m.nickname : t('auto_pick')} · {svcName(svc, lang)} {b.qty ?? ''} {svcUnit(svc, lang)} · {money(b.total_price)} {t('baht')}{b.package_id ? ' · ' + t('monthly_pkg') : ''}</div>
           </Link> })}
     </div>
     <CustomerTabs />
@@ -55,7 +63,8 @@ export function Bookings() {
 }
 
 function Chat({ bookingId }: { bookingId: number }) {
-  const { t } = useI18n(); const { session } = useAuth(); const [msgs, setMsgs] = useState<{ id: number; sender_id: string; body: string; created_at: string }[]>([]); const [txt, setTxt] = useState('')
+  const { t, lang } = useI18n(); const { session } = useAuth(); const [msgs, setMsgs] = useState<{ id: number; sender_id: string; body: string; created_at: string }[]>([]); const [txt, setTxt] = useState('')
+  const [sending, setSending] = useState(false); const [err, setErr] = useState('')
   useMinuteTick()
   const load = () => sb.from('messages').select('id,sender_id,body,created_at').eq('booking_id', bookingId).order('created_at').then(({ data }) => setMsgs(data || []))
   useEffect(() => {
@@ -64,12 +73,18 @@ function Chat({ bookingId }: { bookingId: number }) {
     const iv = setInterval(load, 8000)
     return () => { sb.removeChannel(ch); clearInterval(iv) }
   }, [bookingId])
-  const send = async () => { if (!txt.trim()) return; const body = txt; setTxt(''); await sb.from('messages').insert({ booking_id: bookingId, body }); load() }
+  const send = async () => {
+    if (!txt.trim() || sending) return; const body = txt; setSending(true); setErr('')
+    const { error } = await sb.from('messages').insert({ booking_id: bookingId, body }); setSending(false)
+    if (error) { setErr(friendly(error, lang)); return }
+    setTxt(cur => (cur === body ? '' : cur)); load()
+  }
   return <div className="card stack">
     <div className="chatbox">{msgs.map(m => <div key={m.id} className={'bub' + (m.sender_id === session?.user.id ? ' me' : '')}>{m.body}<small className="bt">{relTime(m.created_at, t)}</small></div>)}</div>
     <div className="tiny muted" style={{ textAlign: 'center' }}>{t('masked_note')}</div>
     <div className="row"><input className="input" value={txt} onChange={e => setTxt(e.target.value)} placeholder={t('type_msg')} onKeyDown={e => e.key === 'Enter' && send()} />
-      <button className="btn b-ocean sm" onClick={send}>{t('send')}</button></div>
+      <button className="btn b-ocean sm" disabled={sending} onClick={send}>{t('send')}</button></div>
+    {err && <div className="err" role="alert">{err}</div>}
   </div>
 }
 export { Chat }
@@ -98,7 +113,7 @@ function haversine(a: [number, number], b: [number, number]) {
 }
 
 export function BookingDetail() {
-  const { id } = useParams(); const { t, lang } = useI18n(); const nav = useNavigate(); const toast = useToast(); const maids = useMaids(); const services = useServices(); const addons = useAddons()
+  const { id } = useParams(); const { t, lang } = useI18n(); const nav = useNavigate(); const toast = useToast(); const maids = useMaids(); const helpers = useBookingHelpers(); const services = useServices(); const addons = useAddons()
   const [b, setB] = useState<Booking | null>(null); const [addr, setAddr] = useState<{ address: string; lat: number | null; lng: number | null } | null>(null)
   const [reviewed, setReviewed] = useState(false); const [err, setErr] = useState('')
   const load = () => {
@@ -108,7 +123,7 @@ export function BookingDetail() {
   }
   useEffect(() => { load(); const iv = setInterval(load, 15000); return () => clearInterval(iv) }, [id])
   if (!b) return <Loading />
-  const m = maids?.find(x => x.id === b.maid_id)
+  const m: Helper | undefined = helpers.find(x => x.id === b.maid_id) ?? maids?.find(x => x.id === b.maid_id)
   const svc = services?.find(x => x.id === b.service_type_id)
   // จองอีกครั้ง: ใช้บริการ แม่บ้าน ที่อยู่ งานเสริม และโน้ตเดิม แล้วไปเลือกวันเวลาใหม่
   const rebook = async () => {
@@ -153,7 +168,7 @@ export function BookingDetail() {
       {b.maid_id && ['confirmed', 'on_the_way', 'working', 'completed'].includes(b.status) && <><div className="sec-title" style={{ margin: '6px 0 0' }}>{t('chat')}</div><Chat bookingId={b.id} /></>}
       {['completed', 'cancelled_by_customer'].includes(b.status) && !b.package_id && <button className="btn b-sun" onClick={rebook}><Icon n="redo" />{t('book_again')}</button>}
       {!['pending_payment', 'payment_review', 'payment_rejected'].includes(b.status) && <Link to={'/receipt/' + b.id} className="btn b-line"><Icon n="print" />{t('receipt')}</Link>}
-      {b.status === 'completed' && !reviewed && b.maid_id && <div className="card"><RatingForm bookingId={b.id} side="customer" name={maids?.find(m => m.id === b.maid_id)?.nickname ?? ''} onDone={() => { setReviewed(true); confetti(); toast.show(t('thanks_review')) }} /></div>}
+      {b.status === 'completed' && !reviewed && b.maid_id && <div className="card"><RatingForm bookingId={b.id} side="customer" name={m?.nickname ?? ''} onDone={() => { setReviewed(true); confetti(); toast.show(t('thanks_review')) }} /></div>}
       {b.status === 'completed' && <Link to={'/claim/' + b.id} className="btn b-line">{t('claim')}</Link>}
       {['pending_payment', 'payment_review', 'awaiting_maid', 'confirmed', 'payment_rejected'].includes(b.status) && <><div className="small muted">{t('cancel_rules')}</div><button className="btn b-red" onClick={cancel}>{t('cancel_booking')}</button></>}
       {err && <div className="err">{err}</div>}
@@ -314,7 +329,7 @@ export function Account() {
       <Link to="/account/addresses" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico"><Icon n="pin" /></span><b style={{ flex: 1 }}>{t('my_addresses')}</b><Icon n="next" /></Link>
       <Link to="/account/favorites" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--sun-l)' }}><Icon n="heart" /></span><b style={{ flex: 1 }}>{t('favorites')}</b><Icon n="next" /></Link>
       <Link to="/book/time?plan=weekly" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--leaf-l)' }}><Icon n="cal" /></span><span style={{ flex: 1 }}><b>{t('monthly_pkg')}</b><span className="small muted">{t('pkg_none')}</span></span><Icon n="next" /></Link>
-      {profile?.role === 'customer' && <Link to="/maid/apply" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico"><Icon n="team" /></span><span style={{ flex: 1 }}><b>{t('become_maid')}</b>{maidApp && <span className="small muted">{t('m_wait')}</span>}</span><Icon n="next" /></Link>}
+      {profile?.role === 'customer' && <Link to="/maid/apply" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico"><Icon n="team" /></span><span style={{ flex: 1 }}><b>{t('become_maid')}</b>{maidApp?.status === 'pending' && <span className="small muted">{t('m_wait')}</span>}</span><Icon n="next" /></Link>}
       <button className="listrow" onClick={() => setLang(lang === 'th' ? 'en' : 'th')}><span className="rico"><Icon n="chat" /></span><b style={{ flex: 1 }}>{t('language')}: {lang === 'th' ? 'ไทย' : 'English'}</b></button>
       <ThemePicker />
       <button className="listrow" onClick={async () => { await sb.auth.signOut(); clearDraft(); nav('/') }}><span className="rico"><Icon n="logout" /></span><b style={{ flex: 1 }}>{t('logout')}</b></button>

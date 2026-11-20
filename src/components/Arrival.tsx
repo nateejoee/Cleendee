@@ -6,7 +6,7 @@ import { sb, type Booking, type Maid } from '../lib/supabase'
 import './BookingHelp.css'
 
 type Details = { status: string; key_allowed?: boolean; challenge?: string; expires_at?: string }
-type Props = { booking: Booking; helper?: Maid; side: 'helper' | 'customer'; reload: () => void }
+type Props = { booking: Booking; helper?: Pick<Maid, 'id' | 'nickname' | 'photo_url'>; side: 'helper' | 'customer'; reload: () => void }
 
 export function Arrival({ booking, helper, side, reload }: Props) {
   const th = useI18n().lang === 'th'

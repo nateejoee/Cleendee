@@ -44,7 +44,10 @@ Deno.serve(async req => {
 
   const record = async (result: 'approve' | 'reject' | 'pending', ref: string | null, note: string) => {
     const { data, error } = await admin.rpc('record_slip_check', { p_payment_id: pay.id, p_result: result, p_trans_ref: ref, p_note: note })
-    return reply({ status: error ? 'pending' : data, reason: note })
+    if (error) return reply({ status: 'pending', reason: note })
+    // the database may change the outcome (e.g. a reused slip) and returns 'rejected:<reason>'
+    const [status, why] = String(data).split(':')
+    return reply({ status, reason: why || note })
   }
 
   const key = Deno.env.get('SLIPOK_API_KEY'), branch = Deno.env.get('SLIPOK_BRANCH_ID')

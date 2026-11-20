@@ -1,5 +1,5 @@
 import { Arrival } from '../components/Arrival'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { sb, friendly, type Booking } from '../lib/supabase'
 import { useI18n, money, fmtDate, fmtTime, type Key } from '../lib/i18n'
@@ -58,8 +58,10 @@ export function MaidHome() {
   const { t, lang } = useI18n(); const { profile } = useAuth(); const { mine, open, payouts, reload } = useMaidData(); const toast = useToast(); const districts = useDistricts()
   const [nick, setNick] = useState('')
   useEffect(() => { if (profile) sb.from('maids').select('nickname').eq('id', profile.id).maybeSingle().then(({ data }) => setNick(data?.nickname || '')) }, [profile])
-  const month = new Date().toISOString().slice(0, 7)
-  const earned = payouts.filter(p => p.status === 'done' && (p.transferred_at || '').startsWith(month)).reduce((a, p) => a + p.amount, 0)
+  // เดือนตามเวลาไทย (Asia/Bangkok, UTC+7)
+  const month = bkkToday().slice(0, 7)
+  const bkkMonth = (iso: string) => new Date(new Date(iso).getTime() + 7 * 3600e3).toISOString().slice(0, 7)
+  const earned = payouts.filter(p => p.status === 'done' && !!p.transferred_at && bkkMonth(p.transferred_at) === month).reduce((a, p) => a + p.amount, 0)
   const pending = payouts.filter(p => p.status === 'pending').reduce((a, p) => a + p.amount, 0)
   const req = (mine || []).filter(b => b.status === 'awaiting_maid')
   const jobs = (mine || []).filter(b => ['confirmed', 'on_the_way', 'working'].includes(b.status))
@@ -117,12 +119,17 @@ function Checklist({ b, onSaved }: { b: Booking; onSaved: () => void }) {
       ...b.tags.filter(x => x === 'tag_bath' || x === 'tag_kitchen').map(x => t(x as Key))]
     return items.map(x => ({ t: x, done: false }))
   }, [b.checklist, svc, addons, lang])
-  const [list, setList] = useState(base); useEffect(() => setList(base), [base])
+  // ระหว่างกำลังบันทึก ไม่เอาค่าจากการโหลดซ้ำมาทับ และบันทึกตามลำดับโดยส่งรายการล่าสุดทุกครั้ง
+  const [list, setList] = useState(base); const latest = useRef(base); const pending = useRef(0); const chain = useRef<Promise<unknown>>(Promise.resolve())
+  useEffect(() => { if (!pending.current) { latest.current = base; setList(base) } }, [base])
   const editable = ['confirmed', 'on_the_way', 'working'].includes(b.status)
-  const toggle = async (i: number) => {
+  const toggle = (i: number) => {
     if (!editable) return
-    const n = list.map((x, j) => (j === i ? { ...x, done: !x.done } : x)); setList(n)
-    await sb.rpc('maid_set_checklist', { p_booking_id: b.id, p_checklist: n }); onSaved()
+    const n = latest.current.map((x, j) => (j === i ? { ...x, done: !x.done } : x)); latest.current = n; setList(n); pending.current++
+    chain.current = chain.current.then(async () => {
+      try { await sb.rpc('maid_set_checklist', { p_booking_id: b.id, p_checklist: latest.current }) }
+      finally { if (--pending.current === 0) onSaved() }
+    }).catch(() => {})
   }
   if (!list.length) return null
   return <><div className="sec-title">{t('checklist')} ({list.filter(x => x.done).length}/{list.length})</div>
@@ -154,7 +161,7 @@ function JobPhotos({ b }: { b: Booking }) {
 export function MaidJob() {
   const { id } = useParams(); const { t, lang } = useI18n(); const nav = useNavigate(); const toast = useToast()
   const [b, setB] = useState<Booking | null>(null); const [addr, setAddr] = useState<{ address: string; lat:number|null; lng:number|null } | null>(null)
-  const [rated, setRated] = useState(true); const [custName, setCustName] = useState('')
+  const [rated, setRated] = useState(true); const [custName, setCustName] = useState(''); const [busy, setBusy] = useState(false)
   const load = () => { sb.from('bookings').select('*').eq('id', id!).single().then(({ data }) => setB(data as Booking)); sb.from('customer_reviews').select('id').eq('booking_id', id!).maybeSingle().then(({ data }) => setRated(!!data)); sb.rpc('maid_job_info', { p_booking_id: Number(id) }).then(({ data }) => setCustName(data?.first_name ?? '')); sb.from('booking_addresses').select('address,lat,lng').eq('booking_id', id!).maybeSingle().then(({ data }) => setAddr(data)) }
   useEffect(load, [id])
   useEffect(() => {
@@ -164,9 +171,15 @@ export function MaidJob() {
   }, [b?.status, b?.id])
   if (!b) return <Loading />
   const step = async (s: string) => {
-    const go = (lat?: number, lng?: number) => sb.rpc('maid_update_progress', { p_booking_id: b.id, p_step: s, p_lat: lat ?? null, p_lng: lng ?? null }).then(({ error }) => { if (error) toast.show(friendly(error, lang)); load() })
-    if (s === 'on_the_way' && navigator.geolocation) navigator.geolocation.getCurrentPosition(p => go(p.coords.latitude, p.coords.longitude), () => go(), { timeout: 8000 })
-    else go()
+    if (busy) return; setBusy(true)
+    try {
+      const go = (lat?: number, lng?: number) => sb.rpc('maid_update_progress', { p_booking_id: b.id, p_step: s, p_lat: lat ?? null, p_lng: lng ?? null }).then(({ error }) => { if (error) toast.show(friendly(error, lang)); load() })
+      const pos = s === 'on_the_way' && navigator.geolocation ? await new Promise<GeolocationPosition | null>(r => {
+        const stop = setTimeout(() => r(null), 10000) // กันกรณีไม่มีคำตอบเรื่องสิทธิ์ตำแหน่ง
+        navigator.geolocation.getCurrentPosition(p => { clearTimeout(stop); r(p) }, () => { clearTimeout(stop); r(null) }, { timeout: 8000 })
+      }) : null
+      await go(pos?.coords.latitude, pos?.coords.longitude)
+    } catch (e) { toast.show(friendly(e, lang)) } finally { setBusy(false) }
   }
   const idx = ['confirmed', 'on_the_way', 'working', 'completed'].indexOf(b.status)
   const steps: [Key, Key | null][] = [['m_step1', null], ['m_step2', 'm_step2d'], ['m_step3', null], ['m_step4', null]]
@@ -187,7 +200,7 @@ export function MaidJob() {
       <div className="sec-title">{t('chat')}</div><Chat bookingId={b.id} />
       {b.status === 'confirmed' && <button className="btn b-red mt16" onClick={async () => { if (!window.confirm(t('m_cancel_job') + '?')) return; const { error } = await sb.rpc('maid_cancel_job', { p_booking_id: b.id }); if (error) toast.show(friendly(error, lang)); else nav('/maid') }}>{t('m_cancel_job')}</button>}
     </div>
-    {next && <div className="bottom-bar"><button className="btn b-sun" style={{ minHeight: 60, fontSize: 19 }} onClick={() => step(next[0])}>{next[1]}</button></div>}
+    {next && <div className="bottom-bar"><button className="btn b-sun" style={{ minHeight: 60, fontSize: 19 }} disabled={busy} onClick={() => step(next[0])}>{busy ? t('loading') : next[1]}</button></div>}
     {toast.node}
   </div>
 }

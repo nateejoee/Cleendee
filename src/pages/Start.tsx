@@ -7,9 +7,9 @@ import { useI18n, localStorageSet, money, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { Avatar, Icon, LangToggle, Logo, CustomerTabs, TopBar, Loading, SiteFooter } from '../components/ui'
 import { setDraft, emptyDraft } from '../lib/draft'
-import { useServices, svcName, svcUnit } from '../lib/services'
+import { useServices, useServicesLoad, svcName, svcUnit } from '../lib/services'
 import { CountUp, greetKey } from '../lib/fx'
-import { useMaids, useBlockedMaids } from './Book'
+import { useMaidsLoad, useBlockedMaids } from './Book'
 import imgHero from '../assets/ill/hero.webp'
 import imgClean from '../assets/ill/cleaning.webp'
 import imgSched from '../assets/ill/schedule.webp'
@@ -87,7 +87,7 @@ export function Login() {
 }
 
 export function Home() {
-  const { t, lang } = useI18n(); const { profile } = useAuth(); const nav = useNavigate(); const districts = useDistricts(); const services = useServices(); const allMaids = useMaids(); const blocked = useBlockedMaids(); const maids = allMaids?.filter(m => !blocked.includes(m.id))
+  const { t, lang } = useI18n(); const { profile } = useAuth(); const nav = useNavigate(); const districts = useDistricts(); const services = useServices(); const { maids: allMaids, failed: maidsFailed } = useMaidsLoad(); const blocked = useBlockedMaids(); const maids = allMaids?.filter(m => !blocked.includes(m.id))
   const distId = profile?.district_id ?? Number(localStorage.getItem('cd_district') || 1)
   const d = districts.find(x => x.id === distId)
   const extra = [
@@ -156,7 +156,7 @@ export function Home() {
           <div className="stack">{(maids || []).slice(0, 3).map(m => <Link key={m.id} to={'/maid-profile/' + m.id} className="mcard" style={{ color: 'var(--ink)' }}>
             <Avatar name={m.nickname} url={m.photo_url} seed={m.id} size={52} />
             <span style={{ flex: 1 }}><b className="disp">{m.nickname}</b><span className="small muted" style={{ display: 'block' }}><span className="star">★</span> {m.avg_rating ?? '–'} · {m.jobs_done ?? 0} {t('homes_done')}</span></span><Icon n="next" /></Link>)}
-            {maids && maids.length === 0 && <div className="empty muted">{t('nothing')}</div>}</div></div>
+            {maids && maids.length === 0 && <div className="empty muted">{maidsFailed ? t('load_failed') : t('nothing')}</div>}</div></div>
         <section className="pad" aria-labelledby="home-booking-heading">
           <h2 id="home-booking-heading" className="sec-title">{t('how_it_works')}</h2>
           <ol className="home-booking-steps" role="list">
@@ -180,11 +180,13 @@ export function Home() {
 
 // หน้ารายละเอียดบริการ: ราคา + รวมอะไร / ไม่รวมอะไร
 export function Service() {
-  const { t, lang } = useI18n(); const nav = useNavigate(); const { code = 'general_cleaning' } = useParams(); const services = useServices()
+  const { t, lang } = useI18n(); const nav = useNavigate(); const { code = 'general_cleaning' } = useParams(); const { services, failed, retry } = useServicesLoad()
   const s = services?.find(x => x.code === code)
   useEffect(() => { if (s?.active) void bookingStep(s.code, 'view') }, [s?.active, s?.code])
   const [estimate, setEstimate] = useState<number | null>(null)
   const book = (qty: number | null = s?.code === 'general_cleaning' ? estimate : null) => { setDraft({ ...emptyDraft, service: code, qty }); nav('/book') }
+  if (failed) return <div className="page nobar"><TopBar title={t('services')} /><div className="pad mt20 stack" role="status"><div className="empty muted">{t('load_failed')}</div>
+    <button className="btn b-line" type="button" onClick={retry}>{t('try_again')}</button></div></div>
   if (!services) return <Loading />
   if (!s || !s.active) return <div className="page nobar"><TopBar title={t('services')} /><div className="pad mt20"><div className="empty muted">{t('service_closed')}</div></div></div>
   const inc = lang === 'th' ? s.included_th : s.included_en, exc = lang === 'th' ? s.excluded_th : s.excluded_en

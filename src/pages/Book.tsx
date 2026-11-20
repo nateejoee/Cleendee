@@ -16,15 +16,36 @@ import { BookingLayout } from './BookingLayout'
 import { useDistricts } from './Start'
 import { confetti } from '../lib/fx'
 
-export function useMaids() {
+export function useMaidsLoad() {
   const [maids, setMaids] = useState<(Maid & Partial<Rating>)[] | null>(null)
+  const [failed, setFailed] = useState(false); const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     Promise.all([sb.from('maids').select('id,nickname,bio,photo_url,status,district_id,id_verified,background_checked,services').eq('status', 'approved'), sb.rpc('maid_ratings')]).then(([m, r]) => {
       const rr = new Map(((r.data as Rating[]) || []).map(x => [x.maid_id, x]))
+      setFailed(!!m.error)
       setMaids(((m.data as Maid[]) || []).map(x => ({ ...x, ...rr.get(x.id) })).sort((a, b) => (b.avg_rating ?? 0) - (a.avg_rating ?? 0)))
     })
+  }, [attempt])
+  return { maids, failed, retry: () => { setFailed(false); setMaids(null); setAttempt(n => n + 1) } }
+}
+export function useMaids() { return useMaidsLoad().maids }
+
+// ค่าเลือกแม่บ้านเอง และราคาแพ็กเกจ จากฐานข้อมูล (null = ยังโหลดไม่เสร็จ)
+type Prices = { chooseFee: number | null; pkg: Partial<Record<'weekly' | 'biweekly', number>> | null }
+let pricesCache: Prices | null = null
+export function usePrices() {
+  const [p, setP] = useState<Prices>(pricesCache ?? { chooseFee: null, pkg: null })
+  useEffect(() => {
+    Promise.all([sb.from('settings').select('choose_maid_fee').maybeSingle(), sb.from('package_plans').select('code,price')]).then(([st, pk]) => {
+      const next: Prices = {
+        chooseFee: st.error || !st.data ? null : Number(st.data.choose_maid_fee),
+        pkg: pk.error ? null : Object.fromEntries(((pk.data as { code: string; price: number }[]) || []).map(x => [x.code, Number(x.price)])),
+      }
+      if (next.chooseFee !== null && next.pkg) pricesCache = next
+      setP(next)
+    })
   }, [])
-  return maids
+  return p
 }
 
 // helpers this customer must not be matched with again (1-2 star rating either way)
@@ -36,7 +57,8 @@ export function useBlockedMaids() {
 
 function bookingQuantity(draft: Draft, service: Service | undefined) {
   // แพ็กเกจรายเดือนใช้ได้กับทำความสะอาดทั่วไป 6 ชม. เท่านั้น
-  return draft.plan === 'once' ? (draft.qty ?? service?.min_qty ?? 0) : 6
+  const start = service ? Math.min(service.max_qty, Math.max(service.min_qty, service.default_qty ?? service.min_qty)) : 0
+  return draft.plan === 'once' ? (draft.qty ?? start) : 6
 }
 
 function HelperAvatar({ maid, size = 44 }: { maid: Maid; size?: number }) {
@@ -51,14 +73,26 @@ export function BookMaid() {
   const location = useContext(SelectedAddress)
   const [params] = useSearchParams()
   const suggested = params.get('helper')
-  const { t, lang } = useI18n(); const nav = useNavigate(); const maids = useMaids(); const services = useServices(); const blocked = useBlockedMaids()
+  const { t, lang } = useI18n(); const nav = useNavigate(); const maids = useMaids(); const services = useServices(); const blocked = useBlockedMaids(); const prices = usePrices()
   const [d, setD] = useState<Draft>(getDraft())
+  const autoPicked = useRef(false)
   const s = services?.find(x => x.code === d.service)
   const pick = (id: string | null) => setD(setDraft({ maidId: id }))
   const list = maids?.filter(m => (m.services || []).includes(d.service) && !blocked.includes(m.id))
   if (suggested) list?.sort((a, b) => Number(b.id === suggested) - Number(a.id === suggested))
+  const listReady = !!list
+  const suggestedOk = !!suggested && !!list?.some(m => m.id === suggested)
+  // มาจาก "เลือกแม่บ้านคนนี้": เลือกให้เลย (ครั้งเดียว) ถ้าคนนี้รับบริการนี้และไม่ถูกบล็อก
+  useEffect(() => {
+    if (!listReady || !suggested) return
+    if (suggestedOk && !autoPicked.current) { autoPicked.current = true; if (getDraft().maidId !== suggested) setD(setDraft({ maidId: suggested, hour: null })) }
+    else if (!suggestedOk && autoPicked.current && getDraft().maidId === suggested) setD(setDraft({ maidId: null, hour: null }))
+  }, [listReady, suggested, suggestedOk])
   const qty = bookingQuantity(d, s)
-  const amount = s ? money(qty * s.price_per_unit + (d.maidId ? 20 : 0)) : '…'
+  const pkgPrice = d.plan === 'weekly' || d.plan === 'biweekly' ? prices.pkg?.[d.plan] : undefined
+  const amount = d.plan === 'weekly' || d.plan === 'biweekly'
+    ? (pkgPrice !== undefined ? money(pkgPrice) : '…') // แพ็กเกจไม่มีค่าเลือกแม่บ้าน
+    : s && (!d.maidId || prices.chooseFee !== null) ? money(qty * s.price_per_unit + (d.maidId ? prices.chooseFee ?? 0 : 0)) : '…'
   const quantityLabel = s ? qty + ' ' + svcUnit(s, lang) : ''
   const selection = list?.find(m => m.id === d.maidId)
 
@@ -84,7 +118,7 @@ export function BookMaid() {
       <section aria-labelledby="manual-helper-title">
         <div className="booking-section-heading">
           <h2 id="manual-helper-title">{t('or_pick')}</h2>
-          <span>+20 {t('baht')}</span>
+          {d.plan === 'once' && <span>+{prices.chooseFee ?? '…'} {t('baht')}</span>}
         </div>
         {!list ? <Loading /> : list.length === 0 ? <div className="empty muted">{t('no_maid_for_service')}</div> :
           <div className="booking-option-list">{list.map(m => {
@@ -112,11 +146,13 @@ export function BookMaid() {
 }
 
 export function MaidProfile() {
-  const { id } = useParams(); const { t } = useI18n(); const nav = useNavigate(); const maids = useMaids(); const blocked = useBlockedMaids()
+  const { id } = useParams(); const { t } = useI18n(); const nav = useNavigate(); const { maids, failed, retry } = useMaidsLoad(); const blocked = useBlockedMaids()
   const [revs, setRevs] = useState<{ rating: number; comment: string | null; tags: string[]; created_at: string }[]>([])
   useEffect(() => { sb.from('reviews').select('rating,comment,tags,created_at').eq('maid_id', id!).order('created_at', { ascending: false }).limit(10).then(({ data }) => setRevs(data || [])) }, [id])
   const m = maids?.find(x => x.id === id)
-  if (maids && (!m || blocked.includes(m.id))) return <BookingLayout title={t('reviews')}><section className="booking-panel"><p className="muted">{t('not_available')}</p></section></BookingLayout>
+  if (failed) return <BookingLayout title={t('reviews_title')}><section className="booking-panel stack" role="status"><p className="muted">{t('load_failed')}</p>
+    <button className="btn b-line" type="button" onClick={retry}>{t('try_again')}</button></section></BookingLayout>
+  if (maids && (!m || blocked.includes(m.id))) return <BookingLayout title={t('reviews_title')}><section className="booking-panel"><p className="muted">{t('not_available')}</p></section></BookingLayout>
   if (!m) return <Loading />
   return <BookingLayout title={m.nickname}
     action={{ label: t('choose') + ' ' + m.nickname, onClick: () => { setDraft({ maidId: null, hour: null }); nav('/book?helper=' + encodeURIComponent(m.id)) } }}>
@@ -139,7 +175,7 @@ export function MaidProfile() {
       </section>
       <section className="booking-panel"><FreeDays maidId={m.id} /></section>
       <section className="booking-panel">
-        <h2>{t('reviews')}</h2>
+        <h2>{t('reviews_title')}</h2>
         {revs.length === 0 ? <p className="muted">{t('no_reviews')}</p> : <div className="stack">
           {revs.map((r, i) => <div key={i} className="booking-review">
             <span className="star" aria-label={r.rating + ' / 5'}>{'★'.repeat(r.rating)}</span>
@@ -166,7 +202,7 @@ function FreeDays({ maidId }: { maidId: string }) {
 }
 
 export function BookTime() {
-  const { t, lang } = useI18n(); const nav = useNavigate(); const [sp] = useSearchParams(); const services = useServices(); const allAddons = useAddons()
+  const { t, lang } = useI18n(); const nav = useNavigate(); const [sp] = useSearchParams(); const services = useServices(); const allAddons = useAddons(); const prices = usePrices()
   const urgentMode = sp.get('urgent') === '1'
   const [d, setD] = useState<Draft>(() => { const p = sp.get('plan'); return p === 'weekly' || p === 'biweekly' ? setDraft({ plan:p, service:'general_cleaning' }) : getDraft() })
   const days = useMemo(() => Array.from({ length: 14 }, (_, i) => bkkToday(i)), [])
@@ -207,7 +243,7 @@ export function BookTime() {
   if (!s) return <BookingLayout title={t('pick_date')} step={1}><div className="empty muted">{t('service_closed')}</div></BookingLayout>
   const pkgBlocked = isPkg && !d.maidId
   const ok = !!picked && !pkgBlocked
-  const price = d.plan === 'weekly' ? 5600 : d.plan === 'biweekly' ? 2900 : (q?.total ?? null)
+  const price = d.plan === 'weekly' || d.plan === 'biweekly' ? (prices.pkg?.[d.plan] ?? null) : (q?.total ?? null)
   const unit = svcUnit(s, lang)
   const selectedDate = fmtDate(date + 'T12:00:00+07:00', lang, { weekday: 'long', month: 'long', day: 'numeric' })
   const quantityLabel = isPkg ? t(d.plan) : qty + ' ' + unit
@@ -224,7 +260,7 @@ export function BookTime() {
           <div className="plan-grid">{(['once', 'biweekly', 'weekly'] as const).map(p =>
             <button key={p} aria-pressed={d.plan === p} className={'plan-card' + (d.plan === p ? ' chosen' : '')} onClick={() => setD(setDraft({ plan: p, hour: null }))}>
               <span className="between"><b>{t(p)}</b><span className="radio" aria-hidden="true" /></span>
-              <strong>{money(p === 'weekly' ? 5600 : p === 'biweekly' ? 2900 : s.min_qty * s.price_per_unit)} ฿</strong>
+              <strong>{p === 'once' ? money(s.min_qty * s.price_per_unit) : prices.pkg?.[p] !== undefined ? money(prices.pkg[p]) : '…'} ฿</strong>
               <small>{p === 'once' ? t('min_qty') + ' ' + s.min_qty + ' ' + unit : (p === 'weekly' ? '4' : '2') + (lang === 'th' ? ' ครั้ง · ครั้งละ 6 ชม.' : ' visits · 6 h each')}</small>
             </button>)}</div>
           <p className="small muted">{t('pkg_note')}</p>
@@ -391,7 +427,7 @@ export function BookDetails() {
 
 export function BookConfirm() {
   const location = useContext(SelectedAddress)
-  const { t, lang } = useI18n(); const nav = useNavigate(); const { refresh } = useAuth(); const maids = useMaids(); const services = useServices(); const allAddons = useAddons()
+  const { t, lang } = useI18n(); const nav = useNavigate(); const { refresh } = useAuth(); const maids = useMaids(); const services = useServices(); const allAddons = useAddons(); const prices = usePrices()
   const d = getDraft(); const [usePts, setUsePts] = useState(d.usePoints); const [q, setQ] = useState<Quote2 | null>(null); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
   const [code, setCode] = useState(d.promo); const [promo, setPromo] = useState(d.promo)
   const s = services?.find(x => x.code === d.service)
@@ -404,7 +440,7 @@ export function BookConfirm() {
   const m = maids?.find(x => x.id === d.maidId)
   if (!start || !d.addressId) return <BookingLayout title={t('confirm_booking')} step={3}
     action={{ label: t('book_now'), onClick: () => nav('/book') }}><p className="muted">{t('booking_missing_details')}</p></BookingLayout>
-  const pkgPrice = d.plan === 'weekly' ? 5600 : 2900
+  const pkgPrice = d.plan === 'weekly' || d.plan === 'biweekly' ? prices.pkg?.[d.plan] : undefined
   const hours = q?.hours ?? 6
   const addonRows = (allAddons || []).filter(a => d.addons.includes(a.code) && a.service_codes.includes(d.service))
   const go = async () => {
@@ -476,7 +512,7 @@ const SLIP_REJECT: Record<string, Key> = { amount_mismatch: 'slip_rej_amount', d
 export function Pay() {
   const { kind, id } = useParams(); const { t, lang } = useI18n(); const nav = useNavigate(); const { session } = useAuth(); const toast = useToast()
   const [amount, setAmount] = useState<number | null>(null); const [pp, setPp] = useState<{ promptpay_id: string | null; promptpay_name: string | null } | null>(null)
-  const [file, setFile] = useState<File | null>(null); const [busy, setBusy] = useState(false); const [err, setErr] = useState(''); const [checking, setChecking] = useState(false)
+  const [file, setFile] = useState<File | null>(null); const [busy, setBusy] = useState(false); const [err, setErr] = useState(''); const [checking, setChecking] = useState(false); const [done, setDone] = useState(false)
   useEffect(() => {
     sb.from('payment_settings').select('promptpay_id,promptpay_name').maybeSingle().then(({ data }) => setPp(data))
     if (kind === 'booking') sb.from('bookings').select('total_price').eq('id', id!).single().then(({ data }) => setAmount(data?.total_price ?? null))
@@ -484,7 +520,7 @@ export function Pay() {
   }, [kind, id])
   const payload = pp?.promptpay_id && amount ? generatePayload(pp.promptpay_id, { amount }) : null
   const submit = async () => {
-    if (!file || !session) return; setBusy(true); setErr('')
+    if (!file || !session || busy || done) return; setBusy(true); setErr('')
     try {
       const path = `${session.user.id}/${kind}-${id}-${Date.now()}.${file.name.split('.').pop() || 'jpg'}`
       const up = await sb.storage.from('slips').upload(path, file); if (up.error) throw up.error
@@ -495,13 +531,13 @@ export function Pay() {
       const chk = await sb.functions.invoke('verify-slip', { body: { kind, id: Number(id) } }).catch(() => null)
       setChecking(false)
       const res = (chk?.data || {}) as { status?: string; reason?: string }
-      if (res.status === 'approved') { confetti(); toast.show(t('slip_ok')); setTimeout(() => nav(kind === 'booking' ? '/bookings/' + id : '/bookings', { replace: true }), 1800); return }
+      if (res.status === 'approved') { setDone(true); confetti(); toast.show(t('slip_ok')); setTimeout(() => nav(kind === 'booking' ? '/bookings/' + id : '/bookings', { replace: true }), 1800); return }
       if (res.status === 'rejected') { setFile(null); setErr(t(SLIP_REJECT[res.reason || ''] || 'slip_rej_other')); return }
-      confetti(); toast.show(t('slip_sent')); setTimeout(() => nav('/bookings', { replace: true }), 1800)
+      setDone(true); confetti(); toast.show(t('slip_sent')); setTimeout(() => nav('/bookings', { replace: true }), 1800)
     } catch (e) { setErr(friendly(e, lang)) } finally { setBusy(false) }
   }
   return <BookingLayout title={t('pay_title')} back="/bookings" step={3}
-    action={{ label: checking ? t('slip_checking') : busy ? t('loading') : t('booking_send_slip'), disabled: !file || busy, onClick: submit }}
+    action={{ label: checking ? t('slip_checking') : busy ? t('loading') : t('booking_send_slip'), disabled: !file || busy || done, onClick: submit }}
     price={(amount === null ? '…' : money(amount)) + ' ' + t('baht')} priceLabel={t('total')}>
     <div className="booking-stack">
       <section className="booking-panel booking-pay-code">
