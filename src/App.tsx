@@ -7,6 +7,7 @@ import { Bookings, BookingDetail, Claim, Messages, Account, Addresses, Favorites
 import { MaidHome, MaidJob, MaidAvailability, MaidIncome, MaidApply } from './pages/Maid'
 import { AdminHome, AdminMoney, AdminMaids, AdminSettings } from './pages/Admin'
 import { Loading } from './components/ui'
+import { Privacy } from './pages/Privacy'
 
 function Root() {
   const { profile, ready } = useAuth()
@@ -24,6 +25,7 @@ export default function App() {
       <Route path="/home" element={<Home />} />
       <Route path="/welcome" element={<Onboarding />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/privacy" element={<Privacy />} />
       <Route path="/service" element={<Service />} />
       <Route path="/book" element={<BookMaid />} />
       <Route path="/maid-profile/:id" element={<MaidProfile />} />
