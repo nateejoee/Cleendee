@@ -258,10 +258,13 @@ export function AdminPublicPages() {
 }
 
 // ช่องตัวเลขสั้นๆ ใช้ซ้ำในหน้าตั้งค่า
-function Num({ label, v, on, hint, unit }: { label: string; v: number | string | null | undefined; on: (n: string) => void; hint?: string; unit?: string }) {
-  return <div className="field" style={{ flex: 1, minWidth: 110 }}><label>{label}</label>
-    <div className="row" style={{ alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}><input className="input" inputMode="decimal" value={v ?? ''} onChange={e => on(e.target.value.replace(/[^\d.]/g, ''))} />{unit && <span className="tiny muted" style={{ whiteSpace: 'nowrap' }}>{unit}</span>}</div>
-    {hint && <span className="tiny muted">{hint}</span>}</div>
+function Num({ label, v, on }: { label: string; v: number | string | null | undefined; on: (n: string) => void }) {
+  return <div className="field" style={{ flex: 1, minWidth: 110 }}><label>{label}</label><input className="input" inputMode="decimal" value={v ?? ''} onChange={e => on(e.target.value.replace(/[^\d.]/g, ''))} /></div>
+}
+
+// ช่องกรอกตัวเลขของการ์ดราคาบริการ (มีหน่วยอยู่ในช่อง)
+function SvcField({ label, v, on, unit }: { label: string; v: number | string | null | undefined; on: (n: string) => void; unit?: string }) {
+  return <label className="svc-f"><span>{label}</span><div className="svc-in"><input className="input" inputMode="decimal" value={v ?? ''} onChange={e => on(e.target.value.replace(/[^\d.]/g, ''))} />{unit && <i>{unit}</i>}</div></label>
 }
 
 // ตั้งค่าร้าน: ค่าเรียกด่วน เลื่อนนัด ส่วนลด และข้อมูลบนใบเสร็จ
@@ -296,20 +299,22 @@ function ServicePrices({ toast }: { toast: (m: string) => void }) {
     const { error } = await sb.rpc('admin_update_service', { p_code: r.code, p_price_per_unit: Number(r.price_per_unit), p_payout_pct: Number(r.payout_pct), p_min: Number(r.min_qty), p_max: Number(r.max_qty), p_default: Number(r.default_qty), p_minutes: Number(r.minutes_per_unit), p_active: r.active, p_coming_soon: r.coming_soon })
     toast(error ? friendly(error, lang) : t('saved')); load()
   }
-  return <><div className="sec-title">{t('a_prices')}</div><div className="stack cols">{rows.map((r, i) => <div key={r.code} className="card stack">
-    <div className="between"><b className="disp">{svcName(r, lang)}</b><span className={'pill ' + (r.active ? 'p-leaf' : 'p-grey')}>{r.active ? t('a_open') : r.coming_soon ? t('soon') : t('a_closed')}</span></div>
-    {(() => { const u = svcUnit(r, lang), price = Number(r.price_per_unit) || 0, pct = Number(r.payout_pct) || 0, maid = Math.round(price * pct) / 100, shop = Math.round((price - maid) * 100) / 100
-      return <><div className="tiny" style={{ fontWeight: 600 }}>{t('a_sec_price')}</div>
-        <div className="row" style={{ flexWrap: 'wrap' }}><Num label={`${t('a_price_cust')} / ${u}`} unit={t('a_baht')} hint={t('a_price_cust_h')} v={r.price_per_unit} on={v => upd(i, { price_per_unit: v as unknown as number })} />
-          <Num label={t('a_payout_pct')} unit="%" hint={t('a_payout_pct_h')} v={r.payout_pct} on={v => upd(i, { payout_pct: v as unknown as number })} /></div>
-        <div className="small" style={{ background: 'var(--bg2, rgba(0,0,0,.04))', borderRadius: 10, padding: '8px 12px' }}>{t('a_example')} 1 {u}: {t('a_cust_pays')} <b>{price}</b> {t('a_baht')} → {t('a_maid_gets')} <b>{maid}</b> {t('a_baht')} · {t('a_shop_gets')} <b>{shop}</b> {t('a_baht')}</div>
-        <div className="tiny" style={{ fontWeight: 600 }}>{t('a_sec_qty')} ({u})</div>
-        <div className="row" style={{ flexWrap: 'wrap' }}><Num label={t('a_min_qty')} unit={u} hint={t('a_min_qty_h')} v={r.min_qty} on={v => upd(i, { min_qty: v as unknown as number })} /><Num label={t('a_max_qty')} unit={u} hint={t('a_max_qty_h')} v={r.max_qty} on={v => upd(i, { max_qty: v as unknown as number })} />
-          <Num label={t('a_default')} unit={u} hint={t('a_default_h')} v={r.default_qty} on={v => upd(i, { default_qty: v as unknown as number })} />{r.pricing === 'unit' && <Num label={t('a_min_per_unit')} unit={t('a_minutes')} hint={t('a_min_per_unit_h')} v={r.minutes_per_unit} on={v => upd(i, { minutes_per_unit: v as unknown as number })} />}</div>
-        <div className="tiny" style={{ fontWeight: 600 }}>{t('a_sec_status')}</div></> })()}
-    <div className="chips"><button className={'chip' + (r.active ? ' on' : '')} onClick={() => upd(i, { active: !r.active })}>{t('a_open_h')}</button>
-      <button className={'chip' + (r.coming_soon ? ' on' : '')} onClick={() => upd(i, { coming_soon: !r.coming_soon })}>{t('a_soon_h')}</button></div>
-    <button className="btn sm b-ocean" onClick={() => save(r)}>{t('save')}</button></div>)}</div></>
+  return <><div className="sec-title">{t('a_prices')}</div><div className="stack cols">{rows.map((r, i) => {
+    const u = svcUnit(r, lang), price = Number(r.price_per_unit) || 0, pct = Number(r.payout_pct) || 0
+    const maid = Math.round(price * pct) / 100, shop = Math.round((price - maid) * 100) / 100
+    const num = (k: keyof Service) => (v: string) => upd(i, { [k]: v as unknown as number })
+    return <div key={r.code} className="card svc">
+      <div className="between"><b className="disp">{svcName(r, lang)}</b><span className={'pill ' + (r.active ? 'p-leaf' : 'p-grey')}>{r.active ? t('a_open') : r.coming_soon ? t('soon') : t('a_closed')}</span></div>
+      <div className="svc-g2"><SvcField label={t('a_price_cust')} unit={`${t('a_baht')} / ${u}`} v={r.price_per_unit} on={num('price_per_unit')} /><SvcField label={t('a_payout_pct')} unit="%" v={r.payout_pct} on={num('payout_pct')} /></div>
+      <div className="svc-sum"><div><span>{t('a_cust_pays')}</span><b>{price}</b></div><div><span>{t('a_maid_gets')}</span><b>{maid}</b></div><div><span>{t('a_shop_gets')}</span><b>{shop}</b></div></div>
+      <div className="svc-sub">{t('a_sec_qty')} ({u})</div>
+      <div className="svc-g3"><SvcField label={t('a_min_qty')} v={r.min_qty} on={num('min_qty')} /><SvcField label={t('a_max_qty')} v={r.max_qty} on={num('max_qty')} /><SvcField label={t('a_default')} v={r.default_qty} on={num('default_qty')} /></div>
+      {r.pricing === 'unit' && <SvcField label={t('a_min_per_unit')} unit={t('a_minutes')} v={r.minutes_per_unit} on={num('minutes_per_unit')} />}
+      <div className="tiny muted">{t('a_qty_note')}</div>
+      <div className="svc-foot"><div className="chips"><button className={'chip' + (r.active ? ' on' : '')} onClick={() => upd(i, { active: !r.active })}>{t('a_open_h')}</button>
+        <button className={'chip' + (r.coming_soon ? ' on' : '')} onClick={() => upd(i, { coming_soon: !r.coming_soon })}>{t('a_soon_h')}</button></div>
+        <button className="btn sm b-ocean" onClick={() => save(r)}>{t('save')}</button></div></div>
+  })}</div></>
 }
 
 // งานเสริม: แก้ราคา/ส่วนแม่บ้าน/เวลา เปิดปิด และเพิ่มใหม่
