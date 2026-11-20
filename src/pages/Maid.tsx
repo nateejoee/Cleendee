@@ -239,12 +239,12 @@ export function MaidIncome() {
 }
 
 const DAYS: [string, string, string][] = [['mon', 'จ.', 'Mon'], ['tue', 'อ.', 'Tue'], ['wed', 'พ.', 'Wed'], ['thu', 'พฤ.', 'Thu'], ['fri', 'ศ.', 'Fri'], ['sat', 'ส.', 'Sat'], ['sun', 'อา.', 'Sun']]
-const TIMES: [string, string, string][] = [['morning', 'เช้า 08.00-12.00 น.', 'Morning 08:00-12:00'], ['afternoon', 'บ่าย 12.00-17.00 น.', 'Afternoon 12:00-17:00'], ['evening', 'เย็น 17.00-20.00 น.', 'Evening 17:00-20:00']]
+const TIMES: [string, string, string, string][] = [['morning', 'เช้า', 'Morning', '08.00-12.00 น.'], ['afternoon', 'บ่าย', 'Afternoon', '12.00-17.00 น.'], ['evening', 'เย็น', 'Evening', '17.00-20.00 น.']]
 const DOC_TYPES: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf' }
 const toggle = (a: string[], v: string) => (a.includes(v) ? a.filter(x => x !== v) : [...a, v])
 
 // ปุ่มเลือกไฟล์ + แสดงชื่อไฟล์ที่เลือก
-function FileField({ label, hint, file, onFile, accept, required }: { label: string; hint?: string; file: File | null; onFile: (f: File | null) => void; accept: string; required?: boolean }) {
+function FileField({ label, hint, cta, file, onFile, accept, required }: { label: string; hint?: string; cta?: string; file: File | null; onFile: (f: File | null) => void; accept: string; required?: boolean }) {
   const th = useI18n().lang === 'th'
   const [msg, setMsg] = useState('')
   const pick = (f?: File) => {
@@ -255,7 +255,7 @@ function FileField({ label, hint, file, onFile, accept, required }: { label: str
   return <div className="field"><label>{label}{required && <span style={{ color: 'var(--brick)' }}> *</span>}</label>
     {hint && <small className="muted">{hint}</small>}
     <label className="btn b-line photo-control" style={{ justifyContent: 'flex-start', position: 'relative' }}><Icon n={file ? 'check' : 'plus'} size={18} />
-      <span>{file ? file.name : (th ? 'เลือกไฟล์ / ถ่ายรูป' : 'Choose file / take photo')}</span>
+      <span>{file ? file.name : (cta ?? (th ? 'แนบไฟล์' : 'Attach file'))}</span>
       <input type="file" accept={accept} onChange={e => { pick(e.target.files?.[0]); e.target.value = '' }} /></label>
     {msg && <small role="alert" style={{ color: 'var(--brick)' }}>{msg}</small>}</div>
 }
@@ -312,38 +312,41 @@ export function MaidApply() {
         <p className="admin-hint">{th ? 'ช่อง * จำเป็นต้องกรอก ใช้เวลาประมาณ 5 นาที เตรียมบัตรประชาชนและสมุดบัญชีไว้ได้เลย' : 'Fields marked * are required. About 5 minutes — have your ID card and bank details ready.'}</p>
 
         <section className="card apply-sec"><h3>{th ? '1. ข้อมูลส่วนตัว' : '1. About you'}</h3><div className="apply-grid">
-          {text('full_name', th ? 'ชื่อ-นามสกุลจริง (ตามบัตร)' : 'Full name (as on ID)', { req: true })}
+          {text('full_name', th ? 'ชื่อ-นามสกุลจริง' : 'Full name', { req: true, ph: th ? 'ตามบัตรประชาชน' : 'As on ID card' })}
           {text('nickname', t('m_nick'), { req: true })}
           {text('phone', th ? 'เบอร์โทรศัพท์' : 'Phone number', { req: true, type: 'tel', mode: 'tel', ph: '08xxxxxxxx' })}
           {text('line_id', 'LINE ID')}
           <div className="field"><label>{th ? 'วันเกิด (อายุ 18 ปีขึ้นไป)' : 'Date of birth (18+)'}{star}</label>
             <input className="input" type="date" min="1930-01-01" max={adultBefore.toISOString().slice(0, 10)} value={f.birth_date} onChange={set('birth_date')} />
             {f.birth_date && !adult && <small role="alert" style={{ color: 'var(--brick)' }}>{th ? 'ผู้สมัครต้องมีอายุ 18 ปีขึ้นไป' : 'Applicants must be 18 or older'}</small>}</div>
-          <FileField label={th ? 'รูปโปรไฟล์ (หน้าตรง ยิ้ม)' : 'Profile photo (face the camera)'} file={photo} onFile={setPhoto} accept="image/jpeg,image/png,image/webp" />
+          <FileField label={th ? 'รูปโปรไฟล์' : 'Profile photo'} cta={th ? 'แนบรูปหน้าตรง' : 'Attach a photo'} file={photo} onFile={setPhoto} accept="image/jpeg,image/png,image/webp" />
         </div></section>
 
         <section className="card apply-sec"><h3>{th ? '2. ประสบการณ์และงานที่ทำได้' : '2. Experience and services'}</h3><div className="apply-grid">
           <div className="field span2"><label>{th ? 'บริการที่ทำได้' : 'Services you can do'}{star}</label>
-            <div className="chips">{activeSvc.map(s => <button type="button" key={s.code} className={'chip' + (svc.includes(s.code) ? ' on' : '')} onClick={() => setSvc(toggle(svc, s.code))}>{svcName(s, lang)}</button>)}</div></div>
-          <div className="field"><label>{th ? 'ประสบการณ์ทำความสะอาด' : 'Cleaning experience'}</label>
+            <div className="chips eq">{activeSvc.map(s => <button type="button" key={s.code} className={'chip' + (svc.includes(s.code) ? ' on' : '')} onClick={() => setSvc(toggle(svc, s.code))}>{svcName(s, lang)}</button>)}</div></div>
+          <div className="field"><label>{th ? 'ประสบการณ์' : 'Experience'}</label>
             <select className="input" value={f.experience_years} onChange={set('experience_years')}><option value="">{th ? 'เลือก' : 'Select'}</option><option value="0">{th ? 'ยังไม่มี' : 'None yet'}</option><option value="1">{th ? 'น้อยกว่า 1 ปี' : 'Under 1 year'}</option><option value="2">{th ? '1-3 ปี' : '1-3 years'}</option><option value="5">{th ? 'มากกว่า 3 ปี' : 'Over 3 years'}</option></select></div>
           {text('bio', t('m_bio'))}
           <div className="field span2"><label>{th ? 'เคยทำงานที่ไหนมาบ้าง' : 'Where have you worked'}</label><textarea className="input" value={f.experience_note} onChange={set('experience_note')} placeholder={th ? 'เช่น แม่บ้านโรงแรม รับจ้างทำความสะอาดบ้าน' : 'e.g. hotel housekeeping, home cleaning'} /></div>
         </div></section>
 
         <section className="card apply-sec"><h3>{th ? '3. วันเวลาและพื้นที่ที่รับงาน' : '3. When and where'}</h3><div className="apply-grid">
-          <div className="field"><label>{th ? 'วันที่ว่างทำงาน' : 'Days available'}{star}</label>{chips(DAYS, days, v => setDays(toggle(days, v)))}</div>
-          <div className="field"><label>{th ? 'ช่วงเวลาที่สะดวก' : 'Times available'}</label>{chips(TIMES, times, v => setTimes(toggle(times, v)))}</div>
-          <div className="field"><label>{t('district')}{star}</label><select className="input" value={f.district_id} onChange={e => setF({ ...f, district_id: Number(e.target.value) })}>{districts.map(d => <option key={d.id} value={d.id}>{th ? d.name_th : d.name_en}</option>)}</select></div>
-          <div className="field"><label>{th ? 'อำเภออื่นที่ไปได้ด้วย' : 'Other districts you can travel to'}</label>
-            <div className="chips">{districts.filter(d => d.id !== f.district_id).map(d => <button type="button" key={d.id} className={'chip' + (areas.includes(d.id) ? ' on' : '')} onClick={() => setAreas(areas.includes(d.id) ? areas.filter(x => x !== d.id) : [...areas, d.id])}>{th ? d.name_th : d.name_en}</button>)}</div></div>
+          <div className="span2 apply-pair">
+            <div className="field"><label>{th ? 'วันที่ว่างทำงาน' : 'Days available'}{star}</label>
+              <div className="chips days">{DAYS.map(([k, a, b]) => <button type="button" key={k} className={'chip' + (days.includes(k) ? ' on' : '')} onClick={() => setDays(toggle(days, k))}>{th ? a : b}</button>)}</div></div>
+            <div className="field"><label>{th ? 'ช่วงเวลาที่สะดวก' : 'Times available'}</label>
+              <div className="chips times">{TIMES.map(([k, a, b, r]) => <button type="button" key={k} className={'chip time' + (times.includes(k) ? ' on' : '')} onClick={() => setTimes(toggle(times, k))}><b>{th ? a : b}</b><small>{th ? r : r.replace(/\./g, ':').replace(' น:', '')}</small></button>)}</div></div></div>
+          <div className="field span2"><label>{th ? 'อำเภอหลักที่รับงาน' : 'Main district'}{star}</label><select className="input" value={f.district_id} onChange={e => setF({ ...f, district_id: Number(e.target.value) })}>{districts.map(d => <option key={d.id} value={d.id}>{th ? d.name_th : d.name_en}</option>)}</select></div>
+          <div className="field span2"><label>{th ? 'อำเภออื่นที่ไปทำงานได้ด้วย (ถ้ามี)' : 'Other districts you can travel to (optional)'}</label>
+            <div className="chips eq">{districts.filter(d => d.id !== f.district_id).map(d => <button type="button" key={d.id} className={'chip' + (areas.includes(d.id) ? ' on' : '')} onClick={() => setAreas(areas.includes(d.id) ? areas.filter(x => x !== d.id) : [...areas, d.id])}>{th ? d.name_th : d.name_en}</button>)}</div></div>
         </div></section>
 
         <section className="card apply-sec"><h3>{th ? '4. เอกสารยืนยันตัวตน' : '4. Identity documents'}</h3>
           <p className="admin-hint">{th ? 'ใช้ตรวจสอบก่อนอนุมัติเท่านั้น เก็บเป็นความลับ เห็นได้เฉพาะแอดมิน' : 'Used only for verification. Kept private and visible to admins only.'}</p><div className="apply-grid">
-          <FileField required label={th ? 'รูปบัตรประชาชน (ด้านหน้า)' : 'ID card photo (front)'} file={idCard} onFile={setIdCard} accept="image/jpeg,image/png,image/webp" />
-          <FileField required label={th ? 'เซลฟี่คู่กับบัตรประชาชน' : 'Selfie holding your ID card'} file={selfie} onFile={setSelfie} accept="image/jpeg,image/png,image/webp" />
-          <div className="span2"><FileField label={th ? 'ใบรับรองความประพฤติ (ถ้ามี)' : 'Certificate of good conduct (optional)'} hint={th ? 'รูปหรือ PDF ไม่เกิน 5 MB' : 'Photo or PDF up to 5 MB'} file={cert} onFile={setCert} accept="image/jpeg,image/png,image/webp,application/pdf" /></div>
+          <FileField required label={th ? 'รูปบัตรประชาชน' : 'ID card photo'} cta={th ? 'แนบรูปบัตร' : 'Attach card photo'} file={idCard} onFile={setIdCard} accept="image/jpeg,image/png,image/webp" />
+          <FileField required label={th ? 'เซลฟี่คู่บัตร' : 'Selfie with ID'} cta={th ? 'ถ่ายเซลฟี่' : 'Take selfie'} file={selfie} onFile={setSelfie} accept="image/jpeg,image/png,image/webp" />
+          <div className="span2"><FileField label={th ? 'ใบรับรองความประพฤติ (ถ้ามี)' : 'Certificate of good conduct (optional)'} hint={th ? 'รูปหรือ PDF ไม่เกิน 5 MB' : 'Photo or PDF up to 5 MB'} cta={th ? 'แนบไฟล์ใบรับรอง' : 'Attach certificate'} file={cert} onFile={setCert} accept="image/jpeg,image/png,image/webp,application/pdf" /></div>
         </div></section>
 
         <section className="card apply-sec"><h3>{th ? '5. ผู้แนะนำ (ถ้ามี)' : '5. Reference (optional)'}</h3><div className="apply-grid">

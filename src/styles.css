@@ -601,3 +601,18 @@ textarea.input{min-height:90px;resize:vertical}
 .apply-grid textarea.input{min-height:90px}
 .apply-grid .photo-control{min-height:50px}
 .apply-grid input[type=date]{cursor:pointer}
+
+/* จัดสมดุลช่องฟอร์มสมัครแม่บ้าน: ปุ่มไฟล์สูงเท่าช่องกรอก ชิปเรียงเท่ากัน */
+.apply-grid .photo-control{flex-direction:row!important;justify-content:center;gap:8px;padding:0 12px;font-size:.9375rem;font-weight:600}
+.apply-grid .photo-control span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.apply-grid .field>label{line-height:1.4}
+.apply-grid .chips.eq{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr))}
+.apply-grid .chips.eq .chip{text-align:center;min-height:42px;display:flex;align-items:center;justify-content:center}
+.apply-grid .chips.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.apply-grid .chips.days .chip{padding:0;min-height:42px;text-align:center;display:flex;align-items:center;justify-content:center}
+.apply-grid .chips.times{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.apply-grid .chip.time{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:52px;padding:6px 2px;border-radius:14px;line-height:1.25}
+.apply-grid .chip.time b{font-weight:650;font-size:.9375rem}.apply-grid .chip.time small{font-size:.75rem;white-space:nowrap}
+.apply-pair{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:720px){.apply-pair{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.apply-grid input.input,.apply-grid select.input{height:50px;min-height:50px}
