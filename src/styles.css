@@ -255,11 +255,11 @@ textarea.input{min-height:90px;resize:vertical}
 }
 /* คอม (≥1100px): เมนูข้างกว้าง มีชื่อเมนูข้างไอคอน, การ์ด 3 คอลัมน์ */
 @media (min-width:1100px){
- .app:has(.tabbar){padding-left:232px}
- .tabbar{width:232px;align-items:stretch;gap:6px;padding:28px 16px}
- .tab{flex-direction:row;gap:12px;font-size:15px;padding:12px 14px;border-radius:14px;min-width:0}
+ .app:has(.tabbar){padding-left:240px}
+ .tabbar{width:240px;align-items:stretch;gap:4px;padding:18px 14px;overflow-y:auto;overscroll-behavior-y:contain}
+ .tab{flex-direction:row;flex-shrink:0;gap:10px;min-height:46px;font-size:16px;padding:10px 12px;border-radius:10px;min-width:0;text-align:left}
  .tab.on{background:var(--soft)}
- .tab.center{order:-1;margin-bottom:10px;background:var(--sun);color:var(--on-sun)}
+ .tab.center{order:-1;min-height:48px;margin-bottom:12px;border-radius:12px;background:var(--sun);color:var(--on-sun)}
  .tab.center .mid{width:28px;height:28px;background:none}
  .cols{grid-template-columns:repeat(3,1fr)}
  .page.nobar .cols{grid-template-columns:repeat(2,1fr)}
@@ -457,8 +457,8 @@ textarea.input{min-height:90px;resize:vertical}
 }
 /* ----- คอม ----- */
 @media (min-width:1100px){
- .side-logo{order:-2;display:block;padding:4px 10px 18px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,.12)}
- .side-logo img{height:34px}
+ .side-logo{order:-2;display:flex;flex-shrink:0;align-items:center;min-height:74px;padding:6px 10px 20px;margin-bottom:12px;border-bottom:1px solid rgba(255,255,255,.12)}
+ .side-logo img{display:block;width:auto;max-width:100%;height:44px;object-fit:contain}
  .tab.on{background:rgba(255,255,255,.1)}
  .tab:not(.center):hover{background:rgba(255,255,255,.06);color:#fff}
  .home-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:8px;align-items:start;padding-bottom:20px}
