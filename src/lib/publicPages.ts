@@ -1,5 +1,5 @@
 import { sb } from './supabase'
-import { translate, type Key, type Lang } from './i18n'
+import type { Lang } from './i18n'
 
 export type PolicyKey = 'guarantee' | 'privacy'
 export type PolicySection = { title: string; body: string }
@@ -21,52 +21,67 @@ export const policyImageLimit = 5 * 1024 * 1024
 export const policyImageTypes = new Map([['image/jpeg', 'jpg'], ['image/png', 'png'], ['image/webp', 'webp']])
 export const policyColumns = 'page,content_th,content_en,image_path,published_on,contact_phones,revision'
 
-const privacyCopy: Record<Lang, { title: string; sections: [string, string][] }> = {
-  th: {
-    title: 'นโยบายความเป็นส่วนตัว',
-    sections: [
-      ['ผู้ให้บริการและช่องทางติดต่อ', 'CleenDee (คลีนดี) บริการจ้างแม่บ้านทำความสะอาดในจังหวัดชุมพร ติดต่อ โทร. {phones}'],
-      ['ประเภทข้อมูลที่เก็บรวบรวม', 'ชื่อ อีเมล และรูปโปรไฟล์จาก Google หรือ LINE เมื่อคุณเข้าสู่ระบบ, เบอร์โทร, ที่อยู่และตำแหน่งบนแผนที่สำหรับเข้าทำงาน, ข้อมูลการจอง การชำระเงินและสลิปโอนเงิน, ข้อความที่คุยกับแม่บ้าน, รีวิว, และรูปถ่ายที่แนบตอนแจ้งเคลมความเสียหาย สำหรับแม่บ้าน เราเก็บข้อมูลการยืนยันตัวตน ตารางวันว่าง ตำแหน่งระหว่างเดินทางไปงาน และบัญชีธนาคารสำหรับโอนค่าจ้าง'],
-      ['วัตถุประสงค์ในการใช้ข้อมูล', 'ยืนยันตัวตนเมื่อเข้าสู่ระบบ, จัดหาแม่บ้านและนัดหมายงาน, ตรวจสอบการชำระเงินและคืนเงิน, ติดต่อเรื่องงานที่จอง, พิจารณาเคลมความเสียหาย และดูแลความปลอดภัยของลูกค้าและแม่บ้าน'],
-      ['การเปิดเผยและจัดเก็บข้อมูล', 'แม่บ้านที่รับงานจะเห็นชื่อ ที่อยู่ และรายละเอียดงานที่จำเป็นต่อการเข้าทำงานเท่านั้น เราไม่ขายข้อมูลของคุณ เมื่อคุณกดอ่าน GPS เพื่อเติมที่อยู่ เบราว์เซอร์จะส่งพิกัดให้ Photon เพื่อค้นที่อยู่ และโหลดแผนที่จาก OpenStreetMap ข้อมูลถูกเก็บบนบริการคลาวด์ (Supabase) ที่เราใช้ดำเนินงาน'],
-      ['สิทธิของเจ้าของข้อมูล', 'คุณขอดู แก้ไข หรือลบข้อมูลของคุณ และขอยกเลิกบัญชีได้ โดยติดต่อ โทร. {phones}'],
-    ],
+const defaultCopies: Record<PolicyKey, Record<Lang, PolicyCopy>> = {
+  privacy: {
+    th: {
+      title: "นโยบายความเป็นส่วนตัว",
+      intro: "นโยบายฉบับนี้อธิบายการเก็บรวบรวม การใช้ และการเปิดเผยข้อมูลส่วนบุคคล ตลอดจนช่องทางที่เจ้าของข้อมูลสามารถใช้สิทธิได้",
+      note: "",
+      imageAlt: "บ้านริมทะเลในชุมพร",
+      sections: [
+        { title: "ผู้ให้บริการและช่องทางติดต่อ", body: "CleenDee (คลีนดี) ให้บริการจองแม่บ้านทำความสะอาดในจังหวัดชุมพร สามารถติดต่อเกี่ยวกับนโยบายฉบับนี้ได้ที่หมายเลข {phones}" },
+        { title: "ข้อมูลส่วนบุคคลที่เก็บรวบรวม", body: "ข้อมูลลูกค้า ได้แก่ ชื่อ อีเมล และรูปโปรไฟล์จาก Google หรือ LINE ที่ใช้เข้าสู่ระบบ เบอร์โทรศัพท์ ที่อยู่และตำแหน่งบนแผนที่ ข้อมูลการจอง การชำระเงิน และสลิปโอนเงิน รวมถึงข้อความที่ติดต่อกับแม่บ้าน รีวิว และภาพที่แนบเพื่อแจ้งความเสียหาย\n\nข้อมูลแม่บ้าน ได้แก่ ข้อมูลการยืนยันตัวตน ตารางวันว่าง ตำแหน่งระหว่างการเดินทางไปปฏิบัติงาน และข้อมูลบัญชีธนาคารสำหรับโอนค่าจ้าง" },
+        { title: "วัตถุประสงค์ในการใช้ข้อมูล", body: "CleenDee ใช้ข้อมูลเพื่อยืนยันตัวตนเมื่อเข้าสู่ระบบ จัดหาแม่บ้าน นัดหมายและติดต่อเกี่ยวกับงาน ตรวจสอบการชำระเงินและการคืนเงิน พิจารณาคำร้องเกี่ยวกับความเสียหาย และดูแลความปลอดภัยของลูกค้าและแม่บ้าน" },
+        { title: "การเปิดเผยและจัดเก็บข้อมูล", body: "แม่บ้านที่รับงานจะเห็นเฉพาะชื่อ ที่อยู่ และรายละเอียดงานที่จำเป็นต่อการให้บริการ CleenDee ไม่ขายข้อมูลส่วนบุคคล และจัดเก็บข้อมูลบนบริการคลาวด์ Supabase ที่ใช้ดำเนินระบบ\n\nเมื่อผู้ใช้กดอ่านตำแหน่ง GPS เพื่อกรอกที่อยู่ เบราว์เซอร์จะส่งพิกัดไปยัง Photon เพื่อค้นหาที่อยู่ และโหลดแผนที่จาก OpenStreetMap" },
+        { title: "สิทธิของเจ้าของข้อมูล", body: "เจ้าของข้อมูลสามารถขอเข้าถึง แก้ไข หรือลบข้อมูลส่วนบุคคลของตน รวมถึงขอปิดบัญชีได้ โดยติดต่อ CleenDee ที่หมายเลข {phones}" },
+      ],
+    },
+    en: {
+      title: "Privacy Policy",
+      intro: "This policy explains how CleenDee collects, uses and shares personal data and how you can exercise your rights.",
+      note: "",
+      imageAlt: "A coastal home in Chumphon",
+      sections: [
+        { title: "Service provider and contact", body: "CleenDee operates a home cleaning booking service in Chumphon, Thailand. For questions about this policy, call {phones}." },
+        { title: "Personal data we collect", body: "Customer data includes your name, email and profile image from Google or LINE when you sign in, phone number, service address and map location, booking and payment details, transfer slips, messages with your helper, reviews and photos submitted with damage claims.\n\nHelper data includes identity verification information, availability, location while travelling to a job and bank account details for payouts." },
+        { title: "Purposes of use", body: "CleenDee uses this information to verify sign-ins, find and schedule helpers, communicate about bookings, verify payments and refunds, assess damage claims and support the safety of customers and helpers." },
+        { title: "Data sharing and storage", body: "The helper assigned to your booking sees only the name, address and job details needed to provide the service. CleenDee does not sell personal data. Information is stored on Supabase, the cloud service we use to run the app.\n\nWhen you request a GPS fix to fill in your address, your browser sends the coordinates to Photon for address lookup and loads map tiles from OpenStreetMap." },
+        { title: "Your rights", body: "You can request access to, correction of or deletion of your personal data, or ask us to close your account, by calling CleenDee at {phones}." },
+      ],
+    },
   },
-  en: {
-    title: 'Privacy Policy',
-    sections: [
-      ['Provider and contact information', 'CleenDee is a home cleaning service in Chumphon, Thailand. Contact: {phones}'],
-      ['Information we collect', 'Your name, email and profile picture from Google or LINE when you log in; phone number; service address and map location; bookings, payments and transfer slips; messages with your helper; reviews; and photos you attach to damage claims. For helpers we also keep identity checks, availability, location while travelling to a job, and bank account for payouts.'],
-      ['How we use your information', 'To log you in, match and schedule helpers, check payments and refunds, contact you about bookings, handle damage claims, and keep customers and helpers safe.'],
-      ['Data sharing and storage', 'The helper who takes your job sees only the name, address and job details needed to do the work. We do not sell your data. When you tap Locate and fill address, your browser sends the pin to Photon for address lookup and loads map tiles from OpenStreetMap. Data is stored on the cloud service we use to run the app (Supabase).'],
-      ['Your rights', 'You can ask to see, correct or delete your data, or close your account, by calling {phones}.'],
-    ],
+  guarantee: {
+    th: {
+      title: "การรับประกันบริการ CleenDee",
+      intro: "หลักเกณฑ์การดูแลลูกค้า การชดเชยความเสียหาย การเลื่อนนัด และการยกเลิกบริการ",
+      note: "การชดเชยเป็นความรับผิดชอบโดยตรงของ CleenDee และไม่ใช่การประกันภัย เจ้าหน้าที่พิจารณาจากภาพถ่ายและมูลค่าทรัพย์สิน",
+      imageAlt: "แม่บ้านคลีนดีในชุดทำงาน",
+      sections: [
+        { title: "กรณีแม่บ้านไม่เข้าปฏิบัติงาน", body: "หากแม่บ้านไม่เข้าปฏิบัติงานตามนัด CleenDee จะจัดหาแม่บ้านทดแทน หากไม่สามารถจัดหาได้ ลูกค้าจะได้รับเงินคืนเต็มจำนวน" },
+        { title: "ความเสียหายระหว่างให้บริการ", body: "CleenDee พิจารณาชดเชยความเสียหายสูงสุด {cap} บาทต่อการให้บริการหนึ่งครั้ง\n\nโปรดแจ้งภายใน {days} วันหลังเสร็จสิ้นบริการ และแนบภาพถ่ายความเสียหายประกอบการพิจารณา" },
+        { title: "การตรวจสอบแม่บ้าน", body: "CleenDee ยืนยันตัวตนด้วยบัตรประชาชนและตรวจสอบประวัติของแม่บ้านทุกคนก่อนให้รับงานผ่านระบบ" },
+        { title: "การเลื่อนนัด", body: "ลูกค้าสามารถเปลี่ยนวันหรือเวลานัดผ่านแอปโดยไม่มีค่าใช้จ่าย หากเหลือเวลามากกว่า {h} ชั่วโมงก่อนเวลาเริ่มบริการ" },
+        { title: "เงื่อนไขการยกเลิก", body: "ก่อนเวลาเริ่มบริการตั้งแต่ 24 ชั่วโมงขึ้นไป คืนเงินเต็มจำนวน\nก่อนเวลาเริ่มบริการตั้งแต่ 6 ชั่วโมงแต่ไม่ถึง 24 ชั่วโมง คืนเงินครึ่งหนึ่ง\nก่อนเวลาเริ่มบริการน้อยกว่า 6 ชั่วโมง ไม่มีการคืนเงิน" },
+      ],
+    },
+    en: {
+      title: "CleenDee Service Guarantee",
+      intro: "How CleenDee handles missed visits, damage claims, rescheduling and cancellations.",
+      note: "CleenDee provides compensation directly. This is not an insurance policy. We assess claims using photographs and the value of the item.",
+      imageAlt: "CleenDee housekeeper in uniform",
+      sections: [
+        { title: "Helper no-show", body: "If your helper does not arrive as scheduled, CleenDee will arrange a replacement. If a replacement cannot be arranged, you will receive a full refund." },
+        { title: "Damage during service", body: "CleenDee considers compensation of up to {cap} THB per booking.\n\nPlease report damage within {days} days after the service and include photographs for review." },
+        { title: "Helper verification", body: "CleenDee verifies each helper’s identity and checks their background before they accept jobs through the app." },
+        { title: "Rescheduling", body: "You can change your appointment date or time in the app at no charge when more than {h} hours remain before the scheduled start." },
+        { title: "Cancellation terms", body: "At least 24 hours before the appointment: full refund.\nAt least 6 hours and less than 24 hours before the appointment: half refund.\nLess than 6 hours before the appointment: no refund." },
+      ],
+    },
   },
 }
 
 export function defaultPolicyCopy(page: PolicyKey, lang: Lang): PolicyCopy {
-  if (page === 'privacy') {
-    const copy = privacyCopy[lang]
-    return {
-      title: copy.title,
-      intro: lang === 'th' ? 'ข้อมูลที่ CleenDee เก็บ วิธีที่เราใช้ข้อมูล และช่องทางสำหรับใช้สิทธิของคุณ' : 'What CleenDee collects, how we use it, and how to exercise your rights.',
-      note: '',
-      imageAlt: lang === 'th' ? 'บ้านริมทะเลในชุมพร' : 'A coastal home in Chumphon',
-      sections: copy.sections.map(([title, body]) => ({ title, body })),
-    }
-  }
-  const t = (key: Key) => translate(lang, key)
-  const headings = lang === 'th'
-    ? ["กรณีแม่บ้านไม่เข้าปฏิบัติงาน","ความเสียหายระหว่างให้บริการ","การตรวจสอบแม่บ้าน","การเลื่อนนัด","เงื่อนไขการยกเลิก"]
-    : ["Helper no-show","Damage during service","Helper verification","Rescheduling","Cancellation terms"]
-  const descriptions: Key[] = ['g1d', 'g2d', 'g3d', 'g4d', 'cancel_rules']
-  return {
-    title: lang === 'th' ? 'การรับประกันบริการ CleenDee' : 'CleenDee Service Guarantee',
-    intro: lang === 'th' ? 'หลักเกณฑ์การชดเชย การเลื่อนนัด และการยกเลิกบริการของ CleenDee' : 'CleenDee’s terms for compensation, rescheduling and cancellations.',
-    note: t('g_note'),
-    imageAlt: lang === 'th' ? 'แม่บ้านคลีนดีในชุดทำงาน' : 'CleenDee housekeeper in uniform',
-    sections: headings.map((title, index) => ({ title, body: t(descriptions[index]) })),
-  }
+  return defaultCopies[page][lang]
 }
 
 export function resolvePolicyCopy(value: unknown, defaults: PolicyCopy): PolicyCopy {

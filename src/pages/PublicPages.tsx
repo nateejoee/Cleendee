@@ -8,8 +8,6 @@ import guaranteeImage from '../assets/ill/safety.webp'
 import privacyImage from '../assets/ill/chumphon.webp'
 import './PublicPages.css'
 
-const guaranteeIcons = ['team', 'shield', 'check', 'cal', 'wallet']
-const privacyIcons = ['home', 'lock', 'grid', 'shield', 'user']
 const originals = { guarantee: guaranteeImage, privacy: privacyImage }
 type GuaranteeSettings = { claim_cap: number; claim_report_days: number; reschedule_min_hours: number }
 
@@ -48,7 +46,6 @@ function PublicPolicy({ page }: { page: PolicyKey }) {
   const replace = (value: string) => renderPolicyText(value, variables)
   const published = record?.published_on || (guarantee ? null : '2026-11-20')
   const dateText = published ? fmtDate(published + 'T12:00:00+07:00', lang, { day: 'numeric', month: 'long', year: 'numeric' }) : null
-  const icons = guarantee ? guaranteeIcons : privacyIcons
 
   return <main className="page public-policy">
     <header className="policy-top">
@@ -60,37 +57,43 @@ function PublicPolicy({ page }: { page: PolicyKey }) {
     </header>
     <header className="policy-hero">
       <div className="policy-hero-text">
-        <span className="policy-hero-symbol"><Icon n={guarantee ? 'shield' : 'lock'} size={23} /></span>
         <h1>{copy.title}</h1>
         <p>{replace(copy.intro)}</p>
         {published && <time dateTime={published}>{th ? 'ปรับปรุงล่าสุด' : 'Last updated'} {dateText}</time>}
       </div>
-      <img className={'policy-hero-image policy-hero-' + page} src={customImage || originals[page]}
-        alt={path && brokenImage === path ? defaults.imageAlt : copy.imageAlt}
-        onError={customImage && path ? () => setBrokenImage(path) : undefined} fetchPriority="high" />
+      <div className="policy-cover">
+        <img className={'policy-cover-image policy-cover-' + page} src={customImage || originals[page]}
+          alt={path && brokenImage === path ? defaults.imageAlt : copy.imageAlt}
+          onError={customImage && path ? () => setBrokenImage(path) : undefined} fetchPriority="high" />
+      </div>
     </header>
-    <div className="policy-canvas">
-      <nav className="policy-index" aria-label={th ? 'สารบัญ' : 'Contents'}>
-        <p>{th ? 'สารบัญ' : 'On this page'}</p>
-        <ul>{copy.sections.map((section, index) => <li key={index}><a href={'#policy-section-' + index}>{section.title}<Icon n="next" size={13} /></a></li>)}</ul>
-      </nav>
-      <article className="policy-document" aria-label={copy.title}>
-        {guarantee && failed ? <div className="stack" role="status">
-          <p>{th ? 'โหลดเงื่อนไขการันตีไม่สำเร็จ' : 'The guarantee terms could not be loaded.'}</p>
-          <button className="btn b-line" type="button" onClick={() => { setFailed(false); setAttempt(n => n + 1) }}>{th ? 'ลองอีกครั้ง' : 'Try again'}</button>
-        </div> : guarantee && !settings ? <Loading /> : copy.sections.map((section, index) => (
-          <section className="policy-section" id={'policy-section-' + index} key={index}>
-            <span className="policy-section-icon"><Icon n={icons[index]} size={18} /></span>
-            <div><h2>{section.title}</h2><p>{replace(section.body)}</p></div>
-          </section>
-        ))}
-        {copy.note && <aside className="policy-note">{replace(copy.note)}</aside>}
-        {!guarantee && <footer className="policy-contact">
-          <h2>{th ? 'ติดต่อ CleenDee' : 'Contact CleenDee'}</h2>
-          <div>{phones.map(phone => <a className="btn b-line" key={phone} href={policyPhoneHref(phone)}>{phone}</a>)}</div>
-        </footer>}
-      </article>
-    </div>
+    <article className="policy-document" aria-label={copy.title}>
+      {guarantee && failed ? <div className="stack" role="status">
+        <p>{th ? 'โหลดเงื่อนไขการันตีไม่สำเร็จ' : 'The guarantee terms could not be loaded.'}</p>
+        <button className="btn b-line" type="button" onClick={() => { setFailed(false); setAttempt(n => n + 1) }}>{th ? 'ลองอีกครั้ง' : 'Try again'}</button>
+      </div> : guarantee && !settings ? <Loading /> :
+        <ol className="policy-clauses" role="list">
+          {copy.sections.map((section, index) => (
+            <li className="policy-clause" id={'policy-section-' + index} key={index}>
+              <h2 className="policy-clause-heading">
+                <span aria-hidden="true" className="policy-clause-number">{String(index + 1).padStart(2, '0')}</span>
+                <span>{section.title}</span>
+              </h2>
+              <div className="policy-clause-body">
+                {replace(section.body).split(/\n[ \t]*\n+/).map((paragraph, line) => <p key={line}>{paragraph}</p>)}
+              </div>
+            </li>
+          ))}
+        </ol>}
+      {copy.note && <aside className="policy-note">
+        <Icon n="shield" size={19} />
+        <div><h2>{th ? 'หมายเหตุ' : 'Note'}</h2><p>{replace(copy.note)}</p></div>
+      </aside>}
+      {!guarantee && <footer className="policy-contact">
+        <h2>{th ? 'ติดต่อ CleenDee' : 'Contact CleenDee'}</h2>
+        <div>{phones.map(phone => <a className="btn b-line" key={phone} href={policyPhoneHref(phone)}>{formatPolicyPhones([phone], lang)}</a>)}</div>
+      </footer>}
+    </article>
   </main>
 }
 
