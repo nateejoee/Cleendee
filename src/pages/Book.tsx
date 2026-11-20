@@ -1,5 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import type { ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { MapContainer, TileLayer, CircleMarker, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -10,7 +9,8 @@ import { useServices, useAddons, svcName, svcUnit, jobHours } from '../lib/servi
 import { useI18n, money, fmtDate, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { getDraft, setDraft, clearDraft, startIso, bkkToday, type Draft } from '../lib/draft'
-import { Avatar, Icon, Steps, TopBar, Loading, useToast } from '../components/ui'
+import { Avatar, Icon, Loading, useToast } from '../components/ui'
+import { BookingLayout } from './BookingLayout'
 import { useDistricts } from './Start'
 import { confetti } from '../lib/fx'
 
@@ -30,39 +30,76 @@ function bookingQuantity(draft: Draft, service: Service | undefined) {
   return draft.plan === 'once' ? (draft.qty ?? service?.min_qty ?? 0) : 6
 }
 
-const SelectedAddress = createContext<{address:string; change:()=>void}>({address:'',change:()=>{}})
+function HelperAvatar({ maid, size = 44 }: { maid: Maid; size?: number }) {
+  return maid.photo_url
+    ? <Avatar name={maid.nickname} url={maid.photo_url} seed={maid.id} size={size} />
+    : <span className="booking-avatar-fallback" aria-hidden="true">{maid.nickname.slice(0, 1)}</span>
+}
+
+const SelectedAddress = createContext<{ address: string; change: () => void }>({ address: '', change: () => {} })
+
 export function BookMaid() {
   const location = useContext(SelectedAddress)
+  const [params] = useSearchParams()
+  const suggested = params.get('helper')
   const { t, lang } = useI18n(); const nav = useNavigate(); const maids = useMaids(); const services = useServices()
   const [d, setD] = useState<Draft>(getDraft())
   const s = services?.find(x => x.code === d.service)
   const pick = (id: string | null) => setD(setDraft({ maidId: id }))
-  // แสดงเฉพาะแม่บ้านที่ทำบริการนี้ได้
-  const [params] = useSearchParams()
-  const suggested = params.get('helper')
   const list = maids?.filter(m => (m.services || []).includes(d.service))
-  if (suggested) list?.sort((a,b) => Number(b.id === suggested) - Number(a.id === suggested))
+  if (suggested) list?.sort((a, b) => Number(b.id === suggested) - Number(a.id === suggested))
   const qty = bookingQuantity(d, s)
-  return <div className="page nobar">
-    <TopBar title={t('who_cleans')} /><Steps at={0} />
-    <div className="pad mt16">
-      <button className="link" onClick={location.change}><Icon n="pin" />{location.address} · {lang === 'th' ? 'เปลี่ยน' : 'Change'}</button>
-      {s && <div className="small muted" style={{ marginBottom: 10 }}>{svcName(s, lang)}</div>}
-      <button className={'choice' + (d.maidId === null ? ' on' : '')} onClick={() => pick(null)}><span className="radio" />
-        <span style={{ flex: 1 }}><b>{t('auto_pick')}</b><span className="small muted">{t('auto_pick_d')}</span></span><b className="disp">{t('free')}</b></button>
-      <div className="between" style={{ margin: '18px 0 8px' }}><b className="disp">{t('or_pick')} <span className="muted small">+20 {t('baht')}</span></b><span className="small muted">{t('sorted_reviews')}</span></div>
-      {!list ? <Loading /> : list.length === 0 ? <div className="empty muted">{t('no_maid_for_service')}</div> : <div className="stack cols">{list.map(m => <div key={m.id} className={'card' + (d.maidId === m.id ? ' sel' : '')}>
-        <button className="row" style={{ width: '100%', textAlign: 'left' }} onClick={() => pick(m.id)}>
-          <Avatar name={m.nickname} url={m.photo_url} seed={m.id} size={54} />
-          <span style={{ flex: 1 }}><b className="disp" style={{ fontSize: 16.5 }}>{m.nickname}</b>
-            <span className="small muted" style={{ display: 'block' }}><span className="star">★</span> {m.avg_rating ?? '–'} ({m.review_count ?? 0} {t('reviews')}) · {m.jobs_done ?? 0} {t('homes_done')}</span></span>
-          <span className={'radio' + (d.maidId === m.id ? ' on' : '')} /></button>
-        <button className="link mt8" onClick={() => nav('/maid-profile/' + m.id)}>{t('view_profile')}</button>
-      </div>)}</div>}
+  const amount = s ? money(qty * s.price_per_unit + (d.maidId ? 20 : 0)) : '…'
+  const quantityLabel = s ? qty + ' ' + svcUnit(s, lang) : ''
+  const selection = list?.find(m => m.id === d.maidId)
+
+  return <BookingLayout title={t('who_cleans')} service={s ? svcName(s, lang) : undefined} step={0}
+    action={{ label: t('next'), onClick: () => nav('/book/time') }}
+    price={amount + ' ' + t('baht')} priceLabel={t('booking_estimate')}
+    meta={[quantityLabel, d.maidId ? selection?.nickname ?? t('pick_fee') : null].filter(Boolean).join(' · ')}>
+    <div className="booking-stack">
+      <button type="button" className="booking-address" onClick={location.change}>
+        <Icon n="pin" size={18} /><span>{location.address}</span><b>{t('change')}</b>
+      </button>
+      <div className={'booking-option' + (d.maidId === null ? ' is-selected' : '')}>
+        <button type="button" className="booking-option-select" aria-pressed={d.maidId === null} onClick={() => pick(null)}>
+          <span className="booking-option-icon"><Icon n="team" size={21} /></span>
+          <span className="booking-option-info">
+            <strong>{t('auto_pick')}</strong>
+            <span className="booking-option-meta">{t('auto_pick_d')}</span>
+          </span>
+          <span className="booking-option-tail"><span className="booking-option-radio" aria-hidden="true" />{t('free')}</span>
+        </button>
+      </div>
+
+      <section aria-labelledby="manual-helper-title">
+        <div className="booking-section-heading">
+          <h2 id="manual-helper-title">{t('or_pick')}</h2>
+          <span>+20 {t('baht')}</span>
+        </div>
+        {!list ? <Loading /> : list.length === 0 ? <div className="empty muted">{t('no_maid_for_service')}</div> :
+          <div className="booking-option-list">{list.map(m => {
+            const selected = d.maidId === m.id
+            return <article key={m.id} className={'booking-option' + (selected ? ' is-selected' : '')}>
+              <button type="button" className="booking-option-select" aria-pressed={selected} onClick={() => pick(m.id)}>
+                <HelperAvatar maid={m} />
+                <span className="booking-option-info">
+                  <strong>{m.nickname}</strong>
+                  <span className="booking-option-meta">
+                    {m.review_count ? <><span className="star" aria-hidden="true">★</span> {m.avg_rating ?? '–'} ({m.review_count} {t('reviews')})</> : t('no_reviews')}
+                    {' · '}{m.jobs_done ?? 0} {t('homes_done')}
+                  </span>
+                </span>
+                <span className="booking-option-radio" aria-hidden="true" />
+              </button>
+              <Link to={'/maid-profile/' + m.id} className="booking-profile-link" aria-label={t('view_profile') + ' · ' + m.nickname}>
+                {t('view_profile')}<Icon n="next" size={14} />
+              </Link>
+            </article>
+          })}</div>}
+      </section>
     </div>
-    <div className="bottom-bar"><div style={{ flex: 1 }}><div className="small muted">{s ? `${qty} ${svcUnit(s, lang)}` : ''}{d.maidId ? ' + ' + t('pick_fee') : ''}</div><div className="price">{s ? money(qty * s.price_per_unit + (d.maidId ? 20 : 0)) : '…'} {t('baht')}</div></div>
-      <button className="btn b-sun" style={{ width: 'auto', flex: 1 }} onClick={() => nav('/book/time')}>{t('next')}</button></div>
-  </div>
+  </BookingLayout>
 }
 
 export function MaidProfile() {
@@ -71,26 +108,37 @@ export function MaidProfile() {
   useEffect(() => { sb.from('reviews').select('rating,comment,tags,created_at').eq('maid_id', id!).order('created_at', { ascending: false }).limit(10).then(({ data }) => setRevs(data || [])) }, [id])
   const m = maids?.find(x => x.id === id)
   if (!m) return <Loading />
-  return <div className="page nobar">
-    <div className="hero" style={{ textAlign: 'center', position: 'relative' }}>
-      <button className="back" onClick={() => nav(-1)} style={{ position: 'absolute', left: 14, top: 14 }} aria-label="Back"><Icon n="back" /></button>
-      <div style={{ display: 'flex', justifyContent: 'center' }}><Avatar name={m.nickname} url={m.photo_url} seed={m.id} size={88} /></div>
-      <h1 className="mt8">{m.nickname}</h1><p>{m.bio}</p>
-      <div className="row" style={{ justifyContent: 'center', marginTop: 12 }}>
-        {[[`★ ${m.avg_rating ?? '–'}`, `${m.review_count ?? 0} ${t('reviews')}`], [String(m.jobs_done ?? 0), t('homes_done')]].map(([a, b]) =>
-          <div key={b} style={{ background: 'rgba(255,255,255,.14)', borderRadius: 14, padding: '6px 14px' }}><b className="disp" style={{ fontSize: 17 }}>{a}</b><div className="tiny" style={{ color: '#CFE3F2' }}>{b}</div></div>)}
-      </div>
+  return <BookingLayout title={m.nickname}
+    action={{ label: t('choose') + ' ' + m.nickname, onClick: () => { setDraft({ maidId: null, hour: null }); nav('/book?helper=' + encodeURIComponent(m.id)) } }}>
+    <div className="booking-stack">
+      <section className="booking-panel">
+        <div className="booking-profile-intro">
+          <HelperAvatar maid={m} size={70} />
+          <div>
+            {m.bio && <p>{m.bio}</p>}
+            <div className="booking-profile-stats small muted">
+              {m.review_count ? <span><span className="star" aria-hidden="true">★</span> {m.avg_rating ?? '–'} · {m.review_count} {t('reviews')}</span> : <span>{t('no_reviews')}</span>}
+              <span>{m.jobs_done ?? 0} {t('homes_done')}</span>
+            </div>
+          </div>
+        </div>
+        {(m.id_verified || m.background_checked) && <div className="booking-profile-checks">
+          {m.id_verified && <span><Icon n="check" size={16} />{t('id_ok')}</span>}
+          {m.background_checked && <span><Icon n="check" size={16} />{t('bg_ok')}</span>}
+        </div>}
+      </section>
+      <section className="booking-panel"><FreeDays maidId={m.id} /></section>
+      <section className="booking-panel">
+        <h2>{t('reviews')}</h2>
+        {revs.length === 0 ? <p className="muted">{t('no_reviews')}</p> : <div className="stack">
+          {revs.map((r, i) => <div key={i} className="booking-review">
+            <span className="star" aria-label={r.rating + ' / 5'}>{'★'.repeat(r.rating)}</span>
+            {r.comment && <p>{r.comment}</p>}
+          </div>)}
+        </div>}
+      </section>
     </div>
-    <div className="pad"><FreeDays maidId={m.id} />
-      <div className="sec-title">{t('verified')}</div>
-      {m.id_verified && <div className="row mt8"><span className="rico" style={{ background: 'var(--leaf-l)', color: 'var(--leaf)' }}><Icon n="check" /></span><b className="disp">{t('id_ok')}</b></div>}
-      {m.background_checked && <div className="row mt8"><span className="rico" style={{ background: 'var(--leaf-l)', color: 'var(--leaf)' }}><Icon n="check" /></span><b className="disp">{t('bg_ok')}</b></div>}
-      <div className="sec-title">{t('reviews')}</div>
-      {revs.length === 0 ? <div className="muted">{t('no_reviews')}</div> : <div className="stack">{revs.map((r, i) => <div key={i} className="card" style={{ background: 'var(--foam)', border: 0 }}>
-        <span className="star">{'★'.repeat(r.rating)}</span><div className="muted">{r.comment}</div></div>)}</div>}
-    </div>
-    <div className="bottom-bar"><button className="btn b-sun" onClick={() => { setDraft({ maidId:null, hour:null }); nav('/book?helper=' + encodeURIComponent(m.id)) }}>{t('choose')} {m.nickname}</button></div>
-  </div>
+  </BookingLayout>
 }
 
 // วันที่แม่บ้านคนนี้ว่าง (14 วันข้างหน้า) กดแล้วไปเลือกเวลาได้เลย
@@ -100,9 +148,9 @@ function FreeDays({ maidId }: { maidId: string }) {
   const hours = jobHours(s, bookingQuantity(d, s), [])
   const [days, setDays] = useState<string[] | null>(null)
   useEffect(() => { if (s) sb.rpc('maid_free_days', { p_maid: maidId, p_service_code: s.code, p_hours: hours }).then(({ data }) => setDays((data as string[]) || [])) }, [maidId, s?.code, hours])
-  return <><div className="sec-title">{t('free_days')}</div>
+  return <><h2>{t('free_days')}</h2>
     {!days ? <Loading /> : days.length === 0 ? <div className="muted">{t('no_free_days')}</div> :
-      <div className="cal">{days.map(x => <button key={x} className="cd" onClick={() => { setDraft({ maidId:null, date:x, hour:null }); nav('/book?helper=' + encodeURIComponent(maidId)) }}>
+      <div className="cal">{days.map(x => <button key={x} className="cd" onClick={() => { setDraft({ maidId: null, date: x, hour: null }); nav('/book?helper=' + encodeURIComponent(maidId)) }}>
         <small>{fmtDate(x + 'T12:00:00+07:00', lang, { weekday: 'short' })}</small><b>{Number(x.slice(8))}</b></button>)}</div>}</>
 }
 
@@ -133,45 +181,68 @@ export function BookTime() {
       .then(({ data }) => setQ(data as Quote2))
   }, [s?.code, qty, d.addons.join(), d.maidId, picked?.h, date, isPkg])
   if (!services) return <Loading />
-  if (!s) return <div className="page nobar"><TopBar title={t('pick_date')} /><div className="pad mt20"><div className="empty muted">{t('service_closed')}</div></div></div>
+  if (!s) return <BookingLayout title={t('pick_date')} step={1}><div className="empty muted">{t('service_closed')}</div></BookingLayout>
   const pkgBlocked = isPkg && !d.maidId
   const ok = !!picked && !pkgBlocked
   const price = d.plan === 'weekly' ? 5600 : d.plan === 'biweekly' ? 2900 : (q?.total ?? null)
   const unit = svcUnit(s, lang)
-  return <div className="page nobar">
-    <TopBar title={t('pick_date')} /><Steps at={1} />
-    <div className="pad mt16">
-      <div className="small muted">{svcName(s, lang)}</div>
-      {s.code === 'general_cleaning' && <><div className="plan-grid mt12">{(['once', 'biweekly', 'weekly'] as const).map(p =>
-        <button key={p} aria-pressed={d.plan === p} className={'plan-card' + (d.plan === p ? ' chosen' : '')} onClick={() => setD(setDraft({ plan:p, hour:null }))}>
-          <span className="between"><b>{t(p)}</b><span className="radio" /></span>
-          <strong>{money(p === 'weekly' ? 5600 : p === 'biweekly' ? 2900 : s.min_qty*s.price_per_unit)} ฿</strong>
-          <small>{p === 'once' ? t('min_qty')+' '+s.min_qty+' '+unit : (p === 'weekly' ? '4' : '2') + (lang === 'th' ? ' ครั้ง · ครั้งละ 6 ชม.' : ' visits · 6 h each')}</small>
+  const selectedDate = fmtDate(date + 'T12:00:00+07:00', lang, { weekday: 'long', month: 'long', day: 'numeric' })
+  const quantityLabel = isPkg ? t(d.plan) : qty + ' ' + unit
+  const timeLabel = picked ? String(picked.h).padStart(2, '0') + ':00' : ''
+
+  return <BookingLayout title={t('pick_date')} service={svcName(s, lang)} step={1}
+    action={{ label: t('next'), disabled: !ok, onClick: () => { setDraft({ qty }); nav('/book/details') } }}
+    price={(price !== null ? money(price) : '…') + ' ' + t('baht')} priceLabel={t('booking_estimate')}
+    meta={[quantityLabel, chosen.length ? chosen.length + ' ' + t('addons') : null, timeLabel].filter(Boolean).join(' · ')}>
+    <div className="booking-stack">
+      {(s.code === 'general_cleaning' || !isPkg) && <section className="booking-panel">
+        {s.code === 'general_cleaning' && <>
+          <h2>{t('booking_frequency')}</h2>
+          <div className="plan-grid">{(['once', 'biweekly', 'weekly'] as const).map(p =>
+            <button key={p} aria-pressed={d.plan === p} className={'plan-card' + (d.plan === p ? ' chosen' : '')} onClick={() => setD(setDraft({ plan: p, hour: null }))}>
+              <span className="between"><b>{t(p)}</b><span className="radio" aria-hidden="true" /></span>
+              <strong>{money(p === 'weekly' ? 5600 : p === 'biweekly' ? 2900 : s.min_qty * s.price_per_unit)} ฿</strong>
+              <small>{p === 'once' ? t('min_qty') + ' ' + s.min_qty + ' ' + unit : (p === 'weekly' ? '4' : '2') + (lang === 'th' ? ' ครั้ง · ครั้งละ 6 ชม.' : ' visits · 6 h each')}</small>
+            </button>)}</div>
+          <p className="small muted">{t('pkg_note')}</p>
+        </>}
+        {pkgBlocked && <div className="infonote">{t('pkg_need_maid')} <button className="link" onClick={() => nav('/book')}>{t('choose')}</button></div>}
+        {!isPkg && <>
+          <h2>{s.pricing === 'hourly' ? t('how_long') : t('how_many')}</h2>
+          <div className="chips">{Array.from({ length: s.max_qty - s.min_qty + 1 }, (_, i) => s.min_qty + i).map(n =>
+            <button key={n} aria-pressed={n === qty} className={'chip' + (n === qty ? ' on' : '')} onClick={() => setD(setDraft({ qty: n, hour: null }))}>{n} {unit}</button>)}</div>
+          {s.pricing === 'hourly' && <p className="small muted">{t('qty_hint')}</p>}
+        </>}
+      </section>}
+      {isPkg && pkgBlocked && s.code !== 'general_cleaning' && <div className="infonote">{t('pkg_need_maid')} <button className="link" onClick={() => nav('/book')}>{t('choose')}</button></div>}
+      {!isPkg && addons.length > 0 && <section className="booking-panel">
+        <h2>{t('addons')}</h2>
+        <div className="stack">{addons.map(a => {
+          const on = d.addons.includes(a.code)
+          return <button key={a.code} className={'choice' + (on ? ' on' : '')} aria-pressed={on} onClick={() => setD(setDraft({ addons: on ? d.addons.filter(x => x !== a.code) : [...d.addons, a.code], hour: null }))}>
+            <span className={'chk' + (on ? ' on' : '')}>{on && <Icon n="check" size={14} />}</span>
+            <span className="booking-grow"><b>{lang === 'th' ? a.name_th : a.name_en}</b><span className="small muted">+{a.minutes} {t('minutes')}</span></span>
+            <b>+{money(a.price)}</b>
+          </button>
+        })}</div>
+      </section>}
+      <section className="booking-panel">
+        <div className="booking-date-heading"><h2>{t('date')}</h2><span className="small muted">{selectedDate}</span></div>
+        <div className="cal">{days.map(x => <button key={x} className={'cd' + (x === date ? ' on' : '')}
+          aria-label={fmtDate(x + 'T12:00:00+07:00', lang, { weekday: 'long', month: 'long', day: 'numeric' })} aria-pressed={x === date}
+          onClick={() => setD(setDraft({ date: x, hour: null }))}>
+          <small>{fmtDate(x + 'T12:00:00+07:00', lang, { weekday: 'short' })}</small><b>{Number(x.slice(8))}</b>
         </button>)}</div>
-        <p className="small muted mt8">{t('pkg_note')}</p></>}
-      {pkgBlocked && <div className="infonote mt8">{t('pkg_need_maid')} <button className="link" onClick={() => nav('/book')}>{t('choose')}</button></div>}
-      {!isPkg && <><div className="sec-title">{s.pricing === 'hourly' ? t('how_long') : t('how_many')}</div>
-        <div className="chips">{Array.from({ length: s.max_qty - s.min_qty + 1 }, (_, i) => s.min_qty + i).map(n =>
-          <button key={n} className={'chip' + (n === qty ? ' on' : '')} onClick={() => setD(setDraft({ qty: n, hour: null }))}>{n} {unit}</button>)}</div>
-        {s.pricing === 'hourly' && <p className="small muted mt8">{t('qty_hint')}</p>}
-        {addons.length > 0 && <><div className="sec-title">{t('addons')}</div>
-          <div className="stack">{addons.map(a => { const on = d.addons.includes(a.code)
-            return <button key={a.code} className={'choice' + (on ? ' on' : '')} onClick={() => setD(setDraft({ addons: on ? d.addons.filter(x => x !== a.code) : [...d.addons, a.code], hour: null }))}>
-              <span className={'chk' + (on ? ' on' : '')}>{on && <Icon n="check" size={14} />}</span>
-              <span style={{ flex: 1 }}><b>{lang === 'th' ? a.name_th : a.name_en}</b><span className="small muted">+{a.minutes} {t('minutes')}</span></span><b className="disp">+{money(a.price)}</b></button> })}</div></>}</>}
-      <div className="sec-title">{t('date')}</div>
-      <div className="cal">{days.map(x => <button key={x} className={'cd' + (x === date ? ' on' : '')} onClick={() => setD(setDraft({ date: x, hour: null }))}>
-        <small>{fmtDate(x + 'T12:00:00+07:00', lang, { weekday: 'short' })}</small><b>{Number(x.slice(8))}</b></button>)}</div>
-      <div className="sec-title">{t('start_time')}</div>
-      {!slots ? <Loading /> : slots.length === 0 ? <div className="empty muted">{t('no_slots')}</div> :
-        <div className="tgrid">{slots.map(x => <button key={x.h} className={'tc' + (picked?.h === x.h ? ' on' : '')} onClick={() => setD(setDraft({ date, hour: x.h }))}>
-          {String(x.h).padStart(2, '0')}:00{x.urgent && <div className="tiny" style={{ color: picked?.h === x.h ? 'var(--sun)' : 'var(--brick)' }}>{t('urgent_tag')}</div>}</button>)}</div>}
-      {picked && <div className="ok-note mt12"><Icon n="clock" />{t('work_hours').replace('{h}', String(hours))} <b className="disp">{String(picked.h + hours).padStart(2, '0')}:00</b></div>}
-      {picked?.urgent && q && q.urgent_fee > 0 && <div className="infonote mt8"><Icon n="clock" />{t('urgent_fee_note').replace('{fee}', money(q.urgent_fee))}</div>}
+        <h2>{t('start_time')}</h2>
+        {!slots ? <Loading /> : slots.length === 0 ? <div className="empty muted">{t('no_slots')}</div> :
+          <div className="tgrid">{slots.map(x => <button key={x.h} aria-pressed={picked?.h === x.h} className={'tc' + (picked?.h === x.h ? ' on' : '')} onClick={() => setD(setDraft({ date, hour: x.h }))}>
+            {String(x.h).padStart(2, '0')}:00{x.urgent && <span className="tiny booking-urgent">{t('urgent_tag')}</span>}
+          </button>)}</div>}
+        {picked && <div className="ok-note"><Icon n="clock" />{t('work_hours').replace('{h}', String(hours))} <b>{String(picked.h + hours).padStart(2, '0')}:00</b></div>}
+        {picked?.urgent && q && q.urgent_fee > 0 && <div className="infonote"><Icon n="clock" />{t('urgent_fee_note').replace('{fee}', money(q.urgent_fee))}</div>}
+      </section>
     </div>
-    <div className="bottom-bar"><div style={{ flex: 1 }}><div className="small muted">{isPkg ? t(d.plan) : `${qty} ${unit}${chosen.length ? ' + ' + chosen.length + ' ' + t('addons') : ''}`}</div><div className="price">{price !== null ? money(price) : '…'} {t('baht')}</div></div>
-      <button className="btn b-sun" style={{ width: 'auto', flex: 1 }} disabled={!ok} onClick={() => { setDraft({ qty }); nav('/book/details') }}>{t('next')}</button></div>
-  </div>
+  </BookingLayout>
 }
 
 type Addr = { id: number; label: string; address: string; district_id: number; lat: number | null; lng: number | null }
@@ -242,28 +313,31 @@ export function BookingLocation({children}: {children: ReactNode}) {
   }
   if (!list) return <Loading />
   if (address && address.lat != null && address.lng != null && !edit) return <SelectedAddress.Provider value={{address: address.address, change: () => setId(null)}}>{children}</SelectedAddress.Provider>
-  return <div className="page nobar"><TopBar title={th ? 'สถานที่รับบริการ' : 'Service location'} /><div className="pad stack mt16">
-    <h2>{th ? 'ให้แม่บ้านไปที่ไหน?' : 'Where do you need cleaning?'}</h2>
-    {list.map(a => <button key={a.id} className="choice" onClick={() => a.lat == null || a.lng == null ? setEdit(a) : choose(a.id)}><Icon n="pin" /><span><b>{a.label}</b><span className="small muted">{a.address}</span></span></button>)}
-    {edit || !list.length ? <AddressForm key={typeof edit === 'object' ? edit?.id : 'new'} existing={edit && edit !== 'new' ? edit : undefined} onSaved={next => { reload(); choose(next) }} /> :
-      <button className="btn b-line" onClick={() => setEdit('new')}>{t('add_address')}</button>}
-  </div></div>
+  return <BookingLayout title={th ? 'สถานที่รับบริการ' : 'Service location'}>
+    <section className="booking-panel booking-location-panel">
+      <h2>{th ? 'ให้แม่บ้านไปที่ไหน?' : 'Where do you need cleaning?'}</h2>
+      {list.map(a => <button key={a.id} className="choice" onClick={() => a.lat == null || a.lng == null ? setEdit(a) : choose(a.id)}>
+        <Icon n="pin" /><span className="booking-grow"><b>{a.label}</b><span className="small muted">{a.address}</span></span><Icon n="next" size={16} />
+      </button>)}
+      {edit || !list.length ? <AddressForm key={typeof edit === 'object' ? edit?.id : 'new'} existing={edit && edit !== 'new' ? edit : undefined} onSaved={next => { reload(); choose(next) }} /> :
+        <button className="btn b-line" onClick={() => setEdit('new')}><Icon n="plus" size={17} />{t('add_address')}</button>}
+    </section>
+  </BookingLayout>
 }
 
 const TAGS: Key[] = ['tag_pets', 'tag_bath', 'tag_kitchen', 'tag_kids', 'tag_noparking']
 export function BookDetails() {
-  const { t } = useI18n(); const nav = useNavigate()
+  const { t } = useI18n()
+  const nav = useNavigate()
   const [d, setD] = useState<Draft>(getDraft())
-  return <div className="page nobar">
-    <TopBar title={t('tell_maid')} /><Steps at={2} />
-    <div className="pad mt16">
-      <div className="sec-title">{t('anything')}</div>
-      <div className="chips">{TAGS.map(k => <button key={k} className={'chip' + (d.tags.includes(k) ? ' on' : '')} onClick={() => setD(setDraft({ tags: d.tags.includes(k) ? d.tags.filter(x => x !== k) : [...d.tags, k] }))}>{t(k)}</button>)}</div>
-      <textarea className="input mt12" value={d.note} placeholder={t('note_ph')} onChange={e => setD(setDraft({ note: e.target.value }))} maxLength={500} />
-      <div className="infonote mt12"><Icon n="lock" />{t('no_contact')}</div>
-    </div>
-    <div className="bottom-bar"><button className="btn b-sun" disabled={!d.addressId} onClick={() => nav('/book/confirm')}>{t('next')}</button></div>
-  </div>
+  return <BookingLayout title={t('tell_maid')} step={2} action={{ label: t('next'), disabled: !d.addressId, onClick: () => nav('/book/confirm') }}>
+    <section className="booking-panel">
+      <h2>{t('anything')}</h2>
+      <div className="chips">{TAGS.map(k => <button key={k} aria-pressed={d.tags.includes(k)} className={'chip' + (d.tags.includes(k) ? ' on' : '')} onClick={() => setD(setDraft({ tags: d.tags.includes(k) ? d.tags.filter(x => x !== k) : [...d.tags, k] }))}>{t(k)}</button>)}</div>
+      <textarea className="input" aria-label={t('booking_note')} value={d.note} placeholder={t('note_ph')} onChange={e => setD(setDraft({ note: e.target.value }))} maxLength={500} />
+      <div className="infonote"><Icon n="lock" />{t('no_contact')}</div>
+    </section>
+  </BookingLayout>
 }
 
 export function BookConfirm() {
@@ -279,7 +353,8 @@ export function BookConfirm() {
       .then(({ data, error }) => { if (error) setErr(friendly(error, lang)); else setQ(data as Quote2) })
   }, [usePts, promo])
   const m = maids?.find(x => x.id === d.maidId)
-  if (!start || !d.addressId) return <div className="page"><TopBar title={t('confirm_booking')} /><div className="pad mt20"><button className="btn b-ocean" onClick={() => nav('/book')}>{t('book_now')}</button></div></div>
+  if (!start || !d.addressId) return <BookingLayout title={t('confirm_booking')} step={3}
+    action={{ label: t('book_now'), onClick: () => nav('/book') }}><p className="muted">{t('booking_missing_details')}</p></BookingLayout>
   const pkgPrice = d.plan === 'weekly' ? 5600 : 2900
   const hours = q?.hours ?? 6
   const addonRows = (allAddons || []).filter(a => d.addons.includes(a.code) && a.service_codes.includes(d.service))
@@ -295,37 +370,57 @@ export function BookConfirm() {
       }
     } catch (e) { setErr(friendly(e, lang)) } finally { setBusy(false) }
   }
-  return <div className="page nobar">
-    <TopBar title={t('confirm_booking')} /><Steps at={3} />
-    <div className="pad mt12 row"><Icon n="pin" />{location.address}</div>
-    <div className="pad mt16 stack">
-      <div className="card">
-        <div className="row">{m ? <Avatar name={m.nickname} seed={m.id} url={m.photo_url} size={44} /> : <span className="rico"><Icon n="team" /></span>}
-          <div><b className="disp">{m ? m.nickname : t('auto_pick')}</b><div className="small muted">{svcName(s, lang)} · {fmtDate(start, lang)} {String(d.hour).padStart(2, '0')}:00–{String(d.hour! + hours).padStart(2, '0')}:00 · {t(d.plan)}</div></div></div>
-        {d.plan === 'once' ? (q ? <div className="recv mt12">
-          <div><span className="muted">{svcName(s, lang)} {q.qty} {svcUnit(s, lang)}</span><span>{money(q.base)}</span></div>
-          {addonRows.map(a => <div key={a.code}><span className="muted">+ {lang === 'th' ? a.name_th : a.name_en}</span><span>{money(a.price)}</span></div>)}
-          {q.choose_maid_fee > 0 && <div><span className="muted">{t('pick_fee')}</span><span>{q.choose_maid_fee}</span></div>}
-          {q.urgent_fee > 0 && <div><span className="muted">{t('urgent_tag')}</span><span>{money(q.urgent_fee)}</span></div>}
-          {q.promo_discount > 0 && <div style={{ color: 'var(--leaf)' }}><span>{q.promo_code ? t('promo_code') + ' ' + q.promo_code : t('first_promo')}</span><span>−{money(q.promo_discount)}</span></div>}
-          {q.points_discount > 0 && <div style={{ color: 'var(--leaf)' }}><span>{t('use_points')} {q.points_used}</span><span>−{q.points_discount}</span></div>}
-          <div className="tot"><span>{t('total')}</span><span>{money(q.total)} {t('baht')}</span></div></div> : <Loading />)
-          : <div className="recv mt12"><div className="tot"><span>{t('total')}</span><span>{money(pkgPrice)} {t('baht')}</span></div></div>}
-      </div>
-      {d.plan === 'once' && <div className="field"><label>{t('promo_code')}</label>
-        <div className="row"><input className="input" value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="CLEAN50" />
-          <button className="btn sm b-ocean" onClick={() => { setPromo(code.trim()); setDraft({ promo: code.trim() }) }}>{t('apply')}</button></div>
-        {q?.promo_error && promo && <div className="err">{friendly(q.promo_error, lang)}</div>}
-        {q?.promo_code && <div className="ok-note"><Icon n="ticket" />{t('promo_ok')}</div>}
-        {q && !q.promo_code && q.first_discount && promo && !q.promo_error && <div className="small muted">{t('promo_first_better')}</div>}</div>}
-      {d.plan === 'once' && q && q.points_available >= 50 && <button className={'choice' + (usePts ? ' on' : '')} onClick={() => { setUsePts(!usePts); setDraft({ usePoints: !usePts }) }}>
-        <span className={'chk' + (usePts ? ' on' : '')}>{usePts && <Icon n="check" size={14} />}</span><span style={{ flex: 1 }}><b>{t('use_points')}</b><span className="small muted">{q.points_available} {t('points')}</span></span></button>}
-      <Link to="/guarantee" className="ok-note" style={{ color: '#1F6B4A' }}><Icon n="shield" size={26} /><div><b className="disp">{t('ins_t')}</b><div>{t('ins_d')}</div></div></Link>
-      <div className="small muted">{t('cancel_rules')}</div>
-      {err && <div className="err">{err}</div>}
+  const total = d.plan === 'once' ? q?.total : pkgPrice
+  const time = String(d.hour).padStart(2, '0') + ':00–' + String(d.hour! + hours).padStart(2, '0') + ':00'
+  const invalidQuote = d.plan === 'once' && (!q || (!!promo && !!q.promo_error))
+
+  return <BookingLayout title={t('confirm_booking')} service={svcName(s, lang)} step={3}
+    action={{ label: busy ? t('loading') : t('create_and_pay'), disabled: busy || invalidQuote, onClick: go }}
+    price={(total === undefined ? '…' : money(total)) + ' ' + t('baht')} priceLabel={t('total')}>
+    <div className="booking-stack">
+      <section className="booking-panel">
+        <h2>{t('booking_summary')}</h2>
+        <div className="row">
+          {m ? <HelperAvatar maid={m} /> : <span className="booking-option-icon"><Icon n="team" /></span>}
+          <div className="booking-grow"><b>{m ? m.nickname : t('auto_pick')}</b><div className="small muted">{t(d.plan)}</div></div>
+        </div>
+        <div className="booking-appointment"><Icon n="cal" size={18} /><span>{fmtDate(start, lang)} · {time}</span></div>
+        {location.address && <div className="booking-appointment"><Icon n="pin" size={18} /><span>{location.address}</span></div>}
+      </section>
+      {d.plan === 'once' && <>
+        <section className="booking-panel">
+          <h2>{t('booking_breakdown')}</h2>
+          {q ? <div className="recv">
+            <div><span className="muted">{svcName(s, lang)} {q.qty} {svcUnit(s, lang)}</span><span>{money(q.base)} {t('baht')}</span></div>
+            {addonRows.map(a => <div key={a.code}><span className="muted">+ {lang === 'th' ? a.name_th : a.name_en}</span><span>{money(a.price)} {t('baht')}</span></div>)}
+            {q.choose_maid_fee > 0 && <div><span className="muted">{t('pick_fee')}</span><span>{money(q.choose_maid_fee)} {t('baht')}</span></div>}
+            {q.urgent_fee > 0 && <div><span className="muted">{t('urgent_tag')}</span><span>{money(q.urgent_fee)} {t('baht')}</span></div>}
+            {q.promo_discount > 0 && <div><span>{q.promo_code ? t('promo_code') + ' ' + q.promo_code : t('first_promo')}</span><span>−{money(q.promo_discount)} {t('baht')}</span></div>}
+            {q.points_discount > 0 && <div><span>{t('use_points')} {q.points_used}</span><span>−{money(q.points_discount)} {t('baht')}</span></div>}
+          </div> : <Loading />}
+        </section>
+        <section className="booking-panel">
+          <h2><label htmlFor="booking-promo">{t('promo_code')}</label></h2>
+          <form className="row booking-promo-form" onSubmit={e => { e.preventDefault(); setPromo(code.trim()); setDraft({ promo: code.trim() }) }}>
+            <input id="booking-promo" className="input" value={code} onChange={e => setCode(e.target.value.toUpperCase())} />
+            <button type="submit" className="btn sm b-ocean">{t('apply')}</button>
+          </form>
+          {q?.promo_error && promo && <div className="err" role="alert">{friendly(q.promo_error, lang)}</div>}
+          {q?.promo_code && <div className="ok-note"><Icon n="ticket" />{t('promo_ok')}</div>}
+          {q && !q.promo_code && q.first_discount && promo && !q.promo_error && <p className="small muted">{t('promo_first_better')}</p>}
+          {q && q.points_available >= 50 && <button className={'choice' + (usePts ? ' on' : '')} aria-pressed={usePts} onClick={() => { setUsePts(!usePts); setDraft({ usePoints: !usePts }) }}>
+            <span className={'chk' + (usePts ? ' on' : '')}>{usePts && <Icon n="check" size={14} />}</span>
+            <span><b>{t('use_points')}</b><span className="small muted">{q.points_available} {t('points')}</span></span>
+          </button>}
+        </section>
+      </>}
+      <section className="booking-panel">
+        <Link to="/guarantee" className="booking-guarantee"><Icon n="shield" size={23} /><div><b>{t('ins_t')}</b><p className="small muted">{t('ins_d')}</p></div><Icon n="next" size={14} /></Link>
+        <p className="small muted">{t('cancel_rules')}</p>
+      </section>
+      {err && <div className="err" role="alert">{err}</div>}
     </div>
-    <div className="bottom-bar"><button className="btn b-sun" disabled={busy || (d.plan === 'once' && (!q || (!!promo && !!q.promo_error)))} onClick={go}>{t('create_and_pay')}</button></div>
-  </div>
+  </BookingLayout>
 }
 
 export function Pay() {
@@ -348,18 +443,23 @@ export function Pay() {
       confetti(); toast.show(t('slip_sent')); setTimeout(() => nav('/bookings', { replace: true }), 1800)
     } catch (e) { setErr(friendly(e, lang)) } finally { setBusy(false) }
   }
-  return <div className="page nobar">
-    <TopBar title={t('pay_title')} back="/bookings" />
-    <div className="pad mt20 stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-      <div className="muted">{t('scan_pp')}</div>
-      {payload ? <div className="qr"><QRCodeSVG value={payload} size={220} /></div> : <div className="infonote">{t('pp_missing')}</div>}
-      {pp?.promptpay_name && <div className="small muted">{pp.promptpay_name}</div>}
-      <div className="disp" style={{ fontSize: 32, fontWeight: 700 }}>{amount !== null ? money(amount) : '…'} {t('baht')}</div>
-      <label className="btn b-line" style={{ cursor: 'pointer' }}><Icon n="camera" />{file ? file.name : t('attach_slip')}
-        <input type="file" accept="image/*" hidden onChange={e => setFile(e.target.files?.[0] ?? null)} /></label>
-      {err && <div className="err">{err}</div>}
+  return <BookingLayout title={t('pay_title')} back="/bookings" step={3}
+    action={{ label: busy ? t('loading') : t('booking_send_slip'), disabled: !file || busy, onClick: submit }}
+    price={(amount === null ? '…' : money(amount)) + ' ' + t('baht')} priceLabel={t('total')}>
+    <div className="booking-stack">
+      <section className="booking-panel booking-pay-code">
+        <h2>{t('scan_pp')}</h2>
+        {payload ? <div className="qr"><QRCodeSVG value={payload} size={220} /></div> : <div className="infonote">{t('pp_missing')}</div>}
+        {pp?.promptpay_name && <p className="small muted">{pp.promptpay_name}</p>}
+      </section>
+      <section className="booking-panel">
+        <h2>{t('attach_slip')}</h2>
+        <label className="btn b-line booking-upload"><Icon n="camera" /><span>{file ? file.name : t('booking_pick_slip')}</span>
+          <input type="file" accept="image/*" aria-label={t('attach_slip')} onChange={e => setFile(e.target.files?.[0] ?? null)} />
+        </label>
+        {err && <div className="err" role="alert">{err}</div>}
+      </section>
     </div>
-    <div className="bottom-bar"><button className="btn b-sun" disabled={!file || busy} onClick={submit}>{t('attach_slip')}</button></div>
     {toast.node}
-  </div>
+  </BookingLayout>
 }
