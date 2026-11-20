@@ -343,7 +343,7 @@ export function Addresses() {
     <div className="pad mt16 stack">
       {list?.length === 0 && !adding && <div className="empty"><Icon n="pin" size={40} style={{ color: '#C9DDEC' }} /><div className="disp mt8" style={{ fontWeight: 600 }}>{t('no_address')}</div></div>}
       {list?.map(a => <div key={a.id} className="choice"><Icon n="pin" style={{ color: 'var(--ocean)' }} /><span><b>{a.label}</b><span className="small muted">{a.address}</span></span><button className="link" onClick={() => { setEditing(a.id); setAdding(false) }}>{lang === 'th' ? 'ปรับหมุด' : 'Adjust pin'}</button></div>)}
-      {adding || address ? <AddressForm key={address?.id ?? 'new'} existing={address} onSaved={() => { setAdding(false); setEditing(null); reload() }} /> : <button className="btn b-ocean" onClick={() => setAdding(true)}>{t('add_address')}</button>}
+      {adding || address ? <AddressForm key={address?.id ?? 'new'} existing={address} onSaved={() => { setAdding(false); setEditing(null); reload() }} onDeleted={() => { setEditing(null); reload() }} /> : <button className="btn b-ocean" onClick={() => setAdding(true)}>{t('add_address')}</button>}
       <div className="infonote"><Icon n="lock" />{t('addr_private')}</div>
     </div></div>
 }

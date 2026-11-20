@@ -274,7 +274,7 @@ export function useAddresses() {
 function hasPrecisePin(address: Addr) {
   return address.lat != null && address.lng != null
 }
-export function AddressForm({ onSaved, existing }: { onSaved: (id: number) => void; existing?: Addr }) {
+export function AddressForm({ onSaved, existing, onDeleted }: { onSaved: (id: number) => void; existing?: Addr; onDeleted?: () => void }) {
   const { t, lang } = useI18n(); const { session } = useAuth(); const districts = useDistricts()
   const th = lang === 'th'
   const [label, setLabel] = useState(existing?.label ?? (th ? 'บ้าน' : 'Home'))
@@ -284,7 +284,7 @@ export function AddressForm({ onSaved, existing }: { onSaved: (id: number) => vo
   const [fix, setFix] = useState<MapPin | null>(startPoint ? { point: startPoint, accuracy: existing?.gps_accuracy_m ?? null } : null)
   const [lookup, setLookup] = useState<'idle' | 'loading' | 'done' | 'missing'>(startPoint ? 'done' : 'idle')
   const [districtName,setDistrictName] = useState<string>()
-  const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState(''); const [busy, setBusy] = useState(false); const [confirmDelete, setConfirmDelete] = useState(false)
   const typed = useRef(!!existing?.address) // the customer wrote the address; don't overwrite it from the map
   const place = (next: MapPin | null) => { setFix(next); setErr('') }
   useEffect(() => {
@@ -315,6 +315,13 @@ export function AddressForm({ onSaved, existing }: { onSaved: (id: number) => vo
     setBusy(false)
     if (error) setErr(friendly(error,lang)); else onSaved(data.id)
   }
+  const remove = async () => {
+    if (!session || !existing || busy) return
+    setBusy(true); setErr('')
+    const { error } = await sb.from('customer_addresses').delete().eq('id', existing.id).eq('customer_id',session.user.id)
+    setBusy(false)
+    if (error) setErr(friendly(error,lang)); else onDeleted?.()
+  }
   return <div className="card stack">
     <label className="field">{t('label')}<input className="input" value={label} onChange={e => setLabel(e.target.value)} /></label>
     <LocationPin start={startPoint} onPin={place} disabled={busy} />
@@ -324,6 +331,9 @@ export function AddressForm({ onSaved, existing }: { onSaved: (id: number) => vo
     <small><a href="/geo/NOTICE.txt" target="_blank" rel="noreferrer">GeoThai · OCHA COD-AB · Royal Thai Survey Department</a> · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap</a></small>
     {err && <div className="err" role="alert">{err}</div>}
     <button className="btn b-ocean" disabled={busy || lookup === 'loading' || !fix || !label.trim() || addr.trim().length < 5} onClick={save}>{t('save')}</button>
+    {existing && onDeleted && (confirmDelete
+      ? <div className="row"><button className="btn b-ghost" disabled={busy} onClick={() => setConfirmDelete(false)}>{th ? 'ยกเลิก' : 'Cancel'}</button><button className="btn b-red" disabled={busy} onClick={remove}>{th ? 'ยืนยันลบที่อยู่' : 'Confirm delete'}</button></div>
+      : <button className="btn b-ghost" disabled={busy} onClick={() => setConfirmDelete(true)}>{th ? 'ลบที่อยู่นี้' : 'Delete this address'}</button>)}
   </div>
 }
 
