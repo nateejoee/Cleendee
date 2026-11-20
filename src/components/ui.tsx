@@ -67,12 +67,22 @@ export function Steps({ at }: { at: number }) {
   return <div className="steps">{labels.map((l, i) => <div key={l} className={'st' + (i <= at ? ' done' : '')}><i /><span>{t(l)}</span></div>)}</div>
 }
 
+// ซิกเนเจอร์ปุ่มจอง: ประกายสะอาดกับฟองสบู่ลอยขึ้น (ใช้บนมือถือ; จอใหญ่ใช้ไอคอน + เดิม)
+function BubbleSpark() {
+  return <svg className="sig-ico" viewBox="0 0 40 40" width="34" height="34" aria-hidden="true">
+    <path d="M20 6.5c.9 6.3 3.2 8.6 9.5 9.5-6.3.9-8.6 3.2-9.5 9.5-.9-6.3-3.2-8.6-9.5-9.5 6.3-.9 8.6-3.2 9.5-9.5Z" fill="currentColor" />
+    <circle className="bub b1" cx="30.5" cy="29" r="3.4" fill="none" stroke="currentColor" strokeWidth="1.8" />
+    <circle className="bub b2" cx="9.5" cy="27.5" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+    <circle className="bub b3" cx="31.5" cy="9" r="1.7" fill="currentColor" />
+  </svg>
+}
+
 type Tab = { to: string; icon: string; label: Key; center?: boolean }
 export function TabBar({ tabs }: { tabs: Tab[] }) {
   const { t } = useI18n(); const loc = useLocation()
   return <nav className="tabbar"><Link to="/" className="side-logo"><img src="/brand/CleenDee_logo_white.svg" alt="CleenDee" /></Link>{tabs.map(tb => {
     const on = tb.to === loc.pathname || (tb.to !== '/' && loc.pathname.startsWith(tb.to + '/'))
-    if (tb.center) return <Link key={tb.to} to={tb.to} className="tab center"><span className="mid"><Icon n="plus" size={28} /></span>{t(tb.label)}</Link>
+    if (tb.center) return <Link key={tb.to} to={tb.to} className="tab center"><span className="mid"><Icon n="plus" size={28} /><BubbleSpark /></span>{t(tb.label)}</Link>
     return <Link key={tb.to} to={tb.to} className={'tab' + (on ? ' on' : '')}><Icon n={tb.icon} />{t(tb.label)}</Link>
   })}</nav>
 }
