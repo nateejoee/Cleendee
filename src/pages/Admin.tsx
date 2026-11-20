@@ -19,7 +19,7 @@ function Section({ id, title, count, hint, action, children }: { id?: string; ti
 }
 function Nothing() { const th = useI18n().lang === 'th'; return <div className="admin-empty">✓ {th ? 'ไม่มีรายการค้าง' : 'All clear'}</div> }
 
-type Pay = { id: number; booking_id: number | null; package_id: number | null; amount: number; slip_path: string | null; created_at: string }
+type Pay = { id: number; booking_id: number | null; package_id: number | null; amount: number; slip_path: string | null; created_at: string; auto_checked?: boolean; check_note?: string | null }
 type Payout = { payout_id: number; booking_id: number; nickname: string; amount: number; bank_name: string | null; bank_account: string | null; work_date: string }
 type Refund = { id: number; booking_id: number; amount: number; points_returned: number }
 type Claim = { id: number; booking_id: number; item: string; description: string | null; purchase_price: number | null; purchase_year: number | null; photo_paths: string[]; created_at: string }
@@ -119,6 +119,7 @@ export function AdminMoney() {
       {d.pays.length === 0 ? <Nothing /> : <div className="admin-grid">{d.pays.map(p => <div key={p.id} className="card">
         <div className="between"><b className="disp">{p.booking_id ? '#' + p.booking_id : 'Package ' + p.package_id}</b><b className="disp" style={{ fontSize: 19 }}>{money(p.amount)}</b></div>
         <div className="small muted">{fmtDate(p.created_at, lang)} {fmtTime(p.created_at)}</div>
+        {p.auto_checked && p.check_note && p.check_note !== 'not_configured' && <div className="small" style={{ color: 'var(--brick)' }}>{t('a_slip_auto')}: {p.check_note}</div>}
         <div className="row mt8"><button className="btn sm b-line" onClick={() => p.slip_path && showSlip('slips', p.slip_path)}>{t('view_slip')}</button>
           <button className="btn sm b-ocean" style={{ flex: 1 }} onClick={() => run('admin_review_payment', { p_payment_id: p.id, p_approve: true })}>{t('approve')}</button>
           <button className="btn sm b-red" onClick={() => run('admin_review_payment', { p_payment_id: p.id, p_approve: false })}>{t('reject')}</button></div></div>)}</div>}

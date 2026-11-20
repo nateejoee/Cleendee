@@ -472,10 +472,11 @@ export function BookConfirm() {
   </BookingLayout>
 }
 
+const SLIP_REJECT: Record<string, Key> = { amount_mismatch: 'slip_rej_amount', duplicate_slip: 'slip_rej_dup', wrong_receiver: 'slip_rej_receiver' }
 export function Pay() {
   const { kind, id } = useParams(); const { t, lang } = useI18n(); const nav = useNavigate(); const { session } = useAuth(); const toast = useToast()
   const [amount, setAmount] = useState<number | null>(null); const [pp, setPp] = useState<{ promptpay_id: string | null; promptpay_name: string | null } | null>(null)
-  const [file, setFile] = useState<File | null>(null); const [busy, setBusy] = useState(false); const [err, setErr] = useState('')
+  const [file, setFile] = useState<File | null>(null); const [busy, setBusy] = useState(false); const [err, setErr] = useState(''); const [checking, setChecking] = useState(false)
   useEffect(() => {
     sb.from('payment_settings').select('promptpay_id,promptpay_name').maybeSingle().then(({ data }) => setPp(data))
     if (kind === 'booking') sb.from('bookings').select('total_price').eq('id', id!).single().then(({ data }) => setAmount(data?.total_price ?? null))
@@ -489,11 +490,18 @@ export function Pay() {
       const up = await sb.storage.from('slips').upload(path, file); if (up.error) throw up.error
       const { error } = kind === 'booking' ? await sb.rpc('submit_payment_slip', { p_booking_id: Number(id), p_slip_path: path }) : await sb.rpc('submit_package_slip', { p_package_id: Number(id), p_slip_path: path })
       if (error) throw error
+      // automatic slip check (SlipOK); anything other than a clear yes/no stays with the admin as before
+      setChecking(true)
+      const chk = await sb.functions.invoke('verify-slip', { body: { kind, id: Number(id) } }).catch(() => null)
+      setChecking(false)
+      const res = (chk?.data || {}) as { status?: string; reason?: string }
+      if (res.status === 'approved') { confetti(); toast.show(t('slip_ok')); setTimeout(() => nav(kind === 'booking' ? '/bookings/' + id : '/bookings', { replace: true }), 1800); return }
+      if (res.status === 'rejected') { setFile(null); setErr(t(SLIP_REJECT[res.reason || ''] || 'slip_rej_other')); return }
       confetti(); toast.show(t('slip_sent')); setTimeout(() => nav('/bookings', { replace: true }), 1800)
     } catch (e) { setErr(friendly(e, lang)) } finally { setBusy(false) }
   }
   return <BookingLayout title={t('pay_title')} back="/bookings" step={3}
-    action={{ label: busy ? t('loading') : t('booking_send_slip'), disabled: !file || busy, onClick: submit }}
+    action={{ label: checking ? t('slip_checking') : busy ? t('loading') : t('booking_send_slip'), disabled: !file || busy, onClick: submit }}
     price={(amount === null ? '…' : money(amount)) + ' ' + t('baht')} priceLabel={t('total')}>
     <div className="booking-stack">
       <section className="booking-panel booking-pay-code">
