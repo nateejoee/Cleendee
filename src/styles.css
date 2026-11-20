@@ -559,4 +559,9 @@ textarea.input{min-height:90px;resize:vertical}
 .svc-sum span{font-size:12px;color:var(--ink2)}
 .svc-sum b{font-size:1.125rem;font-weight:650;font-variant-numeric:tabular-nums}
 .svc-sub{font-size:13px;font-weight:600;color:var(--ink);padding-top:12px;border-top:1px solid var(--line)}
-.svc-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--line)}
+.svc-cols{align-items:stretch}
+.svc>.between{align-items:flex-start;min-height:2.7em}
+.svc-foot{display:flex;flex-direction:column;gap:10px;margin-top:auto;padding-top:12px;border-top:1px solid var(--line)}
+.svc-foot .chips{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.svc-foot .chip{text-align:center;justify-content:center}
+.svc-foot .btn{width:100%}

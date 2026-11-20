@@ -299,7 +299,7 @@ function ServicePrices({ toast }: { toast: (m: string) => void }) {
     const { error } = await sb.rpc('admin_update_service', { p_code: r.code, p_price_per_unit: Number(r.price_per_unit), p_payout_pct: Number(r.payout_pct), p_min: Number(r.min_qty), p_max: Number(r.max_qty), p_default: Number(r.default_qty), p_minutes: Number(r.minutes_per_unit), p_active: r.active, p_coming_soon: r.coming_soon })
     toast(error ? friendly(error, lang) : t('saved')); load()
   }
-  return <><div className="sec-title">{t('a_prices')}</div><div className="stack cols">{rows.map((r, i) => {
+  return <><div className="sec-title">{t('a_prices')}</div><div className="stack cols svc-cols">{rows.map((r, i) => {
     const u = svcUnit(r, lang), price = Number(r.price_per_unit) || 0, pct = Number(r.payout_pct) || 0
     const maid = Math.round(price * pct) / 100, shop = Math.round((price - maid) * 100) / 100
     const num = (k: keyof Service) => (v: string) => upd(i, { [k]: v as unknown as number })

@@ -83,7 +83,7 @@ const D = {
     // การ์ดราคาบริการ (หน้า Admin)
     a_price_cust: 'ราคาที่ลูกค้าจ่าย', a_baht: 'บาท', a_minutes: 'นาที', a_cust_pays: 'ลูกค้าจ่าย', a_maid_gets: 'แม่บ้านได้', a_shop_gets: 'ร้านได้',
     a_sec_qty: 'จำนวนที่ลูกค้าเลือกได้', a_min_qty: 'ขั้นต่ำ', a_max_qty: 'สูงสุด', a_qty_note: 'ค่าเริ่มต้น = จำนวนที่ติ๊กไว้ให้ตอนเปิดหน้าจอง',
-    a_open_h: 'เปิดให้จอง', a_soon_h: 'เร็วๆ นี้ (จองไม่ได้)',
+    a_open_h: 'เปิดให้จอง', a_soon_h: 'เร็วๆ นี้',
     a_default: 'ค่าเริ่มต้น', a_min_per_unit: 'นาทีต่อหน่วย', a_new_addon: 'เพิ่มงานเสริม', a_code: 'รหัส (ภาษาอังกฤษ)', a_name_th: 'ชื่อภาษาไทย', a_name_en: 'ชื่อภาษาอังกฤษ', a_to_maid: 'ให้แม่บ้าน',
     a_kind: 'แบบ', a_value: 'ลด', a_max_disc: 'ลดสูงสุด', a_min_total: 'ยอดขั้นต่ำ', a_max_uses: 'ใช้ได้กี่ครั้ง', a_ends: 'หมดอายุ (ไม่ใส่ = ไม่หมด)', a_add_promo: 'สร้างโค้ด', a_used: 'ใช้แล้ว', a_until: 'ถึง',
     // หน้าบังคับเข้าสู่ระบบ / ธีม / ลูกเล่น / หน้าแรกบนคอม (เพิ่ม 20/11/69)
@@ -177,7 +177,7 @@ const D = {
     // service price card (Admin)
     a_price_cust: 'Customer pays', a_baht: 'THB', a_minutes: 'min', a_cust_pays: 'Customer pays', a_maid_gets: 'Helper gets', a_shop_gets: 'Shop gets',
     a_sec_qty: 'Quantity the customer can choose', a_min_qty: 'Min', a_max_qty: 'Max', a_qty_note: 'Default = pre-selected when the booking page opens',
-    a_open_h: 'Open for booking', a_soon_h: 'Coming soon (not bookable)',
+    a_open_h: 'Open for booking', a_soon_h: 'Coming soon',
     a_default: 'Default', a_min_per_unit: 'Minutes per unit', a_new_addon: 'New add-on', a_code: 'Code (English)', a_name_th: 'Thai name', a_name_en: 'English name', a_to_maid: 'To helper',
     a_kind: 'Type', a_value: 'Discount', a_max_disc: 'Max discount', a_min_total: 'Minimum total', a_max_uses: 'Max uses', a_ends: 'Expires (blank = never)', a_add_promo: 'Create code', a_used: 'used', a_until: 'until',
     login_now: 'Log in now', lw_book: 'Log in or sign up before booking a helper. Use Google or LINE, it takes under a minute',
