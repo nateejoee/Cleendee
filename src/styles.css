@@ -496,3 +496,33 @@ textarea.input{min-height:90px;resize:vertical}
 .lp-spin{width:18px;height:18px;border:2.5px solid rgba(19,41,75,.15);border-top-color:var(--ocean);border-radius:50%;animation:lpspin .8s linear infinite}
 @keyframes lpspin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.lp-pin{transition:none}.lp-spin{animation-duration:2s}}
+
+/* ===== Admin: จัดกลุ่มชัด อ่านง่าย ใช้บนคอมได้ดี ===== */
+.admin-sec{scroll-margin-top:16px;margin-top:28px}
+.admin-sec:first-child{margin-top:8px}
+.admin-sec-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.admin-sec-head h2{display:flex;align-items:center;gap:10px;font-size:1.25rem;font-weight:650;line-height:1.35}
+.admin-count{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 9px;border-radius:99px;background:var(--foam);color:var(--ink2);font-size:.9375rem;font-weight:700;vertical-align:middle}
+.admin-count.on{background:var(--brick);color:#fff}
+.admin-hint{font-size:.9375rem;color:var(--ink2);line-height:1.5;margin:0 0 10px}
+.admin-empty{border:1.5px dashed var(--line);border-radius:16px;padding:16px;text-align:center;color:var(--leaf);font-weight:600;background:var(--card)}
+.admin-grid{display:grid;gap:12px;grid-template-columns:1fr}
+.admin-list{padding:0;overflow:hidden}
+.admin-list .listrow{padding:14px 16px;min-height:64px}
+.admin-list .listrow:last-child{border-bottom:0}
+.admin-queue{min-height:96px;transition:border-color .2s,box-shadow .2s}
+.admin-queue b{font-size:1.0625rem}
+.admin-queue .n{width:44px;height:44px;font-size:1.25rem}
+.admin-queue.zero{background:var(--foam);border-style:dashed;opacity:.85}
+.admin-queue.zero .n{background:var(--leaf-l);color:var(--leaf)}
+.admin-sticky{position:sticky;bottom:88px;z-index:5;margin-top:12px;padding:10px;background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 28px rgba(11,27,51,.14)}
+.admin-jump{position:sticky;top:0;z-index:4;padding:8px 0;background:var(--bg)}
+.admin-jump .chip{min-height:40px;font-size:.9375rem;padding:6px 16px}
+@media (min-width:768px){
+ .admin-grid{grid-template-columns:repeat(2,1fr)}
+ .admin-sticky{bottom:20px}
+}
+@media (min-width:1100px){
+ .admin-grid{grid-template-columns:repeat(3,1fr)}
+ .admin-queues{grid-template-columns:repeat(3,1fr)}
+}

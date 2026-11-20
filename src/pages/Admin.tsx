@@ -1,5 +1,5 @@
 import { FunnelReport } from '../components/FunnelReport'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { sb, friendly, type Booking, type Service, type Addon } from '../lib/supabase'
 import { useServices, svcName, svcUnit } from '../lib/services'
@@ -10,6 +10,14 @@ import { AdminTabs, Avatar, Icon, LangToggle, Loading, StatusPill, useToast } fr
 import { PublicPageEditor } from './PublicPageEditor'
 
 function useAdminGuard() { const { profile, ready } = useAuth(); return ready && profile?.role !== 'admin' }
+
+// หัวข้อกลุ่มงาน พร้อมจำนวนที่ค้าง — ใช้ซ้ำทุกหน้า Admin
+function Section({ id, title, count, hint, action, children }: { id?: string; title: string; count?: number; hint?: string; action?: ReactNode; children: ReactNode }) {
+  return <section id={id} className="admin-sec">
+    <div className="admin-sec-head"><h2>{title}{count !== undefined && <span className={'admin-count' + (count ? ' on' : '')}>{count}</span>}</h2>{action}</div>
+    {hint && <p className="admin-hint">{hint}</p>}{children}</section>
+}
+function Nothing() { const th = useI18n().lang === 'th'; return <div className="admin-empty">✓ {th ? 'ไม่มีรายการค้าง' : 'All clear'}</div> }
 
 type Pay = { id: number; booking_id: number | null; package_id: number | null; amount: number; slip_path: string | null; created_at: string }
 type Payout = { payout_id: number; booking_id: number; nickname: string; amount: number; bank_name: string | null; bank_account: string | null; work_date: string }
@@ -41,24 +49,26 @@ export function AdminHome() {
   if (useAdminGuard()) return <Navigate to="/" />
   if (!d) return <Loading />
   const income = d.month.reduce((a, b) => a + b.total_price - b.maid_payout, 0)
-  const todo: [number, string, string, string, string][] = [
-    [d.unmatched.length, t('a_unmatched'), t('a_unmatched_d'), 'var(--brick-l)', 'var(--brick)'],
-    [d.pays.length, t('a_slips'), '', 'var(--sun-l)', '#8A6200'],
-    [d.payouts.length, t('a_payouts'), money(d.payouts.reduce((a, p) => a + p.amount, 0)) + ' ' + t('baht'), '#E1EEF8', 'var(--ocean-d)'],
-    [d.refunds.length, t('a_refunds'), money(d.refunds.reduce((a, p) => a + p.amount, 0)) + ' ' + t('baht'), 'var(--brick-l)', 'var(--brick)'],
-    [d.claims.length, t('a_claims'), '', 'var(--brick-l)', 'var(--brick)'],
-    [d.maidsPending, t('a_newmaids'), '', 'var(--leaf-l)', 'var(--leaf)'],
-  ]
+  const th = lang === 'th'
+  // [จำนวน, ชื่อ, รายละเอียด, สีพื้น, สีตัวเลข, ลิงก์ปลายทาง]
+  const todo: [number, string, string, string, string, string][] = [
+    [d.unmatched.length, t('a_unmatched'), t('a_unmatched_d'), 'var(--brick-l)', 'var(--brick)', '#unmatched'],
+    [d.pays.length, t('a_slips'), '', 'var(--sun-l)', '#8A6200', '/admin/money#slips'],
+    [d.payouts.length, t('a_payouts'), money(d.payouts.reduce((a, p) => a + p.amount, 0)) + ' ' + t('baht'), '#E1EEF8', 'var(--ocean-d)', '/admin/money#payouts'],
+    [d.refunds.length, t('a_refunds'), money(d.refunds.reduce((a, p) => a + p.amount, 0)) + ' ' + t('baht'), 'var(--brick-l)', 'var(--brick)', '/admin/money#refunds'],
+    [d.claims.length, t('a_claims'), '', 'var(--brick-l)', 'var(--brick)', '/admin/money#claims'],
+    [d.maidsPending, t('a_newmaids'), '', 'var(--leaf-l)', 'var(--leaf)', '/admin/maids'],
+  ].sort((a, b) => Number(Number(b[0]) > 0) - Number(Number(a[0]) > 0)) as [number, string, string, string, string, string][]
+  const open = todo.reduce((a, q) => a + q[0], 0)
   const refundAll = async (b: Booking) => { const { error } = await sb.rpc('admin_refund_unmatched', { p_booking_id: b.id }); toast.show(error ? friendly(error, lang) : t('saved')); reload() }
   return <div className="page admin-overview">
     <div className="hero tall"><div className="between"><span className="sub">{fmtDate(new Date().toISOString(), lang, { weekday: 'long', day: 'numeric', month: 'short' })}</span><LangToggle /></div><h1>{t('a_title')}</h1></div>
     <div className="pad" style={{ marginTop: -54, position: 'relative', zIndex: 2 }}><div className="kpi"><div className="small">{t('a_income')}</div><div className="v">{money(income)} ฿</div>
       <div className="row small mt8"><span><b>{d.month.length}</b> {t('a_jobs')}</span><span><b>{d.maidsTotal}</b> {t('a_maids')}</span></div></div></div>
-    <div className="pad"><div className="sec-title">{t('a_todo')}</div>
-      <div className="admin-queues">{todo.map(([n, a, b, bg, c], i) => {
-        const target = ['#unmatched','/admin/money#slips','/admin/money#payouts','/admin/money#refunds','/admin/money#claims','/admin/maids'][i]
-        return <Link key={a} to={target} className="admin-queue"><span className="between"><b>{a}</b><span className="n" style={{background:bg,color:c}}>{n}</span></span>{b && <small>{b}</small>}</Link>
-      })}</div><FunnelReport /><div id="unmatched" />
+    <div className="pad"><div className="sec-title">{t('a_todo')} <span className={'admin-count' + (open ? ' on' : '')}>{open}</span></div>
+      <div className="admin-queues">{todo.map(([n, a, b, bg, c, target]) =>
+        <Link key={a} to={target} className={'admin-queue' + (n ? '' : ' zero')}><span className="between"><b>{a}</b><span className="n" style={n ? { background: bg, color: c } : undefined}>{n || '✓'}</span></span>{n > 0 && b ? <small>{b}</small> : !n && <small>{th ? 'ไม่มีรายการค้าง' : 'All clear'}</small>}</Link>
+      )}</div><FunnelReport /><div id="unmatched" />
       {d.unmatched.length > 0 && <><div className="sec-title">{t('a_unmatched')}</div>{d.unmatched.map(b => <div key={b.id} className="card between mt8">
         <span><b className="disp">#{b.id} {fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}</b><span className="small muted" style={{ display: 'block' }}>{money(b.total_price)} ฿</span></span>
         <button className="btn sm b-red" onClick={() => refundAll(b)}>{t('a_refund_full')}</button></div>)}</>}
@@ -69,7 +79,7 @@ export function AdminHome() {
 
 export function AdminMoney() {
   const { t, lang } = useI18n(); const { d, reload } = useAdminData(); const toast = useToast(); const [sel, setSel] = useState<number[]>([]); const [slipUrl, setSlipUrl] = useState<string | null>(null)
-  const {hash} = useLocation()
+  const {hash} = useLocation(); const th = lang === 'th'
   useEffect(() => { if (d && hash) document.getElementById(hash.slice(1))?.scrollIntoView() }, [hash,d])
   const [claimAmt, setClaimAmt] = useState<Record<number, string>>({})
   if (useAdminGuard()) return <Navigate to="/" />
@@ -82,57 +92,69 @@ export function AdminMoney() {
       <div className="split"><div style={{ flex: 800, background: 'var(--sun)' }} /><div style={{ flex: 700, background: '#fff' }} /></div>
       <div className="between small"><b style={{ color: 'var(--sun)' }}>{t('tab_maids')} 800</b><b>CleenDee 700 (+20)</b></div></div>
     <div className="pad">
-      <h2 className="desk-heading" id="slips">{t('a_slips')}</h2>
-      {d.pays.length === 0 ? <div className="muted">{t('nothing')}</div> : d.pays.map(p => <div key={p.id} className="card mt8">
+      <Section id="slips" title={t('a_slips')} count={d.pays.length}>
+      {d.pays.length === 0 ? <Nothing /> : <div className="admin-grid">{d.pays.map(p => <div key={p.id} className="card">
         <div className="between"><b className="disp">{p.booking_id ? '#' + p.booking_id : 'Package ' + p.package_id}</b><b className="disp" style={{ fontSize: 19 }}>{money(p.amount)}</b></div>
         <div className="small muted">{fmtDate(p.created_at, lang)} {fmtTime(p.created_at)}</div>
         <div className="row mt8"><button className="btn sm b-line" onClick={() => p.slip_path && showSlip('slips', p.slip_path)}>{t('view_slip')}</button>
           <button className="btn sm b-ocean" style={{ flex: 1 }} onClick={() => run('admin_review_payment', { p_payment_id: p.id, p_approve: true })}>{t('approve')}</button>
-          <button className="btn sm b-red" onClick={() => run('admin_review_payment', { p_payment_id: p.id, p_approve: false })}>{t('reject')}</button></div></div>)}
+          <button className="btn sm b-red" onClick={() => run('admin_review_payment', { p_payment_id: p.id, p_approve: false })}>{t('reject')}</button></div></div>)}</div>}
+      </Section>
 
-      <div className="between"><h2 className="desk-heading" id="payouts">{t('a_payouts')}</h2><button className="link" onClick={() => setSel(d.payouts.map(p => p.payout_id))}>✓ All</button></div>
-      {d.payouts.length === 0 ? <div className="muted">{t('nothing')}</div> : d.payouts.map(p => <button key={p.payout_id} className="listrow" style={{ padding: '12px 0' }} onClick={() => setSel(sel.includes(p.payout_id) ? sel.filter(x => x !== p.payout_id) : [...sel, p.payout_id])}>
+      <Section id="payouts" title={t('a_payouts')} count={d.payouts.length} hint={d.payouts.length ? (th ? 'แตะที่รายการเพื่อเลือก แล้วกดปุ่มโอนแล้วด้านล่าง' : 'Tap rows to select, then mark them as paid below') : undefined}
+        action={d.payouts.length > 0 ? <button className="link" onClick={() => setSel(sel.length === d.payouts.length ? [] : d.payouts.map(p => p.payout_id))}>{sel.length === d.payouts.length ? (th ? 'ล้างที่เลือก' : 'Clear') : (th ? '✓ เลือกทั้งหมด' : '✓ Select all')}</button> : undefined}>
+      {d.payouts.length === 0 ? <Nothing /> : <div className="card admin-list">{d.payouts.map(p => <button key={p.payout_id} className="listrow" onClick={() => setSel(sel.includes(p.payout_id) ? sel.filter(x => x !== p.payout_id) : [...sel, p.payout_id])}>
         <span className={'chk' + (sel.includes(p.payout_id) ? ' on' : '')}>{sel.includes(p.payout_id) && <Icon n="check" size={14} />}</span><Avatar name={p.nickname} size={40} seed={p.nickname} />
-        <span style={{ flex: 1 }}><b>{p.nickname}</b><span className="small muted">#{p.booking_id} · {p.bank_name} {p.bank_account}</span></span><b className="disp">{money(p.amount)}</b></button>)}
-      {sel.length > 0 && <button className="btn b-sun mt12" onClick={async () => { await run('admin_mark_payouts_done', { p_ids: sel }); setSel([]) }}>{t('a_mark_paid')} {sel.length} ({money(d.payouts.filter(p => sel.includes(p.payout_id)).reduce((a, p) => a + p.amount, 0))} ฿)</button>}
+        <span style={{ flex: 1 }}><b>{p.nickname}</b><span className="small muted">#{p.booking_id} · {p.bank_name} {p.bank_account}</span></span><b className="disp">{money(p.amount)}</b></button>)}</div>}
+      {sel.length > 0 && <div className="admin-sticky"><button className="btn b-sun" onClick={async () => { await run('admin_mark_payouts_done', { p_ids: sel }); setSel([]) }}>{t('a_mark_paid')} {sel.length} ({money(d.payouts.filter(p => sel.includes(p.payout_id)).reduce((a, p) => a + p.amount, 0))} ฿)</button></div>}
+      </Section>
 
-      <h2 className="desk-heading" id="refunds">{t('a_refunds')}</h2>
-      {d.refunds.length === 0 ? <div className="muted">{t('nothing')}</div> : d.refunds.map(r => <div key={r.id} className="card between mt8"><span><b className="disp">#{r.booking_id}</b> <span className="small muted">{money(r.amount)} ฿{r.points_returned ? ` + ${r.points_returned} pts` : ''}</span></span>
-        <button className="btn sm b-line" onClick={() => run('admin_mark_refund_done', { p_id: r.id })}>{t('a_mark_refunded')}</button></div>)}
+      <Section id="refunds" title={t('a_refunds')} count={d.refunds.length}>
+      {d.refunds.length === 0 ? <Nothing /> : <div className="admin-grid">{d.refunds.map(r => <div key={r.id} className="card between"><span><b className="disp">#{r.booking_id}</b> <span className="small muted">{money(r.amount)} ฿{r.points_returned ? ` + ${r.points_returned} pts` : ''}</span></span>
+        <button className="btn sm b-line" onClick={() => run('admin_mark_refund_done', { p_id: r.id })}>{t('a_mark_refunded')}</button></div>)}</div>}
+      </Section>
 
-      <h2 className="desk-heading" id="claims">{t('a_claims')}</h2>
-      {d.claims.length === 0 ? <div className="muted">{t('nothing')}</div> : d.claims.map(c => <div key={c.id} className="card mt8 stack">
+      <Section id="claims" title={t('a_claims')} count={d.claims.length}>
+      {d.claims.length === 0 ? <Nothing /> : <div className="admin-grid">{d.claims.map(c => <div key={c.id} className="card stack">
         <div className="between"><b className="disp">#{c.booking_id}: {c.item}</b><span className="pill p-sun">{fmtDate(c.created_at, lang)}</span></div>
         {c.description && <div className="small">{c.description}</div>}
         <div className="small muted">{c.purchase_price ? money(c.purchase_price) + ' ฿' : ''} {c.purchase_year ? '(' + c.purchase_year + ')' : ''} · {t('a_cap')}</div>
         <div className="row">{c.photo_paths.map((p, i) => <button key={p} className="btn sm b-ghost" onClick={() => showSlip('claims', p)}>📷 {i + 1}</button>)}</div>
         <div className="row"><input className="input" placeholder={t('amount')} inputMode="numeric" value={claimAmt[c.id] ?? ''} onChange={e => setClaimAmt({ ...claimAmt, [c.id]: e.target.value.replace(/\D/g, '') })} />
           <button className="btn sm b-ocean" onClick={() => run('admin_decide_claim', { p_claim_id: c.id, p_approve: true, p_amount: Number(claimAmt[c.id] || 0) })}>{t('approve')}</button>
-          <button className="btn sm b-red" onClick={() => run('admin_decide_claim', { p_claim_id: c.id, p_approve: false })}>{t('reject')}</button></div></div>)}
+          <button className="btn sm b-red" onClick={() => run('admin_decide_claim', { p_claim_id: c.id, p_approve: false })}>{t('reject')}</button></div></div>)}</div>}
+      </Section>
     </div>
-    {slipUrl && <div onClick={() => setSlipUrl(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.8)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}><img src={slipUrl} alt="" style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 12 }} /></div>}
+    {slipUrl && <div role="dialog" aria-label={th ? 'รูปหลักฐาน' : 'Photo'} onClick={() => setSlipUrl(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.8)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}><img src={slipUrl} alt="" style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 12 }} /><button className="btn sm b-glass" style={{ position: 'absolute', top: 16, right: 16 }} onClick={() => setSlipUrl(null)}>{th ? 'ปิด ✕' : 'Close ✕'}</button></div>}
     <AdminTabs />{toast.node}
   </div>
 }
 
 type MaidRow = { id: string; nickname: string; bio: string | null; status: string; id_verified: boolean; background_checked: boolean; created_at: string; services: string[] }
+const MAID_STATUS: Record<string, [string, string]> = { pending: ['รออนุมัติ', 'Pending'], approved: ['อนุมัติแล้ว', 'Approved'], suspended: ['ถูกระงับ', 'Suspended'] }
 export function AdminMaids() {
-  const { t, lang } = useI18n(); const toast = useToast(); const services = useServices(); const [rows, setRows] = useState<MaidRow[] | null>(null)
+  const { t, lang } = useI18n(); const toast = useToast(); const services = useServices(); const [rows, setRows] = useState<MaidRow[] | null>(null); const [filter, setFilter] = useState<string | null>(null); const th = lang === 'th'
   const load = () => sb.from('maids').select('id,nickname,bio,status,id_verified,background_checked,created_at,services').order('created_at', { ascending: false }).then(({ data }) => setRows(data || []))
   useEffect(() => { load() }, [])
   if (useAdminGuard()) return <Navigate to="/" />
   const set = async (m: MaidRow, patch: Partial<MaidRow>) => { const n = { ...m, ...patch }; const { error } = await sb.rpc('admin_set_maid', { p_maid: m.id, p_status: n.status, p_id_verified: n.id_verified, p_background_checked: n.background_checked }); toast.show(error ? friendly(error, lang) : t('saved')); load() }
+  const count = (st: string) => (rows || []).filter(m => m.status === st).length
+  const cur = filter ?? (count('pending') ? 'pending' : 'all')
+  const shown = (rows || []).filter(m => cur === 'all' || m.status === cur)
   return <div className="page"><div className="hero"><h1>{t('tab_maids')}</h1></div>
-    <div className="pad mt12 stack cols">{!rows ? <Loading /> : rows.map(m => <div key={m.id} className="card stack">
+    {rows && <div className="pad mt12"><div className="chips">{([['pending', count('pending')], ['approved', count('approved')], ['suspended', count('suspended')], ['all', rows.length]] as [string, number][]).map(([k, n]) =>
+      <button key={k} className={'chip' + (cur === k ? ' on' : '')} onClick={() => setFilter(k)}>{k === 'all' ? (th ? 'ทั้งหมด' : 'All') : MAID_STATUS[k][th ? 0 : 1]} ({n})</button>)}</div></div>}
+    <div className="pad mt12 stack cols">{!rows ? <Loading /> : shown.length === 0 ? <div className="empty">{t('nothing')}</div> : shown.map(m => <div key={m.id} className="card stack">
       <div className="row"><Avatar name={m.nickname} seed={m.id} size={44} /><span style={{ flex: 1 }}><b className="disp">{m.nickname}</b><span className="small muted" style={{ display: 'block' }}>{m.bio}</span></span>
-        <span className={'pill ' + (m.status === 'approved' ? 'p-leaf' : m.status === 'pending' ? 'p-sun' : 'p-brick')}>{m.status}</span></div>
+        <span className={'pill ' + (m.status === 'approved' ? 'p-leaf' : m.status === 'pending' ? 'p-sun' : 'p-brick')}>{MAID_STATUS[m.status]?.[th ? 0 : 1] ?? m.status}</span></div>
       <div className="chips"><button className={'chip' + (m.id_verified ? ' on' : '')} onClick={() => set(m, { id_verified: !m.id_verified })}>{t('id_ok')}</button>
         <button className={'chip' + (m.background_checked ? ' on' : '')} onClick={() => set(m, { background_checked: !m.background_checked })}>{t('bg_ok')}</button></div>
       <div className="small muted">{t('a_skills')}</div>
       <div className="chips">{(services || []).map(sv => { const on = (m.services || []).includes(sv.code)
         return <button key={sv.code} className={'chip' + (on ? ' on' : '')} onClick={async () => { const { error } = await sb.rpc('admin_set_maid_services', { p_maid: m.id, p_services: on ? m.services.filter(x => x !== sv.code) : [...(m.services || []), sv.code] }); toast.show(error ? friendly(error, lang) : t('saved')); load() }}>{svcName(sv, lang)}</button> })}</div>
       <div className="row">{m.status !== 'approved' && <button className="btn sm b-ocean" disabled={!m.id_verified || !m.background_checked} onClick={() => set(m, { status: 'approved' })}>{t('approve')}</button>}
-        {m.status !== 'suspended' && <button className="btn sm b-red" onClick={() => set(m, { status: 'suspended' })}>Suspend</button>}</div></div>)}</div>
+        {m.status !== 'suspended' && <button className="btn sm b-red" onClick={() => set(m, { status: 'suspended' })}>{th ? 'ระงับ' : 'Suspend'}</button>}</div>
+      {m.status !== 'approved' && (!m.id_verified || !m.background_checked) && <div className="admin-hint">{th ? 'ติ๊กตรวจบัตรและตรวจประวัติให้ครบก่อน จึงจะอนุมัติได้' : 'Tick both ID and background checks before approving'}</div>}</div>)}</div>
     <AdminTabs />{toast.node}</div>
 }
 
@@ -140,17 +162,21 @@ export function AdminSettings() {
   const { t, lang } = useI18n(); const toast = useToast(); const [id, setId] = useState(''); const [name, setName] = useState('')
   useEffect(() => { sb.from('payment_settings').select('*').maybeSingle().then(({ data }) => { setId(data?.promptpay_id || ''); setName(data?.promptpay_name || '') }) }, [])
   if (useAdminGuard()) return <Navigate to="/" />
+  const th = lang === 'th'
+  const jump = (k: string) => document.getElementById(k)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   const save = async () => { const { error } = await sb.rpc('admin_set_promptpay', { p_id: id.replace(/\D/g, ''), p_name: name }); toast.show(error ? friendly(error, lang) : t('saved')) }
   return <div className="page"><div className="hero"><div className="between"><h1>{t('tab_settings')}</h1><LangToggle /></div></div>
     <div className="pad mt16 stack">
       <Link to="/admin/settings/pages" className="btn b-line"><Icon n="grid" size={18} />{lang === 'th' ? 'จัดการการันตีและนโยบายความเป็นส่วนตัว' : 'Manage guarantee and privacy pages'}</Link>
+      <div className="chips admin-jump">{([['s-pay', th ? 'รับเงิน' : 'Payment'], ['s-shop', t('a_shop')], ['s-prices', t('a_prices')], ['s-addons', t('addons')], ['s-promo', t('promo_code')]] as [string, string][]).map(([k, label]) => <button key={k} className="chip" onClick={() => jump(k)}>{label}</button>)}</div>
+      <section id="s-pay" className="admin-sec card stack"><div className="sec-title" style={{ margin: 0 }}>{th ? 'บัญชีรับเงิน (พร้อมเพย์)' : 'Payment account (PromptPay)'}</div>
       <div className="field"><label>{t('a_pp')}</label><input className="input" inputMode="numeric" value={id} onChange={e => setId(e.target.value)} placeholder="08xxxxxxxx / 13 หลัก" /></div>
       <div className="field"><label>{t('a_pp_name')}</label><input className="input" value={name} onChange={e => setName(e.target.value)} /></div>
-      <button className="btn b-sun" onClick={save}>{t('save')}</button>
-      <ShopSettings toast={toast.show} />
-      <ServicePrices toast={toast.show} />
-      <AddonEditor toast={toast.show} />
-      <PromoEditor toast={toast.show} />
+      <button className="btn b-sun" onClick={save}>{t('save')}</button></section>
+      <section id="s-shop" className="admin-sec card stack"><ShopSettings toast={toast.show} /></section>
+      <section id="s-prices" className="admin-sec"><ServicePrices toast={toast.show} /></section>
+      <section id="s-addons" className="admin-sec"><AddonEditor toast={toast.show} /></section>
+      <section id="s-promo" className="admin-sec"><PromoEditor toast={toast.show} /></section>
       <Link to="/account" className="btn b-line mt16">{t('account')}</Link>
     </div><AdminTabs />{toast.node}</div>
 }
