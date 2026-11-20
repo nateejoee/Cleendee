@@ -6,7 +6,7 @@ import { sb, friendly, type Booking } from '../lib/supabase'
 import { useI18n, money, fmtDate, fmtTime, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { setDraft } from '../lib/draft'
-import { Avatar, CustomerTabs, Icon, Loading, StatusPill, TopBar, useToast } from '../components/ui'
+import { AdminTabs, Avatar, CustomerTabs, Icon, Loading, MaidTabs, StatusPill, TopBar, useToast } from '../components/ui'
 import { useMaids, AddressForm, useAddresses } from './Book'
 
 const ACTIVE = ['pending_payment', 'payment_review', 'awaiting_maid', 'confirmed', 'on_the_way', 'working', 'payment_rejected']
@@ -199,7 +199,7 @@ export function Account() {
       <button className="listrow" onClick={() => setLang(lang === 'th' ? 'en' : 'th')}><span className="rico"><Icon n="chat" /></span><b style={{ flex: 1 }}>{t('language')}: {lang === 'th' ? 'ไทย' : 'English'}</b></button>
       <button className="listrow" onClick={async () => { await sb.auth.signOut(); nav('/') }}><span className="rico"><Icon n="logout" /></span><b style={{ flex: 1 }}>{t('logout')}</b></button>
     </div>
-    {profile?.role === 'maid' ? null : <CustomerTabs />}
+    {profile?.role === 'maid' ? <MaidTabs /> : profile?.role === 'admin' ? <AdminTabs /> : <CustomerTabs />}
   </div>
 }
 
