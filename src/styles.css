@@ -263,10 +263,10 @@ textarea.input{min-height:90px;resize:vertical}
 [data-dark="1"] .p-ocean,[data-dark="1"] .choice.on,[data-dark="1"] .card.sel,[data-dark="1"] .di.on{color:var(--ink)}
 [data-dark="1"] .avatar{color:#fff}
 /* โหมดมืด: ตัวหนังสือ/ไอคอนที่ใช้สีหลัก (กรมท่า) จะกลืนพื้น → ใช้สีทองแทน */
-[data-dark="1"] .link,[data-dark="1"] a:not(.btn):not(.tab):not(.sv):not(.mcard):not(.listrow):not(.side-logo):not(.card):not(.ticket),[data-dark="1"] .tab.on,[data-dark="1"] .home .svc .ic,[data-dark="1"] .feat .rico,[data-dark="1"] .hstep,[data-dark="1"] .rico{color:var(--sun)}
+[data-dark="1"] .link,[data-dark="1"] a:not(.btn):not(.tab):not(.sv):not(.mcard):not(.listrow):not(.side-logo):not(.card):not(.ticket),[data-dark="1"] .tab.on,[data-dark="1"] .home .svc .ic,[data-dark="1"] .feat .rico,[data-dark="1"] .rico{color:var(--sun)}
 [data-dark="1"] .b-ocean{background:linear-gradient(135deg,color-mix(in srgb,var(--ocean) 70%,#4a6a9a),var(--ocean));border:1px solid color-mix(in srgb,var(--sun) 35%,transparent)}
 /* เอฟเฟกต์เรืองแสง (ขอบทองเรือง) */
-[data-glow="1"] .card,[data-glow="1"] .choice,[data-glow="1"] .mcard,[data-glow="1"] .feat,[data-glow="1"] .hstep,[data-glow="1"] .kpi,[data-glow="1"] .promo{box-shadow:0 0 0 1px color-mix(in srgb,var(--sun) 45%,transparent),0 10px 34px color-mix(in srgb,var(--sun) 22%,transparent)}
+[data-glow="1"] .card,[data-glow="1"] .choice,[data-glow="1"] .mcard,[data-glow="1"] .feat,[data-glow="1"] .kpi,[data-glow="1"] .promo{box-shadow:0 0 0 1px color-mix(in srgb,var(--sun) 45%,transparent),0 10px 34px color-mix(in srgb,var(--sun) 22%,transparent)}
 [data-glow="1"] .btn.b-sun,[data-glow="1"] .btn.b-ocean,[data-glow="1"] .tab .mid{box-shadow:0 0 22px color-mix(in srgb,var(--sun) 55%,transparent)}
 
 /* หัวข้อ/ปุ่มให้ดูหรูขึ้น */
@@ -303,10 +303,51 @@ textarea.input{min-height:90px;resize:vertical}
 .feat{display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px}
 .feat .rico{grid-row:span 2;background:var(--sun-l);color:var(--ocean)}
 .mcard{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:12px 14px}
-.hsteps{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.hstep{position:relative;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px 14px;display:flex;flex-direction:column;gap:8px;color:var(--ocean)}
-.hstep b{color:var(--ink)}
-.hstep .n{font-variant-numeric:lining-nums;position:absolute;top:12px;right:14px;font-family:var(--font-serif);font-size:30px;font-weight:600;line-height:1;color:var(--sun)}
+.home-booking-steps {
+  --marker-size: 28px;
+  --step-line: color-mix(in srgb, var(--sun) 64%, var(--line));
+  list-style: none;
+  padding: 4px 0 0;
+}
+.home-booking-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--marker-size) minmax(0, 1fr);
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+.home-booking-step:not(:last-child) {
+  padding-bottom: 14px;
+}
+.home-booking-step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  inset-block: var(--marker-size) 0;
+  inset-inline-start: calc((var(--marker-size) - 1px) / 2);
+  width: 1px;
+  background: var(--step-line);
+}
+.home-booking-number {
+  display: grid;
+  place-items: center;
+  width: var(--marker-size);
+  height: var(--marker-size);
+  border: 1px solid var(--step-line);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--sun) 16%, var(--bg));
+  color: var(--ink);
+  font-size: .8125rem;
+  font-weight: 700;
+}
+.home-booking-step h3 {
+  font-size: .9375rem;
+  line-height: 1.45;
+}
+.home-booking-step p {
+  color: var(--ink2);
+  font-size: .8125rem;
+  line-height: 1.5;
+}
 .lux-kpi{width:100%;text-align:left;background:linear-gradient(135deg,var(--ocean),var(--ocean-d));color:#fff}
 .lux-kpi .v{color:var(--sun)}
 .guestcard{display:flex;gap:10px}.guestcard.col{flex-direction:column;align-items:stretch}
@@ -328,8 +369,8 @@ textarea.input{min-height:90px;resize:vertical}
 
 /* ชี้เมาส์: การ์ดลอยขึ้น · กดบนจอสัมผัส: ปุ่มยุบลงเล็กน้อย */
 @media (hover:hover) and (prefers-reduced-motion:no-preference){
- .card,.choice,.mcard,.feat,.hstep,.sv .ic,.listrow,.btn,.promo{transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease,background .2s}
- a.card:hover,.mcard:hover,.feat:hover,.hstep:hover,.choice:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(11,27,51,.10)}
+ .card,.choice,.mcard,.feat,.sv .ic,.listrow,.btn,.promo{transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease,background .2s}
+ a.card:hover,.mcard:hover,.feat:hover,.choice:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(11,27,51,.10)}
  .sv:hover .ic{transform:translateY(-3px)}
  .btn:not(:disabled):hover{transform:translateY(-1px);filter:brightness(1.05)}
  .listrow:hover{background:var(--soft)}
@@ -383,7 +424,6 @@ textarea.input{min-height:90px;resize:vertical}
  .feats{grid-template-columns:repeat(3,1fr)}
  .feat{grid-template-columns:1fr;row-gap:8px;padding:18px}
  .feat .rico{grid-row:auto}
- .hsteps{grid-template-columns:repeat(4,1fr)}
  .totop{bottom:32px;right:32px}
  /* เมนูข้างสีกรมท่าเข้ม */
  .tabbar{background:linear-gradient(180deg,var(--ocean-d),var(--ocean));border-right:0}
@@ -401,5 +441,4 @@ textarea.input{min-height:90px;resize:vertical}
  .tab:not(.center):hover{background:rgba(255,255,255,.06);color:#fff}
  .home-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:8px;align-items:start;padding-bottom:20px}
  .home-grid .hg-side .pad{padding-left:8px}
- .hsteps{grid-template-columns:repeat(2,1fr)}
 }

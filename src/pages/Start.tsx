@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { sb, friendly, type District, type Service as ServiceType } from '../lib/supabase'
-import { useI18n, localStorageSet, money } from '../lib/i18n'
+import { useI18n, localStorageSet, money, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { Avatar, Icon, LangToggle, Logo, CustomerTabs, TopBar, Loading, SiteFooter } from '../components/ui'
 import { setDraft, emptyDraft } from '../lib/draft'
@@ -104,9 +104,13 @@ export function Home() {
     { to: '/account/favorites', icon: 'heart', label: t('s_rebook'), svc: '' },
   ]
   const open = (code: string, to: string) => { if (code) setDraft({ ...emptyDraft, service: code }); nav(to) }
-  // จุดเด่น 3 ข้อ และขั้นตอนการจอง 4 ขั้น (ใช้ข้อความเดิมของหน้าบริการ/แถบขั้นตอน)
   const why = [['clock', t('ben1'), t('ben1d')], ['wallet', t('ben2'), t('ben2d')], ['shield', t('ben3'), t('ben3d')]]
-  const steps: [string, string][] = [['team', t('st_maid')], ['cal', t('st_time')], ['pin', t('st_detail')], ['wallet', t('st_pay')]]
+  const steps: [Key, Key][] = [
+    ['home_step_maid', 'home_step_maid_d'],
+    ['home_step_time', 'home_step_time_d'],
+    ['home_step_details', 'home_step_details_d'],
+    ['home_step_payment', 'home_step_payment_d'],
+  ]
   return <div className="page home">
     {/* ภาพใหญ่หัวหน้า: ภาพถ่ายวิลล่า + ไล่สีกรมท่า ทับด้วยคำทักทายและปุ่มจอง */}
     <div className="lux-hero" style={{ backgroundImage: `url(${imgHero})` }}>
@@ -149,8 +153,20 @@ export function Home() {
             <Avatar name={m.nickname} url={m.photo_url} seed={m.id} size={52} />
             <span style={{ flex: 1 }}><b className="disp">{m.nickname}</b><span className="small muted" style={{ display: 'block' }}><span className="star">★</span> {m.avg_rating ?? '–'} · {m.jobs_done ?? 0} {t('homes_done')}</span></span><Icon n="next" /></Link>)}
             {maids && maids.length === 0 && <div className="empty muted">{t('nothing')}</div>}</div></div>
-        <div className="pad"><div className="sec-title">{t('how_it_works')}</div>
-          <div className="hsteps">{steps.map(([i, l], k) => <div key={l} className="hstep"><span className="n">{k + 1}</span><Icon n={i} /><b className="disp">{l}</b></div>)}</div></div>
+        <section className="pad" aria-labelledby="home-booking-heading">
+          <h2 id="home-booking-heading" className="sec-title">{t('how_it_works')}</h2>
+          <ol className="home-booking-steps" role="list">
+            {steps.map(([title, description], index) => (
+              <li key={title} className="home-booking-step">
+                <span className="home-booking-number" aria-hidden="true">{index + 1}</span>
+                <div>
+                  <h3>{t(title)}</h3>
+                  <p>{t(description)}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
       </aside>
     </div>
     <SiteFooter />
