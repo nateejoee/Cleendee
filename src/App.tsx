@@ -1,9 +1,9 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { I18nProvider, localStorageGet } from './lib/i18n'
 import { AuthProvider, useAuth } from './lib/auth'
-import { Onboarding, Login, Home, Service } from './pages/Start'
+import { Onboarding, Login, Home, Service, Guarantee } from './pages/Start'
 import { BookMaid, MaidProfile, BookTime, BookDetails, BookConfirm, Pay } from './pages/Book'
-import { Bookings, BookingDetail, Claim, Messages, Account, Addresses, Favorites } from './pages/MyBookings'
+import { Bookings, BookingDetail, Receipt, Claim, Messages, Account, Addresses, Favorites } from './pages/MyBookings'
 import { MaidHome, MaidJob, MaidAvailability, MaidIncome, MaidApply } from './pages/Maid'
 import { AdminHome, AdminMoney, AdminMaids, AdminSettings } from './pages/Admin'
 import { Loading } from './components/ui'
@@ -27,6 +27,9 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/service" element={<Service />} />
+      <Route path="/service/:code" element={<Service />} />
+      <Route path="/guarantee" element={<Guarantee />} />
+      <Route path="/receipt/:id" element={<Receipt />} />
       <Route path="/book" element={<BookMaid />} />
       <Route path="/maid-profile/:id" element={<MaidProfile />} />
       <Route path="/book/time" element={<BookTime />} />

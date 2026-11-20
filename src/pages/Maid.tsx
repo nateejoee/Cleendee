@@ -5,16 +5,19 @@ import { useI18n, money, fmtDate, fmtTime, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { bkkToday } from '../lib/draft'
 import { Icon, LangToggle, Loading, MaidTabs, StatusPill, TopBar, useToast } from '../components/ui'
-import { Chat } from './MyBookings'
+import { Chat, JobProof } from './MyBookings'
+import { useServices, useAddons, svcName, svcUnit } from '../lib/services'
 import { useDistricts } from './Start'
 
 function useMaidData() {
   const { session } = useAuth(); const [mine, setMine] = useState<Booking[] | null>(null); const [open, setOpen] = useState<Booking[]>([])
   const [payouts, setPayouts] = useState<{ amount: number; status: string; transferred_at: string | null; booking_id: number }[]>([])
-  const load = () => {
+  const load = async () => {
     if (!session) return
     sb.from('bookings').select('*').eq('maid_id', session.user.id).order('start_at').then(({ data }) => setMine((data as Booking[]) || []))
-    sb.from('bookings').select('*').is('maid_id', null).eq('needs_replacement', true).eq('status', 'awaiting_maid').order('start_at').then(({ data }) => setOpen((data as Booking[]) || []))
+    const [{ data: me }, { data: st }] = await Promise.all([sb.from('maids').select('services').eq('id', session.user.id).maybeSingle(), sb.from('service_types').select('id,code')])
+    const ok = new Set((st || []).filter(x => (me?.services || []).includes(x.code)).map(x => x.id))
+    sb.from('bookings').select('*').is('maid_id', null).eq('needs_replacement', true).eq('status', 'awaiting_maid').order('start_at').then(({ data }) => setOpen(((data as Booking[]) || []).filter(b => ok.has(b.service_type_id))))
     sb.from('payouts').select('amount,status,transferred_at,booking_id').eq('maid_id', session.user.id).then(({ data }) => setPayouts(data || []))
   }
   useEffect(() => { load(); const iv = setInterval(load, 20000); return () => clearInterval(iv) }, [session])
@@ -37,13 +40,14 @@ export function MaidHome() {
     <div className="pad" style={{ marginTop: -50, position: 'relative', zIndex: 2 }}><div className="earn"><div><span>{t('m_month')}</span><b>{money(earned)} ฿</b></div><div style={{ background: 'var(--sun)' }}><span style={{ color: 'var(--ink)' }}>{t('m_pending')}</span><b>{money(pending)} ฿</b></div></div></div>
     <div className="pad mt16 stack">
       {open.map(b => <div key={b.id} className="urgent"><span className="rico" style={{ background: '#fff', color: 'var(--brick)' }}><Icon n="clock" /></span>
-        <span style={{ flex: 1 }}><b className="disp">{t('m_urgent')} {fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}</b><span className="small" style={{ display: 'block', color: '#8A3324' }}>{dn(b.district_id)} · {money(b.maid_payout)} ฿</span></span>
+        <span style={{ flex: 1 }}><b className="disp">{t('m_urgent')} {fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}</b><span className="small" style={{ display: 'block', color: '#8A3324' }}>{dn(b.district_id)} · {money(b.maid_payout)} ฿</span><JobInfo b={b} dark={false} /></span>
         <button className="btn sm b-red" onClick={() => act('maid_take_job', { p_booking_id: b.id })}>{t('m_take')}</button></div>)}
       {req.map(b => <div key={b.id} className="newjob">
         <span className="pill" style={{ background: 'var(--sun)', color: 'var(--ink)' }}>{t('m_new')}</span>
         <div className="mt8" style={{ color: '#AFC3D3' }}>{t('m_youget')}</div><div className="big">{money(b.maid_payout)} {t('baht')}</div>
         <div className="r mt8"><Icon n="clock" style={{ color: '#8FB0CA' }} />{fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}–{fmtTime(b.end_at)}</div>
         <div className="r"><Icon n="pin" style={{ color: '#8FB0CA' }} />{dn(b.district_id)} {b.tags.map(x => t(x as Key)).join(' · ')}</div>
+        <JobInfo b={b} dark />
         <div className="row mt12"><button className="btn b-sun" style={{ flex: 2 }} onClick={() => act('maid_respond', { p_booking_id: b.id, p_accept: true })}>{t('m_accept')}</button>
           <button className="btn b-dark2" style={{ flex: 1 }} onClick={() => act('maid_respond', { p_booking_id: b.id, p_accept: false })}>{t('m_reject')}</button></div></div>)}
       {open.length === 0 && req.length === 0 && <div className="empty muted">{t('m_no_jobs')}</div>}
@@ -54,6 +58,65 @@ export function MaidHome() {
     </div>
     <MaidTabs />{toast.node}
   </div>
+}
+
+// ข้อมูลที่แม่บ้านเห็นก่อนรับงาน: ชื่อลูกค้า ประวัติการจอง บริการ งานเสริม โน้ต (ไม่มีเบอร์และที่อยู่เต็ม)
+function JobInfo({ b, dark }: { b: Booking; dark: boolean }) {
+  const { t, lang } = useI18n(); const services = useServices(); const addons = useAddons()
+  const [info, setInfo] = useState<{ first_name: string; jobs_done: number } | null>(null)
+  useEffect(() => { sb.rpc('maid_job_info', { p_booking_id: b.id }).then(({ data }) => setInfo(data)) }, [b.id])
+  const svc = services?.find(x => x.id === b.service_type_id)
+  const c = dark ? '#D2DEE8' : '#8A3324'
+  return <div className="small mt8" style={{ color: c, display: 'block' }}>
+    <div><b>{svcName(svc, lang)} {b.qty ?? ''} {svcUnit(svc, lang)}</b>{b.addons?.length ? ' + ' + b.addons.map(x => { const a = addons?.find(y => y.code === x); return a ? (lang === 'th' ? a.name_th : a.name_en) : x }).join(', ') : ''}</div>
+    {info && <div>{t('m_customer')}: {info.first_name} · {info.jobs_done > 0 ? t('m_cust_jobs').replace('{n}', String(info.jobs_done)) : t('m_cust_new')}</div>}
+    {b.note && <div>“{b.note}”</div>}
+  </div>
+}
+
+// เช็กลิสต์งาน: เริ่มจากรายการที่บริการรวมไว้ + งานเสริม + สิ่งที่ลูกค้าเลือก
+function Checklist({ b, onSaved }: { b: Booking; onSaved: () => void }) {
+  const { t, lang } = useI18n(); const services = useServices(); const addons = useAddons()
+  const svc = services?.find(x => x.id === b.service_type_id)
+  const base = useMemo(() => {
+    if (b.checklist?.length) return b.checklist
+    const items = [...(lang === 'th' ? svc?.included_th ?? [] : svc?.included_en ?? []),
+      ...(b.addons || []).map(x => { const a = addons?.find(y => y.code === x); return a ? (lang === 'th' ? a.name_th : a.name_en) : x }),
+      ...b.tags.filter(x => x === 'tag_bath' || x === 'tag_kitchen').map(x => t(x as Key))]
+    return items.map(x => ({ t: x, done: false }))
+  }, [b.checklist, svc, addons, lang])
+  const [list, setList] = useState(base); useEffect(() => setList(base), [base])
+  const editable = ['confirmed', 'on_the_way', 'working'].includes(b.status)
+  const toggle = async (i: number) => {
+    if (!editable) return
+    const n = list.map((x, j) => (j === i ? { ...x, done: !x.done } : x)); setList(n)
+    await sb.rpc('maid_set_checklist', { p_booking_id: b.id, p_checklist: n }); onSaved()
+  }
+  if (!list.length) return null
+  return <><div className="sec-title">{t('checklist')} ({list.filter(x => x.done).length}/{list.length})</div>
+    <div className="stack" style={{ gap: 6 }}>{list.map((c, i) => <button key={i} className={'choice' + (c.done ? ' on' : '')} style={{ padding: '10px 12px' }} onClick={() => toggle(i)} disabled={!editable}>
+      <span className={'chk' + (c.done ? ' on' : '')}>{c.done && <Icon n="check" size={14} />}</span><span style={{ flex: 1 }}>{c.t}</span></button>)}</div></>
+}
+
+// แนบรูปก่อน/หลังทำงาน
+function JobPhotos({ b }: { b: Booking }) {
+  const { t, lang } = useI18n(); const toast = useToast(); const [busy, setBusy] = useState(false); const [k, setK] = useState(0)
+  const up = async (kind: 'before' | 'after', files: FileList | null) => {
+    if (!files?.length) return; setBusy(true)
+    try {
+      for (const f of [...files].slice(0, 6)) {
+        const path = `${b.id}/${kind}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${f.name.split('.').pop() || 'jpg'}`
+        const r = await sb.storage.from('job-photos').upload(path, f); if (r.error) throw r.error
+        const { error } = await sb.rpc('maid_add_photo', { p_booking_id: b.id, p_kind: kind, p_path: path }); if (error) throw error
+      }
+      toast.show(t('saved')); setK(k + 1)
+    } catch (e) { toast.show(friendly(e, lang)) } finally { setBusy(false) }
+  }
+  if (!['on_the_way', 'working', 'completed'].includes(b.status)) return null
+  return <><div className="sec-title">{t('job_photos')}</div><div className="small muted">{t('job_photos_d')}</div>
+    <div className="row mt8">{(['before', 'after'] as const).map(kind => <label key={kind} className="btn b-line" style={{ flex: 1, cursor: 'pointer', opacity: busy ? .5 : 1 }}><Icon n="camera" />{t(kind === 'before' ? 'photo_before' : 'photo_after')}
+      <input type="file" accept="image/*" capture="environment" multiple hidden disabled={busy} onChange={e => up(kind, e.target.files)} /></label>)}</div>
+    <div className="mt8"><JobProof b={b} photosOnly refreshKey={k} /></div>{toast.node}</>
 }
 
 export function MaidJob() {
@@ -82,7 +145,9 @@ export function MaidJob() {
     <div className="pad mt20">
       {steps.map(([k, d], i) => <div key={k} className="sv-step"><div className="rail"><div className={'c' + (i < idx + 1 ? '' : i === idx + 1 ? ' now' : ' off')}>{i <= idx && <Icon n="check" size={15} />}</div>{i < 3 && <div className={'l' + (i < idx + 1 ? '' : ' off')} />}</div>
         <div className="txt"><b style={{ color: i <= idx + 1 ? 'var(--ink)' : 'var(--ink3)' }}>{t(k)}</b>{d && i === idx + 1 && <span className="small muted">{t(d)}</span>}</div></div>)}
-      {(b.note || b.tags.length > 0) && <div className="infonote"><Icon n="chat" /><div><b className="disp">{t('m_customer_note')}</b><div>{b.tags.map(x => t(x as Key)).join(' · ')}</div><div>{b.note}</div></div></div>}
+      <Checklist b={b} onSaved={load} />
+      <JobPhotos b={b} />
+      {(b.note || b.tags.length > 0) && <div className="infonote mt16"><Icon n="chat" /><div><b className="disp">{t('m_customer_note')}</b><div>{b.tags.map(x => t(x as Key)).join(' · ')}</div><div>{b.note}</div></div></div>}
       <div className="sec-title">{t('chat')}</div><Chat bookingId={b.id} />
       {b.status === 'confirmed' && <button className="btn b-red mt16" onClick={async () => { if (!window.confirm(t('m_cancel_job') + '?')) return; const { error } = await sb.rpc('maid_cancel_job', { p_booking_id: b.id }); if (error) toast.show(friendly(error, lang)); else nav('/maid') }}>{t('m_cancel_job')}</button>}
     </div>

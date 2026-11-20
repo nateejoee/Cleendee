@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { sb, friendly, type Booking } from '../lib/supabase'
+import { sb, friendly, type Booking, type Service, type Addon } from '../lib/supabase'
+import { useServices, svcName, svcUnit } from '../lib/services'
 import { useI18n, money, fmtDate, fmtTime } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { AdminTabs, Avatar, Icon, LangToggle, Loading, StatusPill, useToast } from '../components/ui'
@@ -107,10 +108,10 @@ export function AdminMoney() {
   </div>
 }
 
-type MaidRow = { id: string; nickname: string; bio: string | null; status: string; id_verified: boolean; background_checked: boolean; created_at: string }
+type MaidRow = { id: string; nickname: string; bio: string | null; status: string; id_verified: boolean; background_checked: boolean; created_at: string; services: string[] }
 export function AdminMaids() {
-  const { t, lang } = useI18n(); const toast = useToast(); const [rows, setRows] = useState<MaidRow[] | null>(null)
-  const load = () => sb.from('maids').select('id,nickname,bio,status,id_verified,background_checked,created_at').order('created_at', { ascending: false }).then(({ data }) => setRows(data || []))
+  const { t, lang } = useI18n(); const toast = useToast(); const services = useServices(); const [rows, setRows] = useState<MaidRow[] | null>(null)
+  const load = () => sb.from('maids').select('id,nickname,bio,status,id_verified,background_checked,created_at,services').order('created_at', { ascending: false }).then(({ data }) => setRows(data || []))
   useEffect(() => { load() }, [])
   if (useAdminGuard()) return <Navigate to="/" />
   const set = async (m: MaidRow, patch: Partial<MaidRow>) => { const n = { ...m, ...patch }; const { error } = await sb.rpc('admin_set_maid', { p_maid: m.id, p_status: n.status, p_id_verified: n.id_verified, p_background_checked: n.background_checked }); toast.show(error ? friendly(error, lang) : t('saved')); load() }
@@ -120,6 +121,9 @@ export function AdminMaids() {
         <span className={'pill ' + (m.status === 'approved' ? 'p-leaf' : m.status === 'pending' ? 'p-sun' : 'p-brick')}>{m.status}</span></div>
       <div className="chips"><button className={'chip' + (m.id_verified ? ' on' : '')} onClick={() => set(m, { id_verified: !m.id_verified })}>{t('id_ok')}</button>
         <button className={'chip' + (m.background_checked ? ' on' : '')} onClick={() => set(m, { background_checked: !m.background_checked })}>{t('bg_ok')}</button></div>
+      <div className="small muted">{t('a_skills')}</div>
+      <div className="chips">{(services || []).map(sv => { const on = (m.services || []).includes(sv.code)
+        return <button key={sv.code} className={'chip' + (on ? ' on' : '')} onClick={async () => { const { error } = await sb.rpc('admin_set_maid_services', { p_maid: m.id, p_services: on ? m.services.filter(x => x !== sv.code) : [...(m.services || []), sv.code] }); toast.show(error ? friendly(error, lang) : t('saved')); load() }}>{svcName(sv, lang)}</button> })}</div>
       <div className="row">{m.status !== 'approved' && <button className="btn sm b-ocean" disabled={!m.id_verified || !m.background_checked} onClick={() => set(m, { status: 'approved' })}>{t('approve')}</button>}
         {m.status !== 'suspended' && <button className="btn sm b-red" onClick={() => set(m, { status: 'suspended' })}>Suspend</button>}</div></div>)}</div>
     <AdminTabs />{toast.node}</div>
@@ -135,7 +139,109 @@ export function AdminSettings() {
       <div className="field"><label>{t('a_pp')}</label><input className="input" inputMode="numeric" value={id} onChange={e => setId(e.target.value)} placeholder="08xxxxxxxx / 13 หลัก" /></div>
       <div className="field"><label>{t('a_pp_name')}</label><input className="input" value={name} onChange={e => setName(e.target.value)} /></div>
       <button className="btn b-sun" onClick={save}>{t('save')}</button>
-      <Link to="/account" className="btn b-line">{t('account')}</Link>
+      <ShopSettings toast={toast.show} />
+      <ServicePrices toast={toast.show} />
+      <AddonEditor toast={toast.show} />
+      <PromoEditor toast={toast.show} />
+      <Link to="/account" className="btn b-line mt16">{t('account')}</Link>
     </div><AdminTabs />{toast.node}</div>
+}
+
+// ช่องตัวเลขสั้นๆ ใช้ซ้ำในหน้าตั้งค่า
+function Num({ label, v, on }: { label: string; v: number | string | null | undefined; on: (n: string) => void }) {
+  return <div className="field" style={{ flex: 1, minWidth: 110 }}><label>{label}</label><input className="input" inputMode="decimal" value={v ?? ''} onChange={e => on(e.target.value.replace(/[^\d.]/g, ''))} /></div>
+}
+
+// ตั้งค่าร้าน: ค่าเรียกด่วน เลื่อนนัด ส่วนลด และข้อมูลบนใบเสร็จ
+function ShopSettings({ toast }: { toast: (m: string) => void }) {
+  const { t, lang } = useI18n(); const [f, setF] = useState<Record<string, string> | null>(null)
+  const keys = ['urgent_fee', 'urgent_maid_bonus', 'urgent_min_lead_minutes', 'reschedule_min_hours', 'first_booking_discount', 'choose_maid_fee', 'business_name', 'business_address', 'tax_id']
+  useEffect(() => { sb.from('settings').select(keys.join(',')).maybeSingle().then(({ data }) => setF(Object.fromEntries(keys.map(k => [k, String((data as Record<string, unknown> | null)?.[k] ?? '')])))) }, [])
+  if (!f) return <Loading />
+  const save = async () => {
+    const p: Record<string, unknown> = { ...f }; for (const k of keys.slice(0, 6)) p[k] = Number(f[k])
+    const { error } = await sb.rpc('admin_update_settings', { p }); toast(error ? friendly(error, lang) : t('saved'))
+  }
+  const set = (k: string) => (v: string) => setF({ ...f, [k]: v })
+  return <><div className="sec-title">{t('a_shop')}</div>
+    <div className="row" style={{ flexWrap: 'wrap' }}><Num label={t('a_urgent_fee')} v={f.urgent_fee} on={set('urgent_fee')} /><Num label={t('a_urgent_bonus')} v={f.urgent_maid_bonus} on={set('urgent_maid_bonus')} />
+      <Num label={t('a_urgent_lead')} v={f.urgent_min_lead_minutes} on={set('urgent_min_lead_minutes')} /><Num label={t('a_resched_h')} v={f.reschedule_min_hours} on={set('reschedule_min_hours')} />
+      <Num label={t('first_promo')} v={f.first_booking_discount} on={set('first_booking_discount')} /><Num label={t('pick_fee')} v={f.choose_maid_fee} on={set('choose_maid_fee')} /></div>
+    <div className="field"><label>{t('a_biz_name')}</label><input className="input" value={f.business_name} onChange={e => set('business_name')(e.target.value)} /></div>
+    <div className="field"><label>{t('a_biz_addr')}</label><input className="input" value={f.business_address} onChange={e => set('business_address')(e.target.value)} /></div>
+    <div className="field"><label>{t('tax_id')}</label><input className="input" value={f.tax_id} onChange={e => set('tax_id')(e.target.value)} /></div>
+    <button className="btn b-ocean" onClick={save}>{t('save')}</button></>
+}
+
+// ราคาแต่ละบริการ และเปิด/ปิดบริการ
+function ServicePrices({ toast }: { toast: (m: string) => void }) {
+  const { t, lang } = useI18n(); const [rows, setRows] = useState<Service[] | null>(null)
+  const load = () => sb.from('service_types').select('*').order('sort').then(({ data }) => setRows((data as Service[]) || []))
+  useEffect(() => { load() }, [])
+  if (!rows) return <Loading />
+  const upd = (i: number, patch: Partial<Service>) => setRows(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)))
+  const save = async (r: Service) => {
+    const { error } = await sb.rpc('admin_update_service', { p_code: r.code, p_price_per_unit: Number(r.price_per_unit), p_payout_pct: Number(r.payout_pct), p_min: Number(r.min_qty), p_max: Number(r.max_qty), p_default: Number(r.default_qty), p_minutes: Number(r.minutes_per_unit), p_active: r.active, p_coming_soon: r.coming_soon })
+    toast(error ? friendly(error, lang) : t('saved')); load()
+  }
+  return <><div className="sec-title">{t('a_prices')}</div><div className="stack cols">{rows.map((r, i) => <div key={r.code} className="card stack">
+    <div className="between"><b className="disp">{svcName(r, lang)}</b><span className={'pill ' + (r.active ? 'p-leaf' : 'p-grey')}>{r.active ? t('a_open') : r.coming_soon ? t('soon') : t('a_closed')}</span></div>
+    <div className="row" style={{ flexWrap: 'wrap' }}><Num label={`${t('a_price_per')} ${svcUnit(r, lang)}`} v={r.price_per_unit} on={v => upd(i, { price_per_unit: v as unknown as number })} />
+      <Num label={t('a_payout_pct')} v={r.payout_pct} on={v => upd(i, { payout_pct: v as unknown as number })} /></div>
+    <div className="row" style={{ flexWrap: 'wrap' }}><Num label="min" v={r.min_qty} on={v => upd(i, { min_qty: v as unknown as number })} /><Num label="max" v={r.max_qty} on={v => upd(i, { max_qty: v as unknown as number })} />
+      <Num label={t('a_default')} v={r.default_qty} on={v => upd(i, { default_qty: v as unknown as number })} />{r.pricing === 'unit' && <Num label={t('a_min_per_unit')} v={r.minutes_per_unit} on={v => upd(i, { minutes_per_unit: v as unknown as number })} />}</div>
+    <div className="chips"><button className={'chip' + (r.active ? ' on' : '')} onClick={() => upd(i, { active: !r.active })}>{t('a_open')}</button>
+      <button className={'chip' + (r.coming_soon ? ' on' : '')} onClick={() => upd(i, { coming_soon: !r.coming_soon })}>{t('soon')}</button></div>
+    <button className="btn sm b-ocean" onClick={() => save(r)}>{t('save')}</button></div>)}</div></>
+}
+
+// งานเสริม: แก้ราคา/ส่วนแม่บ้าน/เวลา เปิดปิด และเพิ่มใหม่
+function AddonEditor({ toast }: { toast: (m: string) => void }) {
+  const { t, lang } = useI18n(); const services = useServices(); const [rows, setRows] = useState<Addon[] | null>(null)
+  const blank: Addon = { code: '', name_th: '', name_en: '', price: 100, maid_payout: 70, minutes: 30, service_codes: ['general_cleaning', 'deep_cleaning'], active: true, sort: 99 }
+  const load = () => sb.from('service_addons').select('*').order('sort').then(({ data }) => setRows([...((data as Addon[]) || []), blank]))
+  useEffect(() => { load() }, [])
+  if (!rows) return <Loading />
+  const upd = (i: number, patch: Partial<Addon>) => setRows(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)))
+  const save = async (r: Addon) => {
+    const { error } = await sb.rpc('admin_upsert_addon', { p_code: r.code, p_name_th: r.name_th, p_name_en: r.name_en, p_price: Number(r.price), p_maid_payout: Number(r.maid_payout), p_minutes: Number(r.minutes), p_service_codes: r.service_codes, p_active: r.active })
+    toast(error ? friendly(error, lang) : t('saved')); load()
+  }
+  return <><div className="sec-title">{t('addons')}</div><div className="stack cols">{rows.map((r, i) => { const isNew = i === rows.length - 1
+    return <div key={isNew ? '_new' : r.code} className="card stack">{isNew && <b className="disp">+ {t('a_new_addon')}</b>}
+      {isNew && <div className="field"><label>{t('a_code')}</label><input className="input" value={r.code} onChange={e => upd(i, { code: e.target.value.replace(/[^a-z0-9_]/gi, '').toLowerCase() })} placeholder="balcony" /></div>}
+      <div className="field"><label>{t('a_name_th')}</label><input className="input" value={r.name_th} onChange={e => upd(i, { name_th: e.target.value })} /></div>
+      <div className="field"><label>{t('a_name_en')}</label><input className="input" value={r.name_en} onChange={e => upd(i, { name_en: e.target.value })} /></div>
+      <div className="row" style={{ flexWrap: 'wrap' }}><Num label={t('amount')} v={r.price} on={v => upd(i, { price: v as unknown as number })} /><Num label={t('a_to_maid')} v={r.maid_payout} on={v => upd(i, { maid_payout: v as unknown as number })} />
+        <Num label={t('minutes')} v={r.minutes} on={v => upd(i, { minutes: v as unknown as number })} /></div>
+      <div className="chips">{(services || []).map(sv => { const on = r.service_codes.includes(sv.code)
+        return <button key={sv.code} className={'chip' + (on ? ' on' : '')} onClick={() => upd(i, { service_codes: on ? r.service_codes.filter(x => x !== sv.code) : [...r.service_codes, sv.code] })}>{svcName(sv, lang)}</button> })}</div>
+      <div className="row"><button className={'chip' + (r.active ? ' on' : '')} onClick={() => upd(i, { active: !r.active })}>{t('a_open')}</button>
+        <button className="btn sm b-ocean" style={{ marginLeft: 'auto' }} disabled={!r.code || !r.name_th} onClick={() => save(r)}>{t('save')}</button></div></div> })}</div></>
+}
+
+// โค้ดส่วนลด
+type Promo = { code: string; kind: 'amount' | 'percent'; value: number; max_discount: number | null; min_total: number; max_uses: number | null; used_count: number; once_per_user: boolean; ends_at: string | null; active: boolean }
+function PromoEditor({ toast }: { toast: (m: string) => void }) {
+  const { t, lang } = useI18n(); const [rows, setRows] = useState<Promo[] | null>(null)
+  const [f, setF] = useState({ code: '', kind: 'amount' as 'amount' | 'percent', value: '100', max_discount: '', min_total: '0', max_uses: '', ends: '' })
+  const load = () => sb.from('promo_codes').select('*').order('created_at', { ascending: false }).then(({ data }) => setRows((data as Promo[]) || []))
+  useEffect(() => { load() }, [])
+  const put = async (p: { code: string; kind: string; value: number; max_discount: number | null; min_total: number; max_uses: number | null; once: boolean; ends: string | null; active: boolean }) => {
+    const { error } = await sb.rpc('admin_upsert_promo', { p_code: p.code, p_kind: p.kind, p_value: p.value, p_max_discount: p.max_discount, p_min_total: p.min_total, p_max_uses: p.max_uses, p_once_per_user: p.once, p_ends_at: p.ends, p_active: p.active })
+    toast(error ? friendly(error, lang) : t('saved')); load(); return !error
+  }
+  const n = (v: string) => (v === '' ? null : Number(v))
+  return <><div className="sec-title">{t('promo_code')}</div>
+    <div className="card stack">
+      <div className="row"><div className="field" style={{ flex: 2 }}><label>{t('promo_code')}</label><input className="input" value={f.code} onChange={e => setF({ ...f, code: e.target.value.toUpperCase().replace(/\s/g, '') })} placeholder="CLEAN50" /></div>
+        <div className="field" style={{ flex: 1 }}><label>{t('a_kind')}</label><select className="input" value={f.kind} onChange={e => setF({ ...f, kind: e.target.value as 'amount' | 'percent' })}><option value="amount">{t('baht')}</option><option value="percent">%</option></select></div></div>
+      <div className="row" style={{ flexWrap: 'wrap' }}><Num label={t('a_value')} v={f.value} on={v => setF({ ...f, value: v })} />{f.kind === 'percent' && <Num label={t('a_max_disc')} v={f.max_discount} on={v => setF({ ...f, max_discount: v })} />}
+        <Num label={t('a_min_total')} v={f.min_total} on={v => setF({ ...f, min_total: v })} /><Num label={t('a_max_uses')} v={f.max_uses} on={v => setF({ ...f, max_uses: v })} /></div>
+      <div className="field"><label>{t('a_ends')}</label><input className="input" type="date" value={f.ends} onChange={e => setF({ ...f, ends: e.target.value })} /></div>
+      <button className="btn b-ocean" disabled={!f.code || !Number(f.value)} onClick={async () => { if (await put({ code: f.code, kind: f.kind, value: Number(f.value), max_discount: n(f.max_discount), min_total: Number(f.min_total || 0), max_uses: n(f.max_uses), once: true, ends: f.ends ? f.ends + 'T23:59:59+07:00' : null, active: true })) setF({ ...f, code: '' }) }}>{t('a_add_promo')}</button>
+    </div>
+    {!rows ? <Loading /> : rows.map(r => <div key={r.code} className="card between mt8"><span><b className="disp">{r.code}</b> <span className="small muted">{r.kind === 'amount' ? `−${money(r.value)} ${t('baht')}` : `−${r.value}%`} · {t('a_used')} {r.used_count}{r.max_uses ? '/' + r.max_uses : ''}{r.ends_at ? ' · ' + t('a_until') + ' ' + fmtDate(r.ends_at, lang) : ''}</span></span>
+      <button className={'chip' + (r.active ? ' on' : '')} onClick={() => put({ code: r.code, kind: r.kind, value: r.value, max_discount: r.max_discount, min_total: r.min_total, max_uses: r.max_uses, once: r.once_per_user, ends: r.ends_at, active: !r.active })}>{r.active ? t('a_open') : t('a_closed')}</button></div>)}</>
 }
 export { StatusPill }

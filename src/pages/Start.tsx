@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { sb, friendly, type District } from '../lib/supabase'
 import { useI18n, localStorageSet, money } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
-import { Icon, LangToggle, Logo, CustomerTabs, TopBar } from '../components/ui'
+import { Icon, LangToggle, Logo, CustomerTabs, TopBar, Loading } from '../components/ui'
+import { setDraft, emptyDraft } from '../lib/draft'
+import { useServices, svcName, svcUnit } from '../lib/services'
 import imgClean from '../assets/ill/cleaning.webp'
 import imgSched from '../assets/ill/schedule.webp'
 import imgSafe from '../assets/ill/safety.webp'
@@ -78,15 +80,15 @@ export function Login() {
 }
 
 export function Home() {
-  const { t, lang } = useI18n(); const { profile } = useAuth(); const nav = useNavigate(); const districts = useDistricts()
+  const { t, lang } = useI18n(); const { profile } = useAuth(); const nav = useNavigate(); const districts = useDistricts(); const services = useServices()
   const distId = profile?.district_id ?? Number(localStorage.getItem('cd_district') || 1)
   const d = districts.find(x => x.id === distId)
-  const svc = [
-    { to: '/service', icon: 'broom', label: t('s_once'), bg: '#EAF3FA', c: 'var(--ocean)' },
-    { to: '/book/time?plan=weekly', icon: 'cal', label: t('s_monthly'), bg: 'var(--leaf-l)', c: 'var(--leaf)' },
-    { to: '/book', icon: 'team', label: t('s_pick'), bg: 'var(--sun-l)', c: '#8A6200' },
-    { to: '/account/favorites', icon: 'redo', label: t('s_rebook'), bg: '#F3EAF9', c: '#7B4BA3' },
+  // ปุ่มลัดเดิม (แพ็กเกจ / จองคนเดิม) ต่อท้ายรายการบริการจากฐานข้อมูล
+  const extra = [
+    { to: '/book/time?plan=weekly', icon: 'cal', label: t('s_monthly'), bg: 'var(--leaf-l)', c: 'var(--leaf)', svc: 'general_cleaning' },
+    { to: '/account/favorites', icon: 'heart', label: t('s_rebook'), bg: '#F3EAF9', c: '#7B4BA3', svc: '' },
   ]
+  const open = (code: string, to: string) => { if (code) setDraft({ ...emptyDraft, service: code }); nav(to) }
   return <div className="page">
     <div className="hero tall">
       <div className="between"><Logo white h={30} /><LangToggle /></div>
@@ -94,11 +96,18 @@ export function Home() {
       <h1>{t('hello')} {profile?.full_name ?? t('guest')}</h1>
     </div>
     <div className="promo"><h3>{t('promo_t')}</h3><div className="small mt8">{t('promo_d')}</div><img src={imgHome} alt="" /></div>
+    <div className="pad mt16"><button className="urgent" style={{ width: '100%', textAlign: 'left' }} onClick={() => open('general_cleaning', '/book/time?urgent=1')}>
+      <span className="rico" style={{ background: '#fff', color: 'var(--brick)' }}><Icon n="clock" /></span>
+      <span style={{ flex: 1 }}><b className="disp">{t('urgent_t')}</b><span className="small" style={{ display: 'block', color: '#8A3324' }}>{t('urgent_d')}</span></span><Icon n="next" /></button></div>
     <div className="pad"><div className="sec-title">{t('services')}</div></div>
     <div className="svc pad">
-      {svc.map(s => <Link key={s.to} to={s.to} className="sv" style={{ color: 'var(--ink)' }}><span className="ic" style={{ background: s.bg, color: s.c }}><Icon n={s.icon} size={30} /></span><span style={{ whiteSpace: 'pre-line' }}>{s.label}</span></Link>)}
-      {[['ac', t('s_ac')], ['iron', t('s_iron')]].map(([i, l]) => <div key={i} className="sv dim"><span className="soon">{t('soon')}</span><span className="ic"><Icon n={i} size={30} /></span><span>{l}</span></div>)}
+      {(services || []).filter(s => s.active || s.coming_soon).map(s => s.active
+        ? <button key={s.code} className="sv" onClick={() => open(s.code, '/service/' + s.code)}><span className="ic"><Icon n={s.icon} size={30} /></span><span>{svcName(s, lang)}</span></button>
+        : <div key={s.code} className="sv dim"><span className="soon">{t('soon')}</span><span className="ic"><Icon n={s.icon} size={30} /></span><span>{svcName(s, lang)}</span></div>)}
+      {extra.map(s => <button key={s.to} className="sv" onClick={() => open(s.svc, s.to)}><span className="ic" style={{ background: s.bg, color: s.c }}><Icon n={s.icon} size={30} /></span><span style={{ whiteSpace: 'pre-line' }}>{s.label}</span></button>)}
     </div>
+    <div className="pad mt12"><Link to="/guarantee" className="choice" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--leaf-l)', color: 'var(--leaf)' }}><Icon n="shield" /></span>
+      <span style={{ flex: 1 }}><b>{t('g_title')}</b><span className="small muted">{t('g_short')}</span></span><Icon n="next" /></Link></div>
     {profile && <><div className="pad"><div className="sec-title">{t('my_points')}</div></div>
       <div className="pad"><button className="choice" onClick={() => nav('/account')}><span className="rico" style={{ background: 'var(--sun)' }}><Icon n="star" /></span>
         <span style={{ flex: 1 }}><b>{money(profile.points)} {t('points')}</b><span className="small muted">{t('points_rule')}</span></span></button></div></>}
@@ -107,19 +116,49 @@ export function Home() {
   </div>
 }
 
+// หน้ารายละเอียดบริการ: ราคา + รวมอะไร / ไม่รวมอะไร
 export function Service() {
-  const { t } = useI18n(); const nav = useNavigate()
-  const ben = [['clock', t('ben1'), t('ben1d')], ['wallet', t('ben2'), t('ben2d')], ['check', t('ben3'), t('ben3d')], ['lock', t('ben4'), t('ben4d')]]
+  const { t, lang } = useI18n(); const nav = useNavigate(); const { code = 'general_cleaning' } = useParams(); const services = useServices()
+  const s = services?.find(x => x.code === code)
+  if (!services) return <Loading />
+  if (!s || !s.active) return <div className="page nobar"><TopBar title={t('services')} /><div className="pad mt20"><div className="empty muted">{t('service_closed')}</div></div></div>
+  const inc = lang === 'th' ? s.included_th : s.included_en, exc = lang === 'th' ? s.excluded_th : s.excluded_en
+  const ben = [['clock', t('ben1'), t('ben1d')], ['wallet', t('ben2'), t('ben2d')], ['check', t('ben3'), t('ben3d')], ['shield', t('ben4'), t('ben4d')]]
   return <div className="page nobar">
     <div style={{ position: 'relative', background: 'var(--ocean)' }}>
-      <img src={imgClean} alt="" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }} />
+      <img src={imgClean} alt="" style={{ width: '100%', aspectRatio: '4/3', maxHeight: 360, objectFit: 'cover', display: 'block' }} />
       <button className="back" onClick={() => nav(-1)} style={{ position: 'absolute', top: 14, left: 14, background: '#fff' }} aria-label="Back"><Icon n="back" /></button>
     </div>
-    <div className="pad mt16"><h2 style={{ fontSize: 24, color: 'var(--ocean)' }}>{t('svc_title')}</h2><p className="muted">{t('svc_sub')}</p>
+    <div className="pad mt16"><h2 style={{ fontSize: 24, color: 'var(--ocean)' }}>{svcName(s, lang)}</h2>
+      <p className="muted">{lang === 'th' ? s.desc_th : s.desc_en}</p>
+      <div className="disp mt8" style={{ fontWeight: 700, fontSize: 18 }}>{money(s.price_per_unit)} {t('baht')} / {svcUnit(s, lang)}
+        <span className="small muted" style={{ fontWeight: 500 }}> · {t('min_qty')} {s.min_qty} {svcUnit(s, lang)}</span></div>
       <div className="stack mt12">{ben.map(([i, b, d]) => <div key={b} className="row" style={{ alignItems: 'flex-start' }}>
         <span className="rico" style={{ background: 'var(--sun-l)', color: '#8A6200' }}><Icon n={i} /></span><div><b className="disp">{b}</b><div className="small muted">{d}</div></div></div>)}</div>
+      {inc.length > 0 && <><div className="sec-title">{t('included')}</div><div className="stack">{inc.map(x => <div key={x} className="row small"><Icon n="check" size={18} style={{ color: 'var(--leaf)' }} />{x}</div>)}</div></>}
+      {exc.length > 0 && <><div className="sec-title">{t('not_included')}</div><div className="stack">{exc.map(x => <div key={x} className="row small muted"><span style={{ width: 18, textAlign: 'center', color: 'var(--brick)' }}>✕</span>{x}</div>)}</div></>}
       <div className="infonote mt16"><Icon n="clock" />{t('cancel_rules')}</div>
+      <Link to="/guarantee" className="link mt12" style={{ display: 'inline-block' }}>{t('g_title')} →</Link>
     </div>
-    <div className="bottom-bar"><button className="btn b-sun" onClick={() => nav('/book')}>{t('book_now')}</button></div>
+    <div className="bottom-bar"><button className="btn b-sun" onClick={() => { setDraft({ ...emptyDraft, service: s.code }); nav('/book') }}>{t('book_now')}</button></div>
   </div>
+}
+
+// หน้าการันตีงาน: เขียนเฉพาะเงื่อนไขที่ระบบทำจริง (ไม่ใช่ประกันภัย)
+export function Guarantee() {
+  const { t } = useI18n(); const [s, setS] = useState<{ claim_cap: number; claim_report_days: number; reschedule_min_hours: number } | null>(null)
+  useEffect(() => { sb.from('settings').select('claim_cap,claim_report_days,reschedule_min_hours').maybeSingle().then(({ data }) => setS(data)) }, [])
+  const items: [string, string, string][] = s ? [
+    ['team', t('g1'), t('g1d')],
+    ['shield', t('g2'), t('g2d').replace('{cap}', money(s.claim_cap)).replace('{days}', String(s.claim_report_days))],
+    ['check', t('g3'), t('g3d')],
+    ['cal', t('g4'), t('g4d').replace('{h}', String(s.reschedule_min_hours))],
+    ['wallet', t('g5'), t('cancel_rules')],
+  ] : []
+  return <div className="page nobar"><TopBar title={t('g_title')} />
+    <div className="pad mt16 stack">
+      {!s ? <Loading /> : items.map(([i, b, d]) => <div key={b} className="card row" style={{ alignItems: 'flex-start' }}>
+        <span className="rico" style={{ background: 'var(--leaf-l)', color: 'var(--leaf)' }}><Icon n={i} /></span><div><b className="disp">{b}</b><div className="small muted">{d}</div></div></div>)}
+      <div className="small muted">{t('g_note')}</div>
+    </div></div>
 }

@@ -184,6 +184,8 @@ textarea.input{min-height:90px;resize:vertical}
 .split{display:flex;height:12px;border-radius:9px;overflow:hidden;margin:10px 0 6px}
 .chk{width:24px;height:24px;border-radius:8px;border:2px solid #C6D3DE;flex:none;display:flex;align-items:center;justify-content:center;background:#fff}
 .chk.on{background:var(--ocean);border-color:var(--ocean);color:#fff}
+/* ใบเสร็จ: ตอนพิมพ์ซ่อนเมนูและปุ่ม */
+@media print{body{background:#fff}.noprint,.tabbar,.bottom-bar,.topbar{display:none!important}.app,.page{max-width:none;box-shadow:none;padding:0}.receipt{border:0}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
 /* ===== จอใหญ่: iPad / คอม ===== */

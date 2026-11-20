@@ -1,5 +1,9 @@
 // การจองที่กำลังกรอก (เก็บใน sessionStorage ให้กดย้อนกลับได้)
 export type Draft = {
+  service: string // รหัสบริการ เช่น general_cleaning
+  qty: number | null // จำนวนชั่วโมง หรือจำนวนเครื่อง/ชิ้น
+  addons: string[] // งานเสริม
+  promo: string // โค้ดส่วนลด
   maidId: string | null
   date: string | null // YYYY-MM-DD
   hour: number | null
@@ -10,7 +14,7 @@ export type Draft = {
   usePoints: boolean
 }
 const KEY = 'cd_draft'
-export const emptyDraft: Draft = { maidId: null, date: null, hour: null, plan: 'once', addressId: null, tags: [], note: '', usePoints: false }
+export const emptyDraft: Draft = { service: 'general_cleaning', qty: null, addons: [], promo: '', maidId: null, date: null, hour: null, plan: 'once', addressId: null, tags: [], note: '', usePoints: false }
 export function getDraft(): Draft {
   try { return { ...emptyDraft, ...JSON.parse(sessionStorage.getItem(KEY) || '{}') } } catch { return { ...emptyDraft } }
 }

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import generatePayload from 'promptpay-qr'
-import { sb, friendly, type Maid, type Rating, type Quote } from '../lib/supabase'
+import { sb, friendly, type Maid, type Rating, type Quote2 } from '../lib/supabase'
+import { useServices, useAddons, svcName, svcUnit, jobHours } from '../lib/services'
 import { useI18n, money, fmtDate, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { getDraft, setDraft, clearDraft, startIso, bkkToday, type Draft } from '../lib/draft'
@@ -12,7 +13,7 @@ import { useDistricts } from './Start'
 export function useMaids() {
   const [maids, setMaids] = useState<(Maid & Partial<Rating>)[] | null>(null)
   useEffect(() => {
-    Promise.all([sb.from('maids').select('id,nickname,bio,photo_url,status,district_id,id_verified,background_checked').eq('status', 'approved'), sb.rpc('maid_ratings')]).then(([m, r]) => {
+    Promise.all([sb.from('maids').select('id,nickname,bio,photo_url,status,district_id,id_verified,background_checked,services').eq('status', 'approved'), sb.rpc('maid_ratings')]).then(([m, r]) => {
       const rr = new Map(((r.data as Rating[]) || []).map(x => [x.maid_id, x]))
       setMaids(((m.data as Maid[]) || []).map(x => ({ ...x, ...rr.get(x.id) })).sort((a, b) => (b.avg_rating ?? 0) - (a.avg_rating ?? 0)))
     })
@@ -21,16 +22,21 @@ export function useMaids() {
 }
 
 export function BookMaid() {
-  const { t } = useI18n(); const nav = useNavigate(); const maids = useMaids()
+  const { t, lang } = useI18n(); const nav = useNavigate(); const maids = useMaids(); const services = useServices()
   const [d, setD] = useState<Draft>(getDraft())
+  const s = services?.find(x => x.code === d.service)
   const pick = (id: string | null) => setD(setDraft({ maidId: id }))
+  // แสดงเฉพาะแม่บ้านที่ทำบริการนี้ได้
+  const list = maids?.filter(m => (m.services || []).includes(d.service))
+  const qty = d.qty ?? s?.default_qty ?? 0
   return <div className="page nobar">
     <TopBar title={t('who_cleans')} /><Steps at={0} />
     <div className="pad mt16">
+      {s && <div className="small muted" style={{ marginBottom: 10 }}>{svcName(s, lang)}</div>}
       <button className={'choice' + (d.maidId === null ? ' on' : '')} onClick={() => pick(null)}><span className="radio" />
         <span style={{ flex: 1 }}><b>{t('auto_pick')}</b><span className="small muted">{t('auto_pick_d')}</span></span><b className="disp">{t('free')}</b></button>
       <div className="between" style={{ margin: '18px 0 8px' }}><b className="disp">{t('or_pick')} <span className="muted small">+20 {t('baht')}</span></b><span className="small muted">{t('sorted_reviews')}</span></div>
-      {!maids ? <Loading /> : <div className="stack cols">{maids.map(m => <div key={m.id} className={'card' + (d.maidId === m.id ? ' sel' : '')}>
+      {!list ? <Loading /> : list.length === 0 ? <div className="empty muted">{t('no_maid_for_service')}</div> : <div className="stack cols">{list.map(m => <div key={m.id} className={'card' + (d.maidId === m.id ? ' sel' : '')}>
         <button className="row" style={{ width: '100%', textAlign: 'left' }} onClick={() => pick(m.id)}>
           <Avatar name={m.nickname} url={m.photo_url} seed={m.id} size={54} />
           <span style={{ flex: 1 }}><b className="disp" style={{ fontSize: 16.5 }}>{m.nickname}</b>
@@ -39,7 +45,7 @@ export function BookMaid() {
         <button className="link mt8" onClick={() => nav('/maid-profile/' + m.id)}>{t('view_profile')}</button>
       </div>)}</div>}
     </div>
-    <div className="bottom-bar"><div style={{ flex: 1 }}><div className="small muted">6 ชม.{d.maidId ? ' + ' + t('pick_fee') : ''}</div><div className="price">{money(1500 + (d.maidId ? 20 : 0))} {t('baht')}</div></div>
+    <div className="bottom-bar"><div style={{ flex: 1 }}><div className="small muted">{s ? `${qty} ${svcUnit(s, lang)}` : ''}{d.maidId ? ' + ' + t('pick_fee') : ''}</div><div className="price">{s ? money(qty * s.price_per_unit + (d.maidId ? 20 : 0)) : '…'} {t('baht')}</div></div>
       <button className="btn b-sun" style={{ width: 'auto', flex: 1 }} onClick={() => nav('/book/time')}>{t('next')}</button></div>
   </div>
 }
@@ -60,7 +66,8 @@ export function MaidProfile() {
           <div key={b} style={{ background: 'rgba(255,255,255,.14)', borderRadius: 14, padding: '6px 14px' }}><b className="disp" style={{ fontSize: 17 }}>{a}</b><div className="tiny" style={{ color: '#CFE3F2' }}>{b}</div></div>)}
       </div>
     </div>
-    <div className="pad"><div className="sec-title">{t('verified')}</div>
+    <div className="pad"><FreeDays maidId={m.id} />
+      <div className="sec-title">{t('verified')}</div>
       {m.id_verified && <div className="row mt8"><span className="rico" style={{ background: 'var(--leaf-l)', color: 'var(--leaf)' }}><Icon n="check" /></span><b className="disp">{t('id_ok')}</b></div>}
       {m.background_checked && <div className="row mt8"><span className="rico" style={{ background: 'var(--leaf-l)', color: 'var(--leaf)' }}><Icon n="check" /></span><b className="disp">{t('bg_ok')}</b></div>}
       <div className="sec-title">{t('reviews')}</div>
@@ -71,35 +78,80 @@ export function MaidProfile() {
   </div>
 }
 
+// วันที่แม่บ้านคนนี้ว่าง (14 วันข้างหน้า) กดแล้วไปเลือกเวลาได้เลย
+function FreeDays({ maidId }: { maidId: string }) {
+  const { t, lang } = useI18n(); const nav = useNavigate(); const d = getDraft(); const services = useServices()
+  const s = services?.find(x => x.code === d.service)
+  const hours = s ? jobHours(s, d.qty ?? s.default_qty, []) : 6
+  const [days, setDays] = useState<string[] | null>(null)
+  useEffect(() => { if (s) sb.rpc('maid_free_days', { p_maid: maidId, p_service_code: s.code, p_hours: hours }).then(({ data }) => setDays((data as string[]) || [])) }, [maidId, s?.code, hours])
+  return <><div className="sec-title">{t('free_days')}</div>
+    {!days ? <Loading /> : days.length === 0 ? <div className="muted">{t('no_free_days')}</div> :
+      <div className="cal">{days.map(x => <button key={x} className="cd" onClick={() => { setDraft({ maidId, date: x, hour: null }); nav('/book/time') }}>
+        <small>{fmtDate(x + 'T12:00:00+07:00', lang, { weekday: 'short' })}</small><b>{Number(x.slice(8))}</b></button>)}</div>}</>
+}
+
 export function BookTime() {
-  const { t, lang } = useI18n(); const nav = useNavigate(); const [sp] = useSearchParams()
-  const [d, setD] = useState<Draft>(() => { const p = sp.get('plan'); return p ? setDraft({ plan: p as Draft['plan'] }) : getDraft() })
+  const { t, lang } = useI18n(); const nav = useNavigate(); const [sp] = useSearchParams(); const services = useServices(); const allAddons = useAddons()
+  const urgentMode = sp.get('urgent') === '1'
+  const [d, setD] = useState<Draft>(() => { const p = sp.get('plan'); return p ? setDraft({ plan: p as Draft['plan'], service: 'general_cleaning' }) : getDraft() })
   const days = useMemo(() => Array.from({ length: 14 }, (_, i) => bkkToday(i)), [])
-  const date = d.date ?? days[1]
-  const [slots, setSlots] = useState<number[] | null>(null)
+  const date = d.date ?? (urgentMode ? days[0] : days[1])
+  const s = services?.find(x => x.code === d.service)
+  const isPkg = d.plan !== 'once'
+  // แพ็กเกจรายเดือนใช้ได้กับทำความสะอาดทั่วไป 6 ชม. เท่านั้น
+  const qty = isPkg ? 6 : (d.qty ?? s?.default_qty ?? 0)
+  const addons = (allAddons || []).filter(a => a.active && a.service_codes.includes(d.service))
+  const chosen = isPkg ? [] : addons.filter(a => d.addons.includes(a.code))
+  const hours = jobHours(s, qty, chosen)
+  const [slots, setSlots] = useState<{ h: number; urgent: boolean }[] | null>(null)
+  const [q, setQ] = useState<Quote2 | null>(null)
   useEffect(() => {
+    if (!s) return
     setSlots(null)
-    sb.rpc('available_slots', { p_date: date, p_maid: d.maidId }).then(({ data }) => setSlots(((data as { start_time: string }[]) || []).map(s => Number(s.start_time.slice(0, 2)))))
-  }, [date, d.maidId])
-  const pkgBlocked = d.plan !== 'once' && !d.maidId
-  const ok = d.hour !== null && slots?.includes(d.hour) && !pkgBlocked && d.date
-  const price = d.plan === 'weekly' ? 5600 : d.plan === 'biweekly' ? 2900 : 1500 + (d.maidId ? 20 : 0)
+    sb.rpc('available_slots_v2', { p_date: date, p_maid: d.maidId, p_service_code: s.code, p_hours: hours })
+      .then(({ data }) => setSlots(((data as { start_time: string; urgent: boolean }[]) || []).map(x => ({ h: Number(x.start_time.slice(0, 2)), urgent: x.urgent }))))
+  }, [date, d.maidId, s?.code, hours])
+  const picked = d.hour !== null && d.date === date ? slots?.find(x => x.h === d.hour) : undefined
+  useEffect(() => {
+    if (!s || isPkg) return
+    sb.rpc('quote_booking_v2', { p_service_code: s.code, p_qty: qty, p_addons: d.addons, p_chose_maid: !!d.maidId, p_start_at: picked ? startIso(date, picked.h) : null })
+      .then(({ data }) => setQ(data as Quote2))
+  }, [s?.code, qty, d.addons.join(), d.maidId, picked?.h, date, isPkg])
+  if (!services) return <Loading />
+  if (!s) return <div className="page nobar"><TopBar title={t('pick_date')} /><div className="pad mt20"><div className="empty muted">{t('service_closed')}</div></div></div>
+  const pkgBlocked = isPkg && !d.maidId
+  const ok = !!picked && !pkgBlocked
+  const price = d.plan === 'weekly' ? 5600 : d.plan === 'biweekly' ? 2900 : (q?.total ?? null)
+  const unit = svcUnit(s, lang)
   return <div className="page nobar">
     <TopBar title={t('pick_date')} /><Steps at={1} />
     <div className="pad mt16">
-      <div className="seg">{(['once', 'biweekly', 'weekly'] as const).map(p => <button key={p} className={d.plan === p ? 'on' : ''} onClick={() => setD(setDraft({ plan: p }))}>{t(p)}</button>)}</div>
-      <p className="small muted mt8">{t('pkg_note')}</p>
+      <div className="small muted">{svcName(s, lang)}</div>
+      {s.code === 'general_cleaning' && <><div className="seg mt8">{(['once', 'biweekly', 'weekly'] as const).map(p => <button key={p} className={d.plan === p ? 'on' : ''} onClick={() => setD(setDraft({ plan: p }))}>{t(p)}</button>)}</div>
+        <p className="small muted mt8">{t('pkg_note')}</p></>}
       {pkgBlocked && <div className="infonote mt8">{t('pkg_need_maid')} <button className="link" onClick={() => nav('/book')}>{t('choose')}</button></div>}
+      {!isPkg && <><div className="sec-title">{s.pricing === 'hourly' ? t('how_long') : t('how_many')}</div>
+        <div className="chips">{Array.from({ length: s.max_qty - s.min_qty + 1 }, (_, i) => s.min_qty + i).map(n =>
+          <button key={n} className={'chip' + (n === qty ? ' on' : '')} onClick={() => setD(setDraft({ qty: n, hour: null }))}>{n} {unit}</button>)}</div>
+        {s.pricing === 'hourly' && <p className="small muted mt8">{t('qty_hint')}</p>}
+        {addons.length > 0 && <><div className="sec-title">{t('addons')}</div>
+          <div className="stack">{addons.map(a => { const on = d.addons.includes(a.code)
+            return <button key={a.code} className={'choice' + (on ? ' on' : '')} onClick={() => setD(setDraft({ addons: on ? d.addons.filter(x => x !== a.code) : [...d.addons, a.code], hour: null }))}>
+              <span className={'chk' + (on ? ' on' : '')}>{on && <Icon n="check" size={14} />}</span>
+              <span style={{ flex: 1 }}><b>{lang === 'th' ? a.name_th : a.name_en}</b><span className="small muted">+{a.minutes} {t('minutes')}</span></span><b className="disp">+{money(a.price)}</b></button> })}</div></>}</>}
       <div className="sec-title">{t('date')}</div>
       <div className="cal">{days.map(x => <button key={x} className={'cd' + (x === date ? ' on' : '')} onClick={() => setD(setDraft({ date: x, hour: null }))}>
         <small>{fmtDate(x + 'T12:00:00+07:00', lang, { weekday: 'short' })}</small><b>{Number(x.slice(8))}</b></button>)}</div>
       <div className="sec-title">{t('start_time')}</div>
       {!slots ? <Loading /> : slots.length === 0 ? <div className="empty muted">{t('no_slots')}</div> :
-        <div className="tgrid">{slots.map(h => <button key={h} className={'tc' + (d.hour === h && d.date === date ? ' on' : '')} onClick={() => setD(setDraft({ date, hour: h }))}>{String(h).padStart(2, '0')}:00</button>)}</div>}
-      {d.hour !== null && d.date === date && <div className="ok-note mt12"><Icon n="clock" />{t('ends_at')} <b className="disp">{String(d.hour + 6).padStart(2, '0')}:00</b></div>}
+        <div className="tgrid">{slots.map(x => <button key={x.h} className={'tc' + (picked?.h === x.h ? ' on' : '')} onClick={() => setD(setDraft({ date, hour: x.h }))}>
+          {String(x.h).padStart(2, '0')}:00{x.urgent && <div className="tiny" style={{ color: picked?.h === x.h ? 'var(--sun)' : 'var(--brick)' }}>{t('urgent_tag')}</div>}</button>)}</div>}
+      {picked && <div className="ok-note mt12"><Icon n="clock" />{t('work_hours').replace('{h}', String(hours))} <b className="disp">{String(picked.h + hours).padStart(2, '0')}:00</b></div>}
+      {picked?.urgent && q && q.urgent_fee > 0 && <div className="infonote mt8"><Icon n="clock" />{t('urgent_fee_note').replace('{fee}', money(q.urgent_fee))}</div>}
     </div>
-    <div className="bottom-bar"><div style={{ flex: 1 }}><div className="small muted">{t(d.plan)}</div><div className="price">{money(price)} {t('baht')}</div></div>
-      <button className="btn b-sun" style={{ width: 'auto', flex: 1 }} disabled={!ok} onClick={() => nav('/book/details')}>{t('next')}</button></div>
+    <div className="bottom-bar"><div style={{ flex: 1 }}><div className="small muted">{isPkg ? t(d.plan) : `${qty} ${unit}${chosen.length ? ' + ' + chosen.length + ' ' + t('addons') : ''}`}</div><div className="price">{price !== null ? money(price) : '…'} {t('baht')}</div></div>
+      <button className="btn b-sun" style={{ width: 'auto', flex: 1 }} disabled={!ok} onClick={() => { setDraft({ qty }); nav('/book/details') }}>{t('next')}</button></div>
   </div>
 }
 
@@ -153,18 +205,26 @@ export function BookDetails() {
 }
 
 export function BookConfirm() {
-  const { t, lang } = useI18n(); const nav = useNavigate(); const { refresh } = useAuth(); const maids = useMaids()
-  const d = getDraft(); const [usePts, setUsePts] = useState(d.usePoints); const [q, setQ] = useState<Quote | null>(null); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
-  useEffect(() => { if (d.plan === 'once') sb.rpc('quote_booking', { p_service_code: 'general_cleaning', p_chose_maid: !!d.maidId, p_use_points: usePts }).then(({ data }) => setQ(data as Quote)) }, [usePts])
+  const { t, lang } = useI18n(); const nav = useNavigate(); const { refresh } = useAuth(); const maids = useMaids(); const services = useServices(); const allAddons = useAddons()
+  const d = getDraft(); const [usePts, setUsePts] = useState(d.usePoints); const [q, setQ] = useState<Quote2 | null>(null); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
+  const [code, setCode] = useState(d.promo); const [promo, setPromo] = useState(d.promo)
+  const s = services?.find(x => x.code === d.service)
+  const start = d.date && d.hour !== null ? startIso(d.date, d.hour) : null
+  useEffect(() => {
+    if (d.plan !== 'once' || !start) return
+    sb.rpc('quote_booking_v2', { p_service_code: d.service, p_qty: d.qty, p_addons: d.addons, p_chose_maid: !!d.maidId, p_start_at: start, p_use_points: usePts, p_promo: promo || null })
+      .then(({ data, error }) => { if (error) setErr(friendly(error, lang)); else setQ(data as Quote2) })
+  }, [usePts, promo])
   const m = maids?.find(x => x.id === d.maidId)
-  if (!d.date || d.hour === null || !d.addressId) return <div className="page"><TopBar title={t('confirm_booking')} /><div className="pad mt20"><button className="btn b-ocean" onClick={() => nav('/book')}>{t('book_now')}</button></div></div>
-  const start = startIso(d.date, d.hour)
+  if (!start || !d.addressId) return <div className="page"><TopBar title={t('confirm_booking')} /><div className="pad mt20"><button className="btn b-ocean" onClick={() => nav('/book')}>{t('book_now')}</button></div></div>
   const pkgPrice = d.plan === 'weekly' ? 5600 : 2900
+  const hours = q?.hours ?? 6
+  const addonRows = (allAddons || []).filter(a => d.addons.includes(a.code) && a.service_codes.includes(d.service))
   const go = async () => {
     setBusy(true); setErr('')
     try {
       if (d.plan === 'once') {
-        const { data, error } = await sb.rpc('create_booking', { p_service_code: 'general_cleaning', p_maid_id: d.maidId, p_start_at: start, p_address_id: d.addressId, p_note: d.note, p_tags: d.tags, p_use_points: usePts })
+        const { data, error } = await sb.rpc('create_booking_v2', { p_service_code: d.service, p_qty: d.qty, p_addons: d.addons, p_maid_id: d.maidId, p_start_at: start, p_address_id: d.addressId, p_note: d.note, p_tags: d.tags, p_use_points: usePts, p_promo: promo || null })
         if (error) throw error; clearDraft(); await refresh(); nav('/pay/booking/' + data, { replace: true })
       } else {
         const { data, error } = await sb.rpc('create_package', { p_plan: d.plan, p_maid_id: d.maidId, p_first_start: start, p_address_id: d.addressId, p_note: d.note, p_tags: d.tags })
@@ -177,22 +237,30 @@ export function BookConfirm() {
     <div className="pad mt16 stack">
       <div className="card">
         <div className="row">{m ? <Avatar name={m.nickname} seed={m.id} url={m.photo_url} size={44} /> : <span className="rico"><Icon n="team" /></span>}
-          <div><b className="disp">{m ? m.nickname : t('auto_pick')}</b><div className="small muted">{fmtDate(start, lang)} {String(d.hour).padStart(2, '0')}:00–{String(d.hour + 6).padStart(2, '0')}:00 · {t(d.plan)}</div></div></div>
+          <div><b className="disp">{m ? m.nickname : t('auto_pick')}</b><div className="small muted">{svcName(s, lang)} · {fmtDate(start, lang)} {String(d.hour).padStart(2, '0')}:00–{String(d.hour! + hours).padStart(2, '0')}:00 · {t(d.plan)}</div></div></div>
         {d.plan === 'once' ? (q ? <div className="recv mt12">
-          <div><span className="muted">{t('clean_6h')}</span><span>{money(q.base)}</span></div>
+          <div><span className="muted">{svcName(s, lang)} {q.qty} {svcUnit(s, lang)}</span><span>{money(q.base)}</span></div>
+          {addonRows.map(a => <div key={a.code}><span className="muted">+ {lang === 'th' ? a.name_th : a.name_en}</span><span>{money(a.price)}</span></div>)}
           {q.choose_maid_fee > 0 && <div><span className="muted">{t('pick_fee')}</span><span>{q.choose_maid_fee}</span></div>}
-          {q.promo_discount > 0 && <div style={{ color: 'var(--leaf)' }}><span>{t('first_promo')}</span><span>−{q.promo_discount}</span></div>}
+          {q.urgent_fee > 0 && <div><span className="muted">{t('urgent_tag')}</span><span>{money(q.urgent_fee)}</span></div>}
+          {q.promo_discount > 0 && <div style={{ color: 'var(--leaf)' }}><span>{q.promo_code ? t('promo_code') + ' ' + q.promo_code : t('first_promo')}</span><span>−{money(q.promo_discount)}</span></div>}
           {q.points_discount > 0 && <div style={{ color: 'var(--leaf)' }}><span>{t('use_points')} {q.points_used}</span><span>−{q.points_discount}</span></div>}
           <div className="tot"><span>{t('total')}</span><span>{money(q.total)} {t('baht')}</span></div></div> : <Loading />)
           : <div className="recv mt12"><div className="tot"><span>{t('total')}</span><span>{money(pkgPrice)} {t('baht')}</span></div></div>}
       </div>
+      {d.plan === 'once' && <div className="field"><label>{t('promo_code')}</label>
+        <div className="row"><input className="input" value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="CLEAN50" />
+          <button className="btn sm b-ocean" onClick={() => { setPromo(code.trim()); setDraft({ promo: code.trim() }) }}>{t('apply')}</button></div>
+        {q?.promo_error && promo && <div className="err">{friendly(q.promo_error, lang)}</div>}
+        {q?.promo_code && <div className="ok-note"><Icon n="ticket" />{t('promo_ok')}</div>}
+        {q && !q.promo_code && q.first_discount && promo && !q.promo_error && <div className="small muted">{t('promo_first_better')}</div>}</div>}
       {d.plan === 'once' && q && q.points_available >= 50 && <button className={'choice' + (usePts ? ' on' : '')} onClick={() => { setUsePts(!usePts); setDraft({ usePoints: !usePts }) }}>
         <span className={'chk' + (usePts ? ' on' : '')}>{usePts && <Icon n="check" size={14} />}</span><span style={{ flex: 1 }}><b>{t('use_points')}</b><span className="small muted">{q.points_available} {t('points')}</span></span></button>}
-      <div className="ok-note"><Icon n="shield" size={26} /><div><b className="disp">{t('ins_t')}</b><div>{t('ins_d')}</div></div></div>
+      <Link to="/guarantee" className="ok-note" style={{ color: '#1F6B4A' }}><Icon n="shield" size={26} /><div><b className="disp">{t('ins_t')}</b><div>{t('ins_d')}</div></div></Link>
       <div className="small muted">{t('cancel_rules')}</div>
       {err && <div className="err">{err}</div>}
     </div>
-    <div className="bottom-bar"><button className="btn b-sun" disabled={busy || (d.plan === 'once' && !q)} onClick={go}>{t('create_and_pay')}</button></div>
+    <div className="bottom-bar"><button className="btn b-sun" disabled={busy || (d.plan === 'once' && (!q || (!!promo && !!q.promo_error)))} onClick={go}>{t('create_and_pay')}</button></div>
   </div>
 }
 

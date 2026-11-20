@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { MapContainer, TileLayer, CircleMarker } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
-import { sb, friendly, type Booking } from '../lib/supabase'
+import { sb, friendly, type Booking, type Service } from '../lib/supabase'
 import { useI18n, money, fmtDate, fmtTime, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
-import { setDraft } from '../lib/draft'
+import { setDraft, emptyDraft, bkkToday, startIso } from '../lib/draft'
+import { useServices, useAddons, svcName, svcUnit } from '../lib/services'
 import { AdminTabs, Avatar, CustomerTabs, Icon, Loading, MaidTabs, StatusPill, TopBar, useToast } from '../components/ui'
 import { useMaids, AddressForm, useAddresses } from './Book'
 
@@ -83,7 +84,7 @@ function haversine(a: [number, number], b: [number, number]) {
 }
 
 export function BookingDetail() {
-  const { id } = useParams(); const { t, lang } = useI18n(); const nav = useNavigate(); const toast = useToast(); const maids = useMaids()
+  const { id } = useParams(); const { t, lang } = useI18n(); const nav = useNavigate(); const toast = useToast(); const maids = useMaids(); const services = useServices(); const addons = useAddons()
   const [b, setB] = useState<Booking | null>(null); const [addr, setAddr] = useState<{ address: string; lat: number | null; lng: number | null } | null>(null)
   const [reviewed, setReviewed] = useState(false); const [err, setErr] = useState('')
   const load = () => {
@@ -94,6 +95,13 @@ export function BookingDetail() {
   useEffect(() => { load(); const iv = setInterval(load, 15000); return () => clearInterval(iv) }, [id])
   if (!b) return <Loading />
   const m = maids?.find(x => x.id === b.maid_id)
+  const svc = services?.find(x => x.id === b.service_type_id)
+  // จองอีกครั้ง: ใช้บริการ แม่บ้าน ที่อยู่ งานเสริม และโน้ตเดิม แล้วไปเลือกวันเวลาใหม่
+  const rebook = async () => {
+    const { data } = await sb.from('customer_addresses').select('id').order('id')
+    setDraft({ ...emptyDraft, service: svc?.code ?? 'general_cleaning', qty: b.qty, addons: b.addons || [], maidId: b.maid_id, tags: b.tags, note: b.note ?? '', addressId: (data || [])[0]?.id ?? null })
+    nav('/book/time')
+  }
   const step = ['confirmed', 'on_the_way', 'working', 'completed'].indexOf(b.status)
   const cancel = async () => {
     if (!window.confirm(t('cancel_confirm'))) return
@@ -107,27 +115,128 @@ export function BookingDetail() {
       <div className="ticket">
         <div className="between"><StatusPill s={b.status} />{m && <Avatar name={m.nickname} seed={m.id} url={m.photo_url} size={40} />}</div>
         <div className="when mt8">{fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}–{fmtTime(b.end_at)}</div>
-        <div>{m ? m.nickname : t('s_awaiting_maid')} · {t('clean_6h')}</div>
+        <div>{m ? m.nickname : t('s_awaiting_maid')} · {svcName(svc, lang)} {b.qty ?? ''} {svcUnit(svc, lang)}</div>
         {step >= 0 && <><div className="prog mt12">{[0, 1, 2, 3].map(i => <span key={i} style={{ display: 'contents' }}>{i > 0 && <span className={'ln' + (i <= step ? '' : ' off')} />}<span className={'dot' + (i <= step ? '' : ' off')}>{i <= step && <Icon n="check" size={13} />}</span></span>)}</div>
           <div className="proglab"><span>{t('s_confirmed')}</span><span>{t('s_on_the_way')}</span><span>{t('s_working')}</span><span>{t('s_completed')}</span></div></>}
       </div>
       {(b.status === 'pending_payment' || b.status === 'payment_rejected') && <button className="btn b-sun" onClick={() => nav(b.package_id ? '/pay/package/' + b.package_id : '/pay/booking/' + b.id)}>{t('pay_title')} {money(b.total_price)} {t('baht')}</button>}
       <div className="card recv">
-        <div><span className="muted">{t('clean_6h')}</span><span>{money(b.base_price)}</span></div>
+        <div><span className="muted">{svcName(svc, lang)} {b.qty ?? ''} {svcUnit(svc, lang)}</span><span>{money(b.base_price)}</span></div>
+        {b.addons_price > 0 && <div><span className="muted">{t('addons')}: {(b.addons || []).map(c => { const a = addons?.find(x => x.code === c); return a ? (lang === 'th' ? a.name_th : a.name_en) : c }).join(', ')}</span><span>{money(b.addons_price)}</span></div>}
         {b.choose_maid_fee > 0 && <div><span className="muted">{t('pick_fee')}</span><span>{b.choose_maid_fee}</span></div>}
-        {b.promo_discount > 0 && <div><span className="muted">{t('first_promo')}</span><span>−{b.promo_discount}</span></div>}
+        {b.urgent_fee > 0 && <div><span className="muted">{t('urgent_tag')}</span><span>{money(b.urgent_fee)}</span></div>}
+        {b.promo_discount > 0 && <div><span className="muted">{b.promo_code ? t('promo_code') + ' ' + b.promo_code : t('first_promo')}</span><span>−{money(b.promo_discount)}</span></div>}
         {b.points_discount > 0 && <div><span className="muted">{t('use_points')} {b.points_used}</span><span>−{b.points_discount}</span></div>}
         <div className="tot"><span>{t('total')}</span><span>{money(b.total_price)} {t('baht')}</span></div>
         {addr && <div className="small muted mt8" style={{ display: 'block' }}><Icon n="pin" size={14} /> {addr.address}</div>}
         {b.tags.length > 0 && <div className="chips mt8">{b.tags.map(x => <span key={x} className="pill p-ocean">{t(x as Key)}</span>)}</div>}
         {b.note && <div className="small mt8" style={{ display: 'block' }}>{b.note}</div>}
       </div>
+      {ACTIVE.includes(b.status) && <AddToCalendar b={b} title={svcName(svc, lang)} address={addr?.address ?? ''} />}
+      {['pending_payment', 'payment_review', 'awaiting_maid', 'confirmed'].includes(b.status) && <Reschedule b={b} svc={svc?.code ?? 'general_cleaning'} onDone={() => { toast.show(t('saved')); load() }} />}
+      {(b.checklist?.length > 0 || ['working', 'completed'].includes(b.status)) && <JobProof b={b} />}
       {b.maid_id && ['confirmed', 'on_the_way', 'working', 'completed'].includes(b.status) && <><div className="sec-title" style={{ margin: '6px 0 0' }}>{t('chat')}</div><Chat bookingId={b.id} /></>}
+      {['completed', 'cancelled_by_customer'].includes(b.status) && !b.package_id && <button className="btn b-sun" onClick={rebook}><Icon n="redo" />{t('book_again')}</button>}
+      {!['pending_payment', 'payment_review', 'payment_rejected'].includes(b.status) && <Link to={'/receipt/' + b.id} className="btn b-line"><Icon n="print" />{t('receipt')}</Link>}
       {b.status === 'completed' && !reviewed && <Review b={b} onDone={() => { setReviewed(true); toast.show(t('thanks_review')) }} />}
       {b.status === 'completed' && <Link to={'/claim/' + b.id} className="btn b-line">{t('claim')}</Link>}
       {['pending_payment', 'payment_review', 'awaiting_maid', 'confirmed', 'payment_rejected'].includes(b.status) && <><div className="small muted">{t('cancel_rules')}</div><button className="btn b-red" onClick={cancel}>{t('cancel_booking')}</button></>}
       {err && <div className="err">{err}</div>}
     </div>{toast.node}
+  </div>
+}
+
+// เพิ่มลงปฏิทิน: ไฟล์ .ics (ใช้ได้กับ iPhone/Android/Outlook) + ลิงก์ Google Calendar พร้อมเตือนก่อน 1 ชม.
+function AddToCalendar({ b, title, address }: { b: Booking; title: string; address: string }) {
+  const { t } = useI18n()
+  const z = (iso: string) => new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+  const name = 'CleenDee: ' + title
+  const ics = () => {
+    const txt = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//CleenDee//TH', 'BEGIN:VEVENT', `UID:cleendee-${b.id}@cleendee.pages.dev`, `DTSTAMP:${z(new Date().toISOString())}`,
+      `DTSTART:${z(b.start_at)}`, `DTEND:${z(b.end_at)}`, `SUMMARY:${name}`, `LOCATION:${address.replace(/[,;\n]/g, ' ')}`, `URL:${location.origin}/bookings/${b.id}`,
+      'BEGIN:VALARM', 'TRIGGER:-PT1H', 'ACTION:DISPLAY', `DESCRIPTION:${name}`, 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n')
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'text/calendar' })); a.download = `cleendee-${b.id}.ics`; a.click()
+  }
+  const g = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(name)}&dates=${z(b.start_at)}/${z(b.end_at)}&location=${encodeURIComponent(address)}&details=${encodeURIComponent(location.origin + '/bookings/' + b.id)}`
+  return <div className="row"><button className="btn b-line" style={{ flex: 1 }} onClick={ics}><Icon n="cal" />{t('add_calendar')}</button>
+    <a className="btn b-line" style={{ flex: 1 }} href={g} target="_blank" rel="noreferrer">Google Calendar</a></div>
+}
+
+// เลื่อนนัดเอง: เลือกวัน-เวลาใหม่ (ระบบเช็กว่าแม่บ้านคนเดิมว่าง)
+function Reschedule({ b, svc, onDone }: { b: Booking; svc: string; onDone: () => void }) {
+  const { t, lang } = useI18n(); const [open, setOpen] = useState(false); const [err, setErr] = useState('')
+  const hours = Math.round((new Date(b.end_at).getTime() - new Date(b.start_at).getTime()) / 3600e3)
+  const days = Array.from({ length: 14 }, (_, i) => bkkToday(i + 1))
+  const [date, setDate] = useState(days[0]); const [slots, setSlots] = useState<number[] | null>(null)
+  useEffect(() => {
+    if (!open) return; setSlots(null)
+    sb.rpc('available_slots_v2', { p_date: date, p_maid: b.maid_id, p_service_code: svc, p_hours: hours })
+      .then(({ data }) => setSlots(((data as { start_time: string; urgent: boolean }[]) || []).filter(x => !x.urgent).map(x => Number(x.start_time.slice(0, 2)))))
+  }, [open, date])
+  const go = async (h: number) => {
+    setErr(''); const { error } = await sb.rpc('customer_reschedule', { p_booking_id: b.id, p_start_at: startIso(date, h) })
+    if (error) setErr(friendly(error, lang)); else { setOpen(false); onDone() }
+  }
+  if (!open) return <button className="btn b-ghost" onClick={() => setOpen(true)}><Icon n="clock" />{t('reschedule')}</button>
+  return <div className="card stack"><b className="disp">{t('reschedule')}</b><div className="small muted">{t('reschedule_d')}</div>
+    <div className="cal">{days.map(x => <button key={x} className={'cd' + (x === date ? ' on' : '')} onClick={() => setDate(x)}><small>{fmtDate(x + 'T12:00:00+07:00', lang, { weekday: 'short' })}</small><b>{Number(x.slice(8))}</b></button>)}</div>
+    {!slots ? <Loading /> : slots.length === 0 ? <div className="muted small">{t('no_slots')}</div> :
+      <div className="tgrid">{slots.map(h => <button key={h} className="tc" onClick={() => go(h)}>{String(h).padStart(2, '0')}:00</button>)}</div>}
+    {err && <div className="err">{err}</div>}<button className="link" onClick={() => setOpen(false)}>{t('close')}</button></div>
+}
+
+// รูปก่อน/หลัง และเช็กลิสต์ที่แม่บ้านติ๊ก (ลูกค้าดูอย่างเดียว)
+export function JobProof({ b, photosOnly = false, refreshKey = 0 }: { b: Booking; photosOnly?: boolean; refreshKey?: number }) {
+  const { t } = useI18n(); const [photos, setPhotos] = useState<{ kind: string; url: string }[]>([]); const [big, setBig] = useState<string | null>(null)
+  useEffect(() => {
+    sb.from('booking_photos').select('kind,path').eq('booking_id', b.id).order('created_at').then(async ({ data }) => {
+      const rows = data || []; if (!rows.length) return setPhotos([])
+      const { data: urls } = await sb.storage.from('job-photos').createSignedUrls(rows.map(r => r.path), 3600)
+      setPhotos(rows.map((r, i) => ({ kind: r.kind, url: urls?.[i]?.signedUrl ?? '' })).filter(x => x.url))
+    })
+  }, [b.id, b.status, refreshKey])
+  const list = photosOnly ? [] : b.checklist || []
+  if (photosOnly && photos.length === 0) return null
+  return <div className="card stack"><b className="disp">{t('job_proof')}</b>
+    {list.length > 0 && <div className="stack" style={{ gap: 6 }}>{list.map((c, i) => <div key={i} className="row small"><span className={'chk' + (c.done ? ' on' : '')}>{c.done && <Icon n="check" size={14} />}</span>{c.t}</div>)}</div>}
+    {(['before', 'after'] as const).map(k => { const ps = photos.filter(p => p.kind === k); return ps.length > 0 && <div key={k}><div className="small muted">{t(k === 'before' ? 'photo_before' : 'photo_after')}</div>
+      <div className="row mt8" style={{ flexWrap: 'wrap', gap: 8 }}>{ps.map(p => <button key={p.url} onClick={() => setBig(p.url)}><img src={p.url} alt="" style={{ width: 84, height: 84, objectFit: 'cover', borderRadius: 12 }} /></button>)}</div></div> })}
+    {photos.length === 0 && list.length === 0 && <div className="small muted">{t('no_proof_yet')}</div>}
+    {big && <div onClick={() => setBig(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}><img src={big} alt="" style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 12 }} /></div>}
+  </div>
+}
+
+// ใบเสร็จรับเงิน (พิมพ์หรือบันทึกเป็น PDF จากเบราว์เซอร์)
+export function Receipt() {
+  const { id } = useParams(); const { t, lang } = useI18n(); const services = useServices(); const addons = useAddons()
+  const [b, setB] = useState<Booking | null>(null); const [biz, setBiz] = useState<{ business_name: string; business_address: string; tax_id: string | null } | null>(null)
+  const [paidAt, setPaidAt] = useState<string | null>(null); const { profile } = useAuth()
+  useEffect(() => {
+    sb.from('bookings').select('*').eq('id', id!).single().then(({ data }) => setB(data as Booking))
+    sb.from('settings').select('business_name,business_address,tax_id').maybeSingle().then(({ data }) => setBiz(data))
+    sb.from('payments').select('reviewed_at,status').eq('booking_id', id!).eq('status', 'approved').maybeSingle().then(({ data }) => setPaidAt(data?.reviewed_at ?? null))
+  }, [id])
+  if (!b || !biz) return <Loading />
+  const svc: Service | undefined = services?.find(x => x.id === b.service_type_id)
+  const rows: [string, number][] = [[`${svcName(svc, lang)} ${b.qty ?? ''} ${svcUnit(svc, lang)}`, b.base_price],
+    ...(b.addons || []).map(c => { const a = addons?.find(x => x.code === c); return [a ? (lang === 'th' ? a.name_th : a.name_en) : c, a?.price ?? 0] as [string, number] }),
+    ...(b.choose_maid_fee ? [[t('pick_fee'), b.choose_maid_fee] as [string, number]] : []), ...(b.urgent_fee ? [[t('urgent_tag'), b.urgent_fee] as [string, number]] : []),
+    ...(b.promo_discount ? [[b.promo_code ? t('promo_code') + ' ' + b.promo_code : t('first_promo'), -b.promo_discount] as [string, number]] : []),
+    ...(b.points_discount ? [[t('use_points') + ' ' + b.points_used, -b.points_discount] as [string, number]] : [])]
+  return <div className="page nobar"><div className="noprint"><TopBar title={t('receipt')} /></div>
+    <div className="pad mt16"><div className="card receipt">
+      <div className="between"><img src="/brand/CleenDee_logo_horizontal.svg" alt="CleenDee" style={{ height: 30 }} /><b className="disp">{t('receipt')}</b></div>
+      <div className="small mt12"><b>{biz.business_name}</b><div className="muted">{biz.business_address}{biz.tax_id ? ` · ${t('tax_id')} ${biz.tax_id}` : ''}</div></div>
+      <div className="small mt12 recv"><div><span className="muted">{t('receipt_no')}</span><span>CD-{String(b.id).padStart(6, '0')}</span></div>
+        <div><span className="muted">{t('customer')}</span><span>{profile?.full_name ?? ''}</span></div>
+        <div><span className="muted">{t('service_date')}</span><span>{fmtDate(b.start_at, lang, { day: 'numeric', month: 'short', year: 'numeric' })} {fmtTime(b.start_at)}</span></div>
+        {paidAt && <div><span className="muted">{t('paid_on')}</span><span>{fmtDate(paidAt, lang, { day: 'numeric', month: 'short', year: 'numeric' })}</span></div>}</div>
+      <div className="recv mt12">{rows.map(([k, v], i) => <div key={i}><span>{k}</span><span>{v < 0 ? '−' : ''}{money(Math.abs(v))}</span></div>)}
+        <div className="tot"><span>{t('total')}</span><span>{money(b.total_price)} {t('baht')}</span></div></div>
+      {b.status === 'cancelled_by_customer' && <div className="err mt12">{t('s_cancelled_by_customer')}</div>}
+      <div className="tiny muted mt12">{t('receipt_note')}</div>
+    </div>
+    <button className="btn b-ocean mt16 noprint" onClick={() => window.print()}><Icon n="print" />{t('print')}</button></div>
   </div>
 }
 

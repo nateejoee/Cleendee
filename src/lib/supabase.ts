@@ -10,7 +10,7 @@ export const sb = createClient(SUPABASE_URL, KEY, {
 export type Role = 'customer' | 'maid' | 'admin'
 export type Profile = { id: string; role: Role; full_name: string | null; phone: string | null; lang: 'th' | 'en'; district_id: number | null; points: number }
 export type District = { id: number; province_code: string; name_th: string; name_en: string; active: boolean }
-export type Maid = { id: string; nickname: string; bio: string | null; photo_url: string | null; status: string; district_id: number | null; id_verified: boolean; background_checked: boolean }
+export type Maid = { id: string; nickname: string; bio: string | null; photo_url: string | null; status: string; district_id: number | null; id_verified: boolean; background_checked: boolean; services?: string[] }
 export type Rating = { maid_id: string; avg_rating: number | null; review_count: number; jobs_done: number }
 export type BookingStatus = 'pending_payment' | 'payment_review' | 'awaiting_maid' | 'confirmed' | 'on_the_way' | 'working' | 'completed' | 'cancelled_by_customer' | 'refunded_no_maid' | 'payment_rejected'
 export type Booking = {
@@ -18,7 +18,23 @@ export type Booking = {
   district_id: number; start_at: string; end_at: string; note: string | null; tags: string[]
   base_price: number; choose_maid_fee: number; points_used: number; points_discount: number; promo_discount: number
   total_price: number; maid_payout: number; status: BookingStatus; needs_replacement: boolean
+  qty: number | null; addons: string[]; addons_price: number; urgent_fee: number; promo_code: string | null
+  checklist: { t: string; done: boolean }[]; rescheduled_at: string | null
   created_at: string; confirmed_at: string | null; completed_at: string | null; cancelled_at: string | null
+}
+// บริการ (ราคาแก้ได้ในหน้าแอดมิน)
+export type Service = {
+  id: number; code: string; name_th: string; name_en: string; active: boolean; coming_soon: boolean
+  pricing: 'hourly' | 'unit'; price_per_unit: number; payout_pct: number; min_qty: number; max_qty: number; default_qty: number; minutes_per_unit: number
+  unit_th: string; unit_en: string; icon: string; sort: number; desc_th: string | null; desc_en: string | null
+  included_th: string[]; included_en: string[]; excluded_th: string[]; excluded_en: string[]
+}
+export type Addon = { code: string; name_th: string; name_en: string; price: number; maid_payout: number; minutes: number; service_codes: string[]; active: boolean; sort: number }
+// ราคาที่คำนวณจากเซิร์ฟเวอร์ (quote_booking_v2)
+export type Quote2 = {
+  qty: number; hours: number; base: number; addons_price: number; choose_maid_fee: number; urgent_fee: number
+  promo_discount: number; promo_code: string | null; promo_error: string | null; first_discount: boolean
+  points_used: number; points_discount: number; total: number; maid_payout: number; points_available: number
 }
 export type Quote = { base: number; choose_maid_fee: number; promo_discount: number; points_used: number; points_discount: number; total: number; maid_payout: number; duration_hours: number; points_available: number }
 
@@ -40,6 +56,16 @@ const ERR: Record<string, [string, string]> = {
   amount_out_of_range: ['จำนวนเงินต้องไม่เกิน 10,000 บาท', 'Amount must be 1–10,000 THB'],
   forbidden: ['ไม่มีสิทธิ์ทำรายการนี้', 'Not allowed'],
   not_signed_in: ['กรุณาเข้าสู่ระบบ', 'Please log in'],
+  qty_out_of_range: ['จำนวนไม่อยู่ในช่วงที่จองได้', 'Quantity out of range'],
+  service_unavailable: ['บริการนี้ยังไม่เปิด', 'This service is not open yet'],
+  reschedule_too_late: ['เลื่อนนัดได้เฉพาะก่อนเวลานัดตามที่กำหนด', 'Too late to reschedule this booking'],
+  promo_invalid: ['ไม่พบโค้ดส่วนลดนี้', 'Promo code not found'],
+  promo_expired: ['โค้ดส่วนลดหมดอายุหรือยังไม่เริ่ม', 'Promo code is not valid now'],
+  promo_used_up: ['โค้ดส่วนลดถูกใช้ครบแล้ว', 'Promo code fully used'],
+  promo_already_used: ['คุณใช้โค้ดนี้ไปแล้ว', 'You already used this code'],
+  promo_min_total: ['ยอดยังไม่ถึงขั้นต่ำของโค้ดนี้', 'Order total is below this code’s minimum'],
+  too_many_photos: ['แนบรูปได้สูงสุด 20 รูป', 'Up to 20 photos'],
+  invalid_input: ['ข้อมูลไม่ถูกต้อง', 'Invalid input'],
   'Invalid login credentials': ['อีเมลหรือรหัสผ่านไม่ถูกต้อง', 'Wrong email or password'],
 }
 export function friendly(e: unknown, lang: 'th' | 'en') {
