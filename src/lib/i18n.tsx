@@ -87,7 +87,7 @@ const D = {
     nothing: 'ไม่มีรายการ', saved: 'บันทึกแล้ว', error: 'เกิดข้อผิดพลาด', loading: 'กำลังโหลด…', need_login: 'กรุณาเข้าสู่ระบบก่อนจอง',
   },
   en: {
-    tagline: 'Clean home, local helpers', choose_area: 'Which district is your home in?', choose_area_sub: 'We currently serve Chumphon province',
+    tagline: 'Clean home, peace of mind', choose_area: 'Which district is your home in?', choose_area_sub: 'We currently serve Chumphon province',
     onb1_t: 'Pick a day and time', onb1_d: 'Choose how many hours and when to start',
     onb2_t: 'Local housekeepers', onb2_d: 'Background-checked. Choose one or let us match you',
     onb3_t: 'Safe, with our guarantee', onb3_d: 'CleenDee compensates damage up to 10,000 THB',
