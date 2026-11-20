@@ -115,8 +115,9 @@ export function policyPhoneHref(phone: string) {
 }
 
 export function formatPolicyPhones(phones: string[], lang: Lang) {
-  return phones.map(phone => lang === 'en' && /^0\d{2}-\d{3}-\d{4}$/.test(phone)
-    ? '+66 ' + phone.slice(1).replaceAll('-', ' ') : phone).join(', ')
+  // กันเบอร์โทรถูกตัดครึ่งบรรทัด: ห้ามตัดหลังขีด (U+2060) และห้ามตัดตรงช่องว่างระหว่างตัวเลข (NBSP)
+  return phones.map(phone => (lang === 'en' && /^0\d{2}-\d{3}-\d{4}$/.test(phone)
+    ? '+66 ' + phone.slice(1).replaceAll('-', ' ') : phone).replace(/(\d)-(?=\d)/g, '$1-\u2060').replace(/(\d) (?=\d)/g, '$1\u00a0')).join(', ')
 }
 
 export function renderPolicyText(value: string, variables: Record<string, string>) {

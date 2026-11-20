@@ -616,3 +616,9 @@ textarea.input{min-height:90px;resize:vertical}
 .apply-pair{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
 @media (min-width:720px){.apply-pair{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 .apply-grid input.input,.apply-grid select.input{height:50px;min-height:50px}
+
+/* ===== จัดบรรทัดตัวหนังสือทั้งเว็บ: ไม่ให้คำเดียวตกบรรทัดสุดท้าย หัวข้อและปุ่มแบ่งบรรทัดสมดุล ===== */
+h1,h2,h3,h4,.sec-title,.hero .sub,.btn,.pill,.chip,.empty,.n,small,.small,.tiny,.muted,.infonote,.ok-note,.err,.admin-hint,.field>label{text-wrap:balance}
+p{text-wrap:balance}
+li{text-wrap:pretty}
+.tab{white-space:nowrap}

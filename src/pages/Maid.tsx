@@ -332,7 +332,7 @@ export function MaidApply() {
           <div className="field"><label>{th ? 'วันเกิด (อายุ 18 ปีขึ้นไป)' : 'Date of birth (18+)'}{star}</label>
             <input className="input" type="date" min="1930-01-01" max={adultBefore.toISOString().slice(0, 10)} value={f.birth_date} onChange={set('birth_date')} />
             {f.birth_date && !adult && <small role="alert" style={{ color: 'var(--brick)' }}>{th ? 'ผู้สมัครต้องมีอายุ 18 ปีขึ้นไป' : 'Applicants must be 18 or older'}</small>}</div>
-          <FileField label={th ? 'รูปโปรไฟล์' : 'Profile photo'} cta={th ? 'แนบรูปหน้าตรง' : 'Attach a photo'} file={photo} onFile={setPhoto} accept="image/jpeg,image/png,image/webp" />
+          <FileField label={th ? 'รูปโปรไฟล์' : 'Profile photo'} cta={th ? 'แนบรูปหน้าตรง' : 'Add photo'} file={photo} onFile={setPhoto} accept="image/jpeg,image/png,image/webp" />
         </div></section>
 
         <section className="card apply-sec"><h3>{th ? '2. ประสบการณ์และงานที่ทำได้' : '2. Experience and services'}</h3><div className="apply-grid">
@@ -357,7 +357,7 @@ export function MaidApply() {
 
         <section className="card apply-sec"><h3>{th ? '4. เอกสารยืนยันตัวตน' : '4. Identity documents'}</h3>
           <p className="admin-hint">{th ? 'ใช้ตรวจสอบก่อนอนุมัติเท่านั้น เก็บเป็นความลับ เห็นได้เฉพาะแอดมิน' : 'Used only for verification. Kept private and visible to admins only.'}</p><div className="apply-grid">
-          <FileField required label={th ? 'รูปบัตรประชาชน' : 'ID card photo'} cta={th ? 'แนบรูปบัตร' : 'Attach card photo'} file={idCard} onFile={setIdCard} accept="image/jpeg,image/png,image/webp" />
+          <FileField required label={th ? 'รูปบัตรประชาชน' : 'ID card photo'} cta={th ? 'แนบรูปบัตร' : 'Add ID photo'} file={idCard} onFile={setIdCard} accept="image/jpeg,image/png,image/webp" />
           <FileField required label={th ? 'เซลฟี่คู่บัตร' : 'Selfie with ID'} cta={th ? 'ถ่ายเซลฟี่' : 'Take selfie'} file={selfie} onFile={setSelfie} accept="image/jpeg,image/png,image/webp" />
           <div className="span2"><FileField label={th ? 'ใบรับรองความประพฤติ (ถ้ามี)' : 'Certificate of good conduct (optional)'} hint={th ? 'รูปหรือ PDF ไม่เกิน 5 MB' : 'Photo or PDF up to 5 MB'} cta={th ? 'แนบไฟล์ใบรับรอง' : 'Attach certificate'} file={cert} onFile={setCert} accept="image/jpeg,image/png,image/webp,application/pdf" /></div>
         </div></section>
