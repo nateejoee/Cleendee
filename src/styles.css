@@ -588,3 +588,26 @@ textarea.input{min-height:90px;resize:vertical}
 @keyframes sigfloat{0%,100%{transform:translateY(0);opacity:1}50%{transform:translateY(-3px);opacity:.75}}
 @keyframes sigsheen{0%,62%{left:-60%}100%{left:130%}}
 @media (prefers-reduced-motion:reduce){.tab .sig-ico .bub,.tab.center .mid::after{animation:none}}
+
+/* ===== ฟอร์มสมัครแม่บ้าน: การ์ดแยกหัวข้อ แถวละ 2 ช่อง ===== */
+.apply-sec{padding:16px}
+.apply-sec h3{font-size:1.0625rem;font-weight:650;margin-bottom:12px}
+.apply-sec .admin-hint{margin-bottom:12px}
+.apply-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+.apply-grid>*{min-width:0}
+.apply-grid .span2{grid-column:1/-1}
+.apply-dob{display:grid;gap:14px;grid-template-columns:minmax(0,1fr);grid-template-areas:"d" "c" "p"}
+.dob-d{grid-area:d}.dob-c{grid-area:c}.dob-p{grid-area:p}
+@media (min-width:520px){.apply-dob{grid-template-columns:minmax(0,1fr) 300px;grid-template-areas:"d c" "p c";grid-template-rows:auto 1fr}}
+@media (max-width:340px){.apply-grid{grid-template-columns:1fr}}
+.mcal{width:100%;max-width:320px;border:1.5px solid var(--line);border-radius:16px;padding:10px;background:var(--card)}
+.mcal-head{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.mcal-head select{flex:1 1 0;min-width:0;border:1.5px solid var(--line);border-radius:10px;padding:6px 2px;background:var(--card);font-size:.8125rem}
+.mcal-head select:first-of-type{flex:1.5 1 0}
+.mcal-nav{flex:none;width:34px;height:34px;border-radius:10px;font-size:1.25rem;line-height:1;background:var(--foam)}
+.mcal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.mcal-wk{font-size:.75rem;color:var(--ink2);padding:4px 0}
+.mcal-day{height:34px;border-radius:10px;font-size:.875rem;font-weight:500}
+.mcal-day:hover:not(:disabled){background:var(--foam)}
+.mcal-day.on{background:var(--ocean);color:#fff;font-weight:700}
+.mcal-day:disabled{opacity:.3;cursor:not-allowed}

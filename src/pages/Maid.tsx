@@ -243,6 +243,32 @@ const TIMES: [string, string, string][] = [['morning', 'เช้า (08-12)', '
 const DOC_TYPES: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf' }
 const toggle = (a: string[], v: string) => (a.includes(v) ? a.filter(x => x !== v) : [...a, v])
 
+const pad2 = (n: number) => String(n).padStart(2, '0')
+const MONTHS_TH = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
+const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+// ปฏิทินเล็กวางข้างช่องวันที่ — เลือกเดือน/ปีได้ (ปีไทยแสดงเป็น พ.ศ.) วันที่เกินช่วงจะกดไม่ได้
+function MiniCalendar({ value, min, max, onPick }: { value: string; min: string; max: string; onPick: (v: string) => void }) {
+  const th = useI18n().lang === 'th'
+  const base = value >= min && value <= max ? value : max
+  const [[y, m], setYm] = useState<[number, number]>([Number(base.slice(0, 4)), Number(base.slice(5, 7)) - 1])
+  const first = new Date(Date.UTC(y, m, 1)).getUTCDay(); const count = new Date(Date.UTC(y, m + 1, 0)).getUTCDate()
+  const minY = Number(min.slice(0, 4)), maxY = Number(max.slice(0, 4))
+  const go = (d: number) => { const t = new Date(Date.UTC(y, m + d, 1)); const ny = t.getUTCFullYear(); if (ny >= minY && ny <= maxY) setYm([ny, t.getUTCMonth()]) }
+  const years = Array.from({ length: maxY - minY + 1 }, (_, i) => maxY - i)
+  const wk = th ? ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'] : ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+  return <div className="mcal" role="group" aria-label={th ? 'ปฏิทิน' : 'Calendar'}>
+    <div className="mcal-head">
+      <button type="button" className="mcal-nav" aria-label={th ? 'เดือนก่อน' : 'Previous month'} onClick={() => go(-1)}>‹</button>
+      <select aria-label={th ? 'เดือน' : 'Month'} value={m} onChange={e => setYm([y, Number(e.target.value)])}>{(th ? MONTHS_TH : MONTHS_EN).map((n, i) => <option key={n} value={i}>{n}</option>)}</select>
+      <select aria-label={th ? 'ปี' : 'Year'} value={y} onChange={e => setYm([Number(e.target.value), m])}>{years.map(v => <option key={v} value={v}>{th ? v + 543 : v}</option>)}</select>
+      <button type="button" className="mcal-nav" aria-label={th ? 'เดือนถัดไป' : 'Next month'} onClick={() => go(1)}>›</button></div>
+    <div className="mcal-grid">{wk.map((d, i) => <span key={i} className="mcal-wk">{d}</span>)}
+      {Array.from({ length: first }, (_, i) => <span key={'b' + i} />)}
+      {Array.from({ length: count }, (_, i) => { const v = `${y}-${pad2(m + 1)}-${pad2(i + 1)}`
+        return <button type="button" key={v} className={'mcal-day' + (v === value ? ' on' : '')} disabled={v < min || v > max} aria-pressed={v === value} onClick={() => onPick(v)}>{i + 1}</button> })}</div></div>
+}
+
 // ปุ่มเลือกไฟล์ + แสดงชื่อไฟล์ที่เลือก
 function FileField({ label, hint, file, onFile, accept, required }: { label: string; hint?: string; file: File | null; onFile: (f: File | null) => void; accept: string; required?: boolean }) {
   const th = useI18n().lang === 'th'
@@ -311,43 +337,52 @@ export function MaidApply() {
       <div className="pad mt16 stack"><header className="join-banner"><div><h2>{th ? 'ร่วมงานกับ CleenDee' : 'Work with CleenDee'}</h2><p>{t('m_apply_d')}</p></div><img src={maidPortrait} alt="" /></header>
         <p className="admin-hint">{th ? 'ช่อง * จำเป็นต้องกรอก ใช้เวลาประมาณ 5 นาที เตรียมบัตรประชาชนและสมุดบัญชีไว้ได้เลย' : 'Fields marked * are required. About 5 minutes — have your ID card and bank details ready.'}</p>
 
-        <h3 className="desk-heading">{th ? '1. ข้อมูลส่วนตัว' : '1. About you'}</h3>
-        {text('full_name', th ? 'ชื่อ-นามสกุลจริง (ตามบัตรประชาชน)' : 'Full name (as on ID card)', { req: true })}
-        {text('nickname', t('m_nick'), { req: true })}
-        {text('phone', th ? 'เบอร์โทรศัพท์' : 'Phone number', { req: true, type: 'tel', mode: 'tel', ph: '08xxxxxxxx' })}
-        {text('line_id', 'LINE ID')}
-        <div className="field"><label>{th ? 'วันเกิด (อายุ 18 ปีขึ้นไป)' : 'Date of birth (18+)'}{star}</label><input className="input" type="date" max={adultBefore.toISOString().slice(0, 10)} value={f.birth_date} onChange={set('birth_date')} />
-          {f.birth_date && !adult && <small role="alert" style={{ color: 'var(--brick)' }}>{th ? 'ผู้สมัครต้องมีอายุ 18 ปีขึ้นไป' : 'Applicants must be 18 or older'}</small>}</div>
-        <FileField label={th ? 'รูปโปรไฟล์ (หน้าตรง ยิ้ม ใส่ชุดสุภาพ)' : 'Profile photo (face the camera, smile)'} hint={th ? 'ลูกค้าจะเห็นรูปนี้ตอนเลือกแม่บ้าน' : 'Customers see this when choosing a helper'} file={photo} onFile={setPhoto} accept="image/jpeg,image/png,image/webp" />
+        <section className="card apply-sec"><h3>{th ? '1. ข้อมูลส่วนตัว' : '1. About you'}</h3><div className="apply-grid">
+          {text('full_name', th ? 'ชื่อ-นามสกุลจริง (ตามบัตร)' : 'Full name (as on ID)', { req: true })}
+          {text('nickname', t('m_nick'), { req: true })}
+          {text('phone', th ? 'เบอร์โทรศัพท์' : 'Phone number', { req: true, type: 'tel', mode: 'tel', ph: '08xxxxxxxx' })}
+          {text('line_id', 'LINE ID')}
+          <div className="span2 apply-dob"><div className="field dob-d"><label>{th ? 'วันเกิด (อายุ 18 ปีขึ้นไป)' : 'Date of birth (18+)'}{star}</label>
+            <input className="input" type="date" min="1930-01-01" max={adultBefore.toISOString().slice(0, 10)} value={f.birth_date} onChange={set('birth_date')} />
+            <small className="muted">{th ? 'เลือกจากปฏิทินด้านข้าง หรือพิมพ์เอง' : 'Pick from the calendar beside, or type it'}</small>
+            {f.birth_date && !adult && <small role="alert" style={{ color: 'var(--brick)' }}>{th ? 'ผู้สมัครต้องมีอายุ 18 ปีขึ้นไป' : 'Applicants must be 18 or older'}</small>}</div>
+            <div className="dob-c"><MiniCalendar key={f.birth_date.slice(0, 7)} value={f.birth_date} min="1930-01-01" max={adultBefore.toISOString().slice(0, 10)} onPick={v => setF({ ...f, birth_date: v })} /></div>
+          <div className="dob-p"><FileField label={th ? 'รูปโปรไฟล์ (หน้าตรง ยิ้ม ใส่ชุดสุภาพ)' : 'Profile photo (face the camera, smile)'} hint={th ? 'ลูกค้าจะเห็นรูปนี้ตอนเลือกแม่บ้าน' : 'Customers see this when choosing a helper'} file={photo} onFile={setPhoto} accept="image/jpeg,image/png,image/webp" /></div></div>
+        </div></section>
 
-        <h3 className="desk-heading">{th ? '2. ประสบการณ์และงานที่ทำได้' : '2. Experience and services'}</h3>
-        <div className="field"><label>{th ? 'บริการที่ทำได้' : 'Services you can do'}{star}</label>
-          <div className="chips">{activeSvc.map(s => <button type="button" key={s.code} className={'chip' + (svc.includes(s.code) ? ' on' : '')} onClick={() => setSvc(toggle(svc, s.code))}>{svcName(s, lang)}</button>)}</div></div>
-        <div className="field"><label>{th ? 'ประสบการณ์ทำความสะอาด' : 'Cleaning experience'}</label>
-          <select className="input" value={f.experience_years} onChange={set('experience_years')}><option value="">{th ? 'เลือก' : 'Select'}</option><option value="0">{th ? 'ยังไม่มี' : 'None yet'}</option><option value="1">{th ? 'น้อยกว่า 1 ปี' : 'Under 1 year'}</option><option value="2">{th ? '1-3 ปี' : '1-3 years'}</option><option value="5">{th ? 'มากกว่า 3 ปี' : 'Over 3 years'}</option></select></div>
-        <div className="field"><label>{th ? 'เคยทำงานที่ไหนมาบ้าง' : 'Where have you worked'}</label><textarea className="input" value={f.experience_note} onChange={set('experience_note')} placeholder={th ? 'เช่น แม่บ้านโรงแรม รับจ้างทำความสะอาดบ้าน' : 'e.g. hotel housekeeping, home cleaning'} /></div>
-        {text('bio', t('m_bio'))}
+        <section className="card apply-sec"><h3>{th ? '2. ประสบการณ์และงานที่ทำได้' : '2. Experience and services'}</h3><div className="apply-grid">
+          <div className="field span2"><label>{th ? 'บริการที่ทำได้' : 'Services you can do'}{star}</label>
+            <div className="chips">{activeSvc.map(s => <button type="button" key={s.code} className={'chip' + (svc.includes(s.code) ? ' on' : '')} onClick={() => setSvc(toggle(svc, s.code))}>{svcName(s, lang)}</button>)}</div></div>
+          <div className="field"><label>{th ? 'ประสบการณ์ทำความสะอาด' : 'Cleaning experience'}</label>
+            <select className="input" value={f.experience_years} onChange={set('experience_years')}><option value="">{th ? 'เลือก' : 'Select'}</option><option value="0">{th ? 'ยังไม่มี' : 'None yet'}</option><option value="1">{th ? 'น้อยกว่า 1 ปี' : 'Under 1 year'}</option><option value="2">{th ? '1-3 ปี' : '1-3 years'}</option><option value="5">{th ? 'มากกว่า 3 ปี' : 'Over 3 years'}</option></select></div>
+          {text('bio', t('m_bio'))}
+          <div className="field span2"><label>{th ? 'เคยทำงานที่ไหนมาบ้าง' : 'Where have you worked'}</label><textarea className="input" value={f.experience_note} onChange={set('experience_note')} placeholder={th ? 'เช่น แม่บ้านโรงแรม รับจ้างทำความสะอาดบ้าน' : 'e.g. hotel housekeeping, home cleaning'} /></div>
+        </div></section>
 
-        <h3 className="desk-heading">{th ? '3. วันเวลาและพื้นที่ที่รับงาน' : '3. When and where'}</h3>
-        <div className="field"><label>{th ? 'วันที่ว่างทำงาน' : 'Days available'}{star}</label>{chips(DAYS, days, v => setDays(toggle(days, v)))}</div>
-        <div className="field"><label>{th ? 'ช่วงเวลาที่สะดวก' : 'Times available'}</label>{chips(TIMES, times, v => setTimes(toggle(times, v)))}</div>
-        <div className="field"><label>{t('district')}{star}</label><select className="input" value={f.district_id} onChange={e => setF({ ...f, district_id: Number(e.target.value) })}>{districts.map(d => <option key={d.id} value={d.id}>{th ? d.name_th : d.name_en}</option>)}</select></div>
-        <div className="field"><label>{th ? 'อำเภออื่นที่ไปทำงานได้ด้วย' : 'Other districts you can travel to'}</label>
-          <div className="chips">{districts.filter(d => d.id !== f.district_id).map(d => <button type="button" key={d.id} className={'chip' + (areas.includes(d.id) ? ' on' : '')} onClick={() => setAreas(areas.includes(d.id) ? areas.filter(x => x !== d.id) : [...areas, d.id])}>{th ? d.name_th : d.name_en}</button>)}</div></div>
+        <section className="card apply-sec"><h3>{th ? '3. วันเวลาและพื้นที่ที่รับงาน' : '3. When and where'}</h3><div className="apply-grid">
+          <div className="field"><label>{th ? 'วันที่ว่างทำงาน' : 'Days available'}{star}</label>{chips(DAYS, days, v => setDays(toggle(days, v)))}</div>
+          <div className="field"><label>{th ? 'ช่วงเวลาที่สะดวก' : 'Times available'}</label>{chips(TIMES, times, v => setTimes(toggle(times, v)))}</div>
+          <div className="field"><label>{t('district')}{star}</label><select className="input" value={f.district_id} onChange={e => setF({ ...f, district_id: Number(e.target.value) })}>{districts.map(d => <option key={d.id} value={d.id}>{th ? d.name_th : d.name_en}</option>)}</select></div>
+          <div className="field"><label>{th ? 'อำเภออื่นที่ไปได้ด้วย' : 'Other districts you can travel to'}</label>
+            <div className="chips">{districts.filter(d => d.id !== f.district_id).map(d => <button type="button" key={d.id} className={'chip' + (areas.includes(d.id) ? ' on' : '')} onClick={() => setAreas(areas.includes(d.id) ? areas.filter(x => x !== d.id) : [...areas, d.id])}>{th ? d.name_th : d.name_en}</button>)}</div></div>
+        </div></section>
 
-        <h3 className="desk-heading">{th ? '4. เอกสารยืนยันตัวตน' : '4. Identity documents'}</h3>
-        <p className="admin-hint">{th ? 'ใช้เพื่อตรวจสอบก่อนอนุมัติเท่านั้น เก็บเป็นความลับ เห็นได้เฉพาะแอดมิน' : 'Used only for verification. Kept private and visible to admins only.'}</p>
-        <FileField required label={th ? 'รูปบัตรประชาชน (ด้านหน้า)' : 'ID card photo (front)'} file={idCard} onFile={setIdCard} accept="image/jpeg,image/png,image/webp" />
-        <FileField required label={th ? 'รูปเซลฟี่คู่กับบัตรประชาชน' : 'Selfie holding your ID card'} file={selfie} onFile={setSelfie} accept="image/jpeg,image/png,image/webp" />
-        <FileField label={th ? 'ใบรับรองความประพฤติ (ถ้ามี)' : 'Certificate of good conduct (optional)'} hint={th ? 'รูปหรือ PDF ไม่เกิน 5 MB' : 'Photo or PDF up to 5 MB'} file={cert} onFile={setCert} accept="image/jpeg,image/png,image/webp,application/pdf" />
+        <section className="card apply-sec"><h3>{th ? '4. เอกสารยืนยันตัวตน' : '4. Identity documents'}</h3>
+          <p className="admin-hint">{th ? 'ใช้ตรวจสอบก่อนอนุมัติเท่านั้น เก็บเป็นความลับ เห็นได้เฉพาะแอดมิน' : 'Used only for verification. Kept private and visible to admins only.'}</p><div className="apply-grid">
+          <FileField required label={th ? 'รูปบัตรประชาชน (ด้านหน้า)' : 'ID card photo (front)'} file={idCard} onFile={setIdCard} accept="image/jpeg,image/png,image/webp" />
+          <FileField required label={th ? 'เซลฟี่คู่กับบัตรประชาชน' : 'Selfie holding your ID card'} file={selfie} onFile={setSelfie} accept="image/jpeg,image/png,image/webp" />
+          <div className="span2"><FileField label={th ? 'ใบรับรองความประพฤติ (ถ้ามี)' : 'Certificate of good conduct (optional)'} hint={th ? 'รูปหรือ PDF ไม่เกิน 5 MB' : 'Photo or PDF up to 5 MB'} file={cert} onFile={setCert} accept="image/jpeg,image/png,image/webp,application/pdf" /></div>
+        </div></section>
 
-        <h3 className="desk-heading">{th ? '5. ผู้แนะนำ (ถ้ามี)' : '5. Reference (optional)'}</h3>
-        {text('referee_name', th ? 'ชื่อผู้แนะนำ (นายจ้างเก่า หรือคนรู้จัก)' : 'Reference name (past employer or acquaintance)')}
-        {text('referee_phone', th ? 'เบอร์โทรผู้แนะนำ' : 'Reference phone', { type: 'tel', mode: 'tel' })}
+        <section className="card apply-sec"><h3>{th ? '5. ผู้แนะนำ (ถ้ามี)' : '5. Reference (optional)'}</h3><div className="apply-grid">
+          {text('referee_name', th ? 'ชื่อผู้แนะนำ' : 'Reference name')}
+          {text('referee_phone', th ? 'เบอร์โทรผู้แนะนำ' : 'Reference phone', { type: 'tel', mode: 'tel' })}
+        </div></section>
 
-        <h3 className="desk-heading">{th ? '6. บัญชีรับเงิน' : '6. Bank account'}</h3>
-        {text('bank_name', t('m_bank_name'), { req: true })}
-        {text('bank_account', t('m_bank_acc'), { req: true, mode: 'numeric' })}
+        <section className="card apply-sec"><h3>{th ? '6. บัญชีรับเงิน' : '6. Bank account'}</h3><div className="apply-grid">
+          {text('bank_name', t('m_bank_name'), { req: true })}
+          {text('bank_account', t('m_bank_acc'), { req: true, mode: 'numeric' })}
+        </div></section>
 
         <label className="row" style={{ alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}><input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} style={{ width: 22, height: 22, marginTop: 3, flex: 'none' }} />
           <span className="small">{th ? 'ข้าพเจ้ายืนยันว่าข้อมูลเป็นความจริง ยินยอมให้ CleenDee เก็บและใช้ข้อมูลส่วนบุคคลและเอกสารนี้เพื่อตรวจสอบตัวตนและประวัติก่อนอนุมัติ และให้ติดต่อผู้แนะนำที่ระบุไว้' : 'I confirm the information is true and consent to CleenDee storing and using my personal data and documents to verify my identity and background, and to contacting the reference listed.'}{star}</span></label>
