@@ -87,7 +87,11 @@ export function Login() {
 function ServiceMinimum({ service }: { service: ServiceType }) {
   const { t, lang } = useI18n()
   const minimumPrice = service.min_qty * service.price_per_unit
-  return `${t('min_qty')} ${service.min_qty}\u00a0${svcUnit(service, lang)} · ${money(minimumPrice)}\u00a0${t('baht')}`
+  return <>
+    <span className="min-qty">{t('min_qty')} {service.min_qty}{'\u00a0'}{svcUnit(service, lang)}</span>
+    <span className="min-separator"> · </span>
+    <span>{money(minimumPrice)}{'\u00a0'}{t('baht')}</span>
+  </>
 }
 
 export function Home() {
@@ -125,11 +129,11 @@ export function Home() {
           {!services ? <Loading /> : services.filter(s => s.active || s.coming_soon).map(s => s.active
             ? <button key={s.code} className="sv" onClick={() => open(s.code, '/service/' + s.code)}>
                 <span className="ic"><Icon n={s.icon} size={28} /></span>
-                <span>{svcName(s, lang)}</span>
-                <span className="muted"><ServiceMinimum service={s} /></span>
+                <span className="sv-name">{svcName(s, lang)}</span>
+                <span className="sv-price"><ServiceMinimum service={s} /></span>
               </button>
-            : <div key={s.code} className="sv dim"><span className="soon">{t('soon')}</span><span className="ic"><Icon n={s.icon} size={28} /></span><span>{svcName(s, lang)}</span></div>)}
-          {extra.map(s => <button key={s.to} className="sv" onClick={() => open(s.svc, s.to)}><span className="ic"><Icon n={s.icon} size={28} /></span><span style={{ whiteSpace: 'pre-line' }}>{s.label}</span></button>)}
+            : <div key={s.code} className="sv dim"><span className="soon">{t('soon')}</span><span className="ic"><Icon n={s.icon} size={28} /></span><span className="sv-name">{svcName(s, lang)}</span></div>)}
+          {extra.map(s => <button key={s.to} className="sv" onClick={() => open(s.svc, s.to)}><span className="ic"><Icon n={s.icon} size={28} /></span><span className="sv-name" style={{ whiteSpace: 'pre-line' }}>{s.label}</span></button>)}
         </div>
         <div className="pad mt12"><Link to="/guarantee" className="choice" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--leaf-l)', color: 'var(--leaf)' }}><Icon n="shield" /></span>
           <span style={{ flex: 1 }}><b>{t('g_title')}</b><span className="small muted">{t('g_short')}</span></span><Icon n="next" /></Link></div>
@@ -167,9 +171,9 @@ export function Service() {
       <img src={imgClean} alt="" style={{ width: '100%', aspectRatio: '4/3', maxHeight: 360, objectFit: 'cover', display: 'block' }} />
       <button className="back" onClick={() => nav(-1)} style={{ position: 'absolute', top: 14, left: 14, background: '#fff' }} aria-label="Back"><Icon n="back" /></button>
     </div>
-    <div className="pad mt16"><h2 style={{ fontSize: 24, color: 'var(--ocean)' }}>{svcName(s, lang)}</h2>
-      <p className="muted">{lang === 'th' ? s.desc_th : s.desc_en}</p>
-      <div className="disp mt8" style={{ fontWeight: 700, fontSize: 18 }}><ServiceMinimum service={s} /></div>
+    <div className="pad mt16"><h2 className="service-title">{svcName(s, lang)}</h2>
+      <p className="service-description muted">{lang === 'th' ? s.desc_th : s.desc_en}</p>
+      <div className="service-minimum mt12"><ServiceMinimum service={s} /></div>
       <div className="small muted">{money(s.price_per_unit)} {t('baht')} / {svcUnit(s, lang)}</div>
       <div className="stack mt12">{ben.map(([i, b, d]) => <div key={b} className="row" style={{ alignItems: 'flex-start' }}>
         <span className="rico" style={{ background: 'var(--sun-l)', color: '#8A6200' }}><Icon n={i} /></span><div><b className="disp">{b}</b><div className="small muted">{d}</div></div></div>)}</div>
