@@ -490,6 +490,7 @@ textarea.input{min-height:90px;resize:vertical}
 .lp-pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);z-index:500;pointer-events:none;transition:transform .15s ease}
 .lp-pin.up{transform:translate(-50%,calc(-100% - 8px))}
 .lp-pin.idle{opacity:.55}
+.lp-pin svg{display:block;margin-bottom:-3px}
 .lp-shadow{position:absolute;left:50%;top:50%;width:10px;height:4px;margin:-2px 0 0 -5px;border-radius:50%;background:rgba(19,41,75,.35);z-index:499;pointer-events:none}
 .lp-me{position:absolute;right:10px;bottom:24px;z-index:500;width:44px;height:44px;border-radius:50%;border:0;background:#fff;color:var(--ocean);display:grid;place-items:center;box-shadow:0 2px 10px rgba(19,41,75,.28);cursor:pointer}
 .lp-spin{width:18px;height:18px;border:2.5px solid rgba(19,41,75,.15);border-top-color:var(--ocean);border-radius:50%;animation:lpspin .8s linear infinite}
