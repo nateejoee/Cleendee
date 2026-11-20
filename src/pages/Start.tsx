@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { sb, friendly, type District, type Service as ServiceType } from '../lib/supabase'
+import { sb, friendly, type District } from '../lib/supabase'
 import { useI18n, localStorageSet, money, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { Avatar, Icon, LangToggle, Logo, CustomerTabs, TopBar, Loading, SiteFooter } from '../components/ui'
@@ -84,21 +84,10 @@ export function Login() {
   </div>
 }
 
-function ServiceMinimum({ service }: { service: ServiceType }) {
-  const { t, lang } = useI18n()
-  const minimumPrice = service.min_qty * service.price_per_unit
-  return <>
-    <span className="min-qty">{t('min_qty')} {service.min_qty}{'\u00a0'}{svcUnit(service, lang)}</span>
-    <span className="min-separator"> · </span>
-    <span>{money(minimumPrice)}{'\u00a0'}{t('baht')}</span>
-  </>
-}
-
 export function Home() {
   const { t, lang } = useI18n(); const { profile } = useAuth(); const nav = useNavigate(); const districts = useDistricts(); const services = useServices(); const maids = useMaids()
   const distId = profile?.district_id ?? Number(localStorage.getItem('cd_district') || 1)
   const d = districts.find(x => x.id === distId)
-  // ปุ่มลัดเดิม (แพ็กเกจ / จองคนเดิม) ต่อท้ายรายการบริการจากฐานข้อมูล
   const extra = [
     { to: '/book/time?plan=weekly', icon: 'cal', label: t('s_monthly'), svc: 'general_cleaning' },
     { to: '/account/favorites', icon: 'heart', label: t('s_rebook'), svc: '' },
@@ -128,17 +117,30 @@ export function Home() {
         <div className="pad mt16"><button className="urgent" style={{ width: '100%', textAlign: 'left' }} onClick={() => open('general_cleaning', '/book/time?urgent=1')}>
           <span className="rico" style={{ background: 'var(--card)', color: 'var(--brick)' }}><Icon n="clock" /></span>
           <span style={{ flex: 1 }}><b className="disp">{t('urgent_t')}</b><span className="small" style={{ display: 'block', color: 'var(--brick)' }}>{t('urgent_d')}</span></span><Icon n="next" /></button></div>
-        <div className="pad"><div className="sec-title">{t('services')}</div></div>
-        <div className="svc pad">
-          {!services ? <Loading /> : services.filter(s => s.active || s.coming_soon).map(s => s.active
-            ? <button key={s.code} className="sv" onClick={() => open(s.code, '/service/' + s.code)}>
-                <span className="ic"><Icon n={s.icon} size={28} /></span>
+        <section className="pad" aria-labelledby="home-services">
+          <h2 id="home-services" className="sec-title">{t('services')}</h2>
+          {!services ? <Loading /> : <div className="svc">
+            {services.filter(s => s.active).map(s =>
+              <button key={s.code} className="sv" onClick={() => open(s.code, '/service/' + s.code)}>
+                <span className="ic"><Icon n={s.icon} size={22} /></span>
                 <span className="sv-name">{svcName(s, lang)}</span>
-                <span className="sv-price"><ServiceMinimum service={s} /></span>
               </button>
-            : <div key={s.code} className="sv dim"><span className="soon">{t('soon')}</span><span className="ic"><Icon n={s.icon} size={28} /></span><span className="sv-name">{svcName(s, lang)}</span></div>)}
-          {extra.map(s => <button key={s.to} className="sv" onClick={() => open(s.svc, s.to)}><span className="ic"><Icon n={s.icon} size={28} /></span><span className="sv-name" style={{ whiteSpace: 'pre-line' }}>{s.label}</span></button>)}
-        </div>
+            )}
+            {extra.map(s =>
+              <button key={s.to} className="sv" onClick={() => open(s.svc, s.to)}>
+                <span className="ic"><Icon n={s.icon} size={22} /></span>
+                <span className="sv-name">{s.label}</span>
+              </button>
+            )}
+            {services.filter(s => !s.active && s.coming_soon).map(s =>
+              <div key={s.code} className="sv dim">
+                <span className="ic"><Icon n={s.icon} size={22} /></span>
+                <span className="sv-name">{svcName(s, lang)}</span>
+                <span className="soon">{t('soon')}</span>
+              </div>
+            )}
+          </div>}
+        </section>
         <div className="pad mt12"><Link to="/guarantee" className="choice" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--leaf-l)', color: 'var(--leaf)' }}><Icon n="shield" /></span>
           <span style={{ flex: 1 }}><b>{t('g_title')}</b><span className="small muted">{t('g_short')}</span></span><Icon n="next" /></Link></div>
         <div className="pad"><div className="sec-title">{t('why_us')}</div></div>
@@ -189,7 +191,9 @@ export function Service() {
     </div>
     <div className="pad mt16"><h2 className="service-title">{svcName(s, lang)}</h2>
       <p className="service-description muted">{lang === 'th' ? s.desc_th : s.desc_en}</p>
-      <div className="service-minimum mt12"><ServiceMinimum service={s} /></div>
+      <div className="service-minimum mt12">
+        {t('min_qty')} {s.min_qty}{'\u00a0'}{svcUnit(s, lang)} · {money(s.min_qty * s.price_per_unit)}{'\u00a0'}{t('baht')}
+      </div>
       <div className="small muted">{money(s.price_per_unit)} {t('baht')} / {svcUnit(s, lang)}</div>
       <div className="stack mt12">{ben.map(([i, b, d]) => <div key={b} className="row" style={{ alignItems: 'flex-start' }}>
         <span className="rico" style={{ background: 'var(--sun-l)', color: '#8A6200' }}><Icon n={i} /></span><div><b className="disp">{b}</b><div className="small muted">{d}</div></div></div>)}</div>
