@@ -264,7 +264,7 @@ function Num({ label, v, on }: { label: string; v: number | string | null | unde
 
 // ช่องกรอกตัวเลขของการ์ดราคาบริการ (มีหน่วยอยู่ในช่อง)
 function SvcField({ label, v, on, unit }: { label: string; v: number | string | null | undefined; on: (n: string) => void; unit?: string }) {
-  return <label className="svc-f"><span>{label}</span><div className="svc-in"><input className="input" inputMode="decimal" value={v ?? ''} onChange={e => on(e.target.value.replace(/[^\d.]/g, ''))} />{unit && <i>{unit}</i>}</div></label>
+  return <label className="apc-f"><span>{label}</span><div className="apc-in"><input className="input" inputMode="decimal" value={v ?? ''} onChange={e => on(e.target.value.replace(/[^\d.]/g, ''))} />{unit && <i>{unit}</i>}</div></label>
 }
 
 // ตั้งค่าร้าน: ค่าเรียกด่วน เลื่อนนัด ส่วนลด และข้อมูลบนใบเสร็จ
@@ -299,19 +299,19 @@ function ServicePrices({ toast }: { toast: (m: string) => void }) {
     const { error } = await sb.rpc('admin_update_service', { p_code: r.code, p_price_per_unit: Number(r.price_per_unit), p_payout_pct: Number(r.payout_pct), p_min: Number(r.min_qty), p_max: Number(r.max_qty), p_default: Number(r.default_qty), p_minutes: Number(r.minutes_per_unit), p_active: r.active, p_coming_soon: r.coming_soon })
     toast(error ? friendly(error, lang) : t('saved')); load()
   }
-  return <><div className="sec-title">{t('a_prices')}</div><div className="stack cols svc-cols">{rows.map((r, i) => {
+  return <><div className="sec-title">{t('a_prices')}</div><div className="stack cols apc-cols">{rows.map((r, i) => {
     const u = svcUnit(r, lang), price = Number(r.price_per_unit) || 0, pct = Number(r.payout_pct) || 0
     const maid = Math.round(price * pct) / 100, shop = Math.round((price - maid) * 100) / 100
     const num = (k: keyof Service) => (v: string) => upd(i, { [k]: v as unknown as number })
-    return <div key={r.code} className="card svc">
+    return <div key={r.code} className="card apc">
       <div className="between"><b className="disp">{svcName(r, lang)}</b><span className={'pill ' + (r.active ? 'p-leaf' : 'p-grey')}>{r.active ? t('a_open') : r.coming_soon ? t('soon') : t('a_closed')}</span></div>
-      <div className="svc-g2"><SvcField label={t('a_price_cust')} unit={`${t('a_baht')} / ${u}`} v={r.price_per_unit} on={num('price_per_unit')} /><SvcField label={t('a_payout_pct')} unit="%" v={r.payout_pct} on={num('payout_pct')} /></div>
-      <div className="svc-sum"><div><span>{t('a_cust_pays')}</span><b>{price}</b></div><div><span>{t('a_maid_gets')}</span><b>{maid}</b></div><div><span>{t('a_shop_gets')}</span><b>{shop}</b></div></div>
-      <div className="svc-sub">{t('a_sec_qty')} ({u})</div>
-      <div className="svc-g3"><SvcField label={t('a_min_qty')} v={r.min_qty} on={num('min_qty')} /><SvcField label={t('a_max_qty')} v={r.max_qty} on={num('max_qty')} /><SvcField label={t('a_default')} v={r.default_qty} on={num('default_qty')} /></div>
+      <div className="apc-g2"><SvcField label={t('a_price_cust')} unit={`${t('a_baht')} / ${u}`} v={r.price_per_unit} on={num('price_per_unit')} /><SvcField label={t('a_payout_pct')} unit="%" v={r.payout_pct} on={num('payout_pct')} /></div>
+      <div className="apc-sum"><div><span>{t('a_cust_pays')}</span><b>{price}</b></div><div><span>{t('a_maid_gets')}</span><b>{maid}</b></div><div><span>{t('a_shop_gets')}</span><b>{shop}</b></div></div>
+      <div className="apc-sub">{t('a_sec_qty')} ({u})</div>
+      <div className="apc-g3"><SvcField label={t('a_min_qty')} v={r.min_qty} on={num('min_qty')} /><SvcField label={t('a_max_qty')} v={r.max_qty} on={num('max_qty')} /><SvcField label={t('a_default')} v={r.default_qty} on={num('default_qty')} /></div>
       {r.pricing === 'unit' && <SvcField label={t('a_min_per_unit')} unit={t('a_minutes')} v={r.minutes_per_unit} on={num('minutes_per_unit')} />}
       <div className="tiny muted">{t('a_qty_note')}</div>
-      <div className="svc-foot"><div className="chips"><button className={'chip' + (r.active ? ' on' : '')} onClick={() => upd(i, { active: !r.active })}>{t('a_open_h')}</button>
+      <div className="apc-foot"><div className="chips"><button className={'chip' + (r.active ? ' on' : '')} onClick={() => upd(i, { active: !r.active })}>{t('a_open_h')}</button>
         <button className={'chip' + (r.coming_soon ? ' on' : '')} onClick={() => upd(i, { coming_soon: !r.coming_soon })}>{t('a_soon_h')}</button></div>
         <button className="btn sm b-ocean" onClick={() => save(r)}>{t('save')}</button></div></div>
   })}</div></>
