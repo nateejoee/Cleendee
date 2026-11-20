@@ -99,4 +99,11 @@ export function useToast() {
   return { show: setMsg, node: msg ? <div className="toast" role="status">{msg}</div> : null }
 }
 
+// ท้ายหน้า: ชื่อแอปเป็นตัวหนังสือ + ลิงก์นโยบายความเป็นส่วนตัว (กูเกิลใช้ตรวจชื่อแอปบนหน้าแรก)
+export function SiteFooter({ dark = false }: { dark?: boolean }) {
+  const { lang } = useI18n()
+  return <div className="tiny" style={{ textAlign: 'center', padding: '14px 20px', color: dark ? '#CFE3F2' : 'var(--ink3)' }}>
+    © CleenDee คลีนดี · <Link to="/privacy" style={{ color: 'inherit', textDecoration: 'underline' }}>{lang === 'th' ? 'นโยบายความเป็นส่วนตัว' : 'Privacy Policy'}</Link></div>
+}
+
 export function Loading() { const { t } = useI18n(); return <div className="loading">{t('loading')}</div> }

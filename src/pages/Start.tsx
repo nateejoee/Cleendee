@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { sb, friendly, type District } from '../lib/supabase'
 import { useI18n, localStorageSet, money } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
-import { Icon, LangToggle, Logo, CustomerTabs, TopBar, Loading } from '../components/ui'
+import { Icon, LangToggle, Logo, CustomerTabs, TopBar, Loading, SiteFooter } from '../components/ui'
 import { setDraft, emptyDraft } from '../lib/draft'
 import { useServices, svcName, svcUnit } from '../lib/services'
 import imgClean from '../assets/ill/cleaning.webp'
@@ -26,7 +26,8 @@ export function Onboarding() {
     <div className="between pad" style={{ paddingTop: 16 }}><span /><LangToggle /></div>
     <div className="onb"><Logo white h={64} /><p style={{ color: '#CFE3F2', marginTop: 12 }}>{t('tagline')}</p>
       <img src={imgHome} alt="" style={{ marginTop: 28 }} /></div>
-    <div className="pad" style={{ paddingBottom: 34 }}><button className="btn b-sun" onClick={() => setStep(1)}>{t('start')}</button></div>
+    <div className="pad" style={{ paddingBottom: 10 }}><button className="btn b-sun" onClick={() => setStep(1)}>{t('start')}</button></div>
+    <SiteFooter dark />
   </div>
   if (step === 1) return <div className="page nobar">
     <div className="pad" style={{ paddingTop: 30, textAlign: 'center' }}><h2 style={{ fontSize: 26, color: 'var(--ocean)' }}>{t('choose_area')}</h2><p className="muted mt8">{t('choose_area_sub')}</p></div>
@@ -70,6 +71,7 @@ export function Login() {
       {SOCIAL.map(s => <button key={s.id} className="btn" style={{ background: s.bg, color: s.fg, border: s.bg === '#fff' ? '1.5px solid var(--line)' : 0 }} onClick={() => social(s.id)}>{s.icon}{t('continue_with')} {s.label}</button>)}
       {err && <div className="err">{err}</div>}
       <p className="tiny muted" style={{ textAlign: 'center' }}>{t('login_terms')}</p>
+      <SiteFooter />
       <button className="link mt16" onClick={() => setShowEmail(!showEmail)}>{t('staff_login')}</button>
       {showEmail && <form className="stack" onSubmit={submit}>
         <div className="field"><label>{t('email')}</label><input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" /></div>
@@ -112,6 +114,7 @@ export function Home() {
       <div className="pad"><button className="choice" onClick={() => nav('/account')}><span className="rico" style={{ background: 'var(--sun)' }}><Icon n="star" /></span>
         <span style={{ flex: 1 }}><b>{money(profile.points)} {t('points')}</b><span className="small muted">{t('points_rule')}</span></span></button></div></>}
     {!profile && <div className="pad mt20"><Link to="/login" className="btn b-ocean">{t('login')} / {t('signup')}</Link></div>}
+    <SiteFooter />
     <CustomerTabs />
   </div>
 }
