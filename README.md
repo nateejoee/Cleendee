@@ -12,4 +12,4 @@ npm run dev
 - Build command: `npm run build`
 - Output directory: `dist`
 - Environment variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_KEY` (มีค่าเริ่มต้นในโค้ดแล้ว)
-- ไฟล์ `public/_redirects` ทำให้ทุกหน้าเปิดได้ตรงๆ
+- `wrangler.jsonc` ตั้งให้ทุกหน้าเปิดได้ตรงๆ (single-page-application)
