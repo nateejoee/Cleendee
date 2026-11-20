@@ -223,8 +223,10 @@ export function AdminPublicPages() {
 }
 
 // ช่องตัวเลขสั้นๆ ใช้ซ้ำในหน้าตั้งค่า
-function Num({ label, v, on }: { label: string; v: number | string | null | undefined; on: (n: string) => void }) {
-  return <div className="field" style={{ flex: 1, minWidth: 110 }}><label>{label}</label><input className="input" inputMode="decimal" value={v ?? ''} onChange={e => on(e.target.value.replace(/[^\d.]/g, ''))} /></div>
+function Num({ label, v, on, hint, unit }: { label: string; v: number | string | null | undefined; on: (n: string) => void; hint?: string; unit?: string }) {
+  return <div className="field" style={{ flex: 1, minWidth: 110 }}><label>{label}</label>
+    <div className="row" style={{ alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}><input className="input" inputMode="decimal" value={v ?? ''} onChange={e => on(e.target.value.replace(/[^\d.]/g, ''))} />{unit && <span className="tiny muted" style={{ whiteSpace: 'nowrap' }}>{unit}</span>}</div>
+    {hint && <span className="tiny muted">{hint}</span>}</div>
 }
 
 // ตั้งค่าร้าน: ค่าเรียกด่วน เลื่อนนัด ส่วนลด และข้อมูลบนใบเสร็จ
@@ -261,12 +263,17 @@ function ServicePrices({ toast }: { toast: (m: string) => void }) {
   }
   return <><div className="sec-title">{t('a_prices')}</div><div className="stack cols">{rows.map((r, i) => <div key={r.code} className="card stack">
     <div className="between"><b className="disp">{svcName(r, lang)}</b><span className={'pill ' + (r.active ? 'p-leaf' : 'p-grey')}>{r.active ? t('a_open') : r.coming_soon ? t('soon') : t('a_closed')}</span></div>
-    <div className="row" style={{ flexWrap: 'wrap' }}><Num label={`${t('a_price_per')} ${svcUnit(r, lang)}`} v={r.price_per_unit} on={v => upd(i, { price_per_unit: v as unknown as number })} />
-      <Num label={t('a_payout_pct')} v={r.payout_pct} on={v => upd(i, { payout_pct: v as unknown as number })} /></div>
-    <div className="row" style={{ flexWrap: 'wrap' }}><Num label="min" v={r.min_qty} on={v => upd(i, { min_qty: v as unknown as number })} /><Num label="max" v={r.max_qty} on={v => upd(i, { max_qty: v as unknown as number })} />
-      <Num label={t('a_default')} v={r.default_qty} on={v => upd(i, { default_qty: v as unknown as number })} />{r.pricing === 'unit' && <Num label={t('a_min_per_unit')} v={r.minutes_per_unit} on={v => upd(i, { minutes_per_unit: v as unknown as number })} />}</div>
-    <div className="chips"><button className={'chip' + (r.active ? ' on' : '')} onClick={() => upd(i, { active: !r.active })}>{t('a_open')}</button>
-      <button className={'chip' + (r.coming_soon ? ' on' : '')} onClick={() => upd(i, { coming_soon: !r.coming_soon })}>{t('soon')}</button></div>
+    {(() => { const u = svcUnit(r, lang), price = Number(r.price_per_unit) || 0, pct = Number(r.payout_pct) || 0, maid = Math.round(price * pct) / 100, shop = Math.round((price - maid) * 100) / 100
+      return <><div className="tiny" style={{ fontWeight: 600 }}>{t('a_sec_price')}</div>
+        <div className="row" style={{ flexWrap: 'wrap' }}><Num label={`${t('a_price_cust')} / ${u}`} unit={t('a_baht')} hint={t('a_price_cust_h')} v={r.price_per_unit} on={v => upd(i, { price_per_unit: v as unknown as number })} />
+          <Num label={t('a_payout_pct')} unit="%" hint={t('a_payout_pct_h')} v={r.payout_pct} on={v => upd(i, { payout_pct: v as unknown as number })} /></div>
+        <div className="small" style={{ background: 'var(--bg2, rgba(0,0,0,.04))', borderRadius: 10, padding: '8px 12px' }}>{t('a_example')} 1 {u}: {t('a_cust_pays')} <b>{price}</b> {t('a_baht')} → {t('a_maid_gets')} <b>{maid}</b> {t('a_baht')} · {t('a_shop_gets')} <b>{shop}</b> {t('a_baht')}</div>
+        <div className="tiny" style={{ fontWeight: 600 }}>{t('a_sec_qty')} ({u})</div>
+        <div className="row" style={{ flexWrap: 'wrap' }}><Num label={t('a_min_qty')} unit={u} hint={t('a_min_qty_h')} v={r.min_qty} on={v => upd(i, { min_qty: v as unknown as number })} /><Num label={t('a_max_qty')} unit={u} hint={t('a_max_qty_h')} v={r.max_qty} on={v => upd(i, { max_qty: v as unknown as number })} />
+          <Num label={t('a_default')} unit={u} hint={t('a_default_h')} v={r.default_qty} on={v => upd(i, { default_qty: v as unknown as number })} />{r.pricing === 'unit' && <Num label={t('a_min_per_unit')} unit={t('a_minutes')} hint={t('a_min_per_unit_h')} v={r.minutes_per_unit} on={v => upd(i, { minutes_per_unit: v as unknown as number })} />}</div>
+        <div className="tiny" style={{ fontWeight: 600 }}>{t('a_sec_status')}</div></> })()}
+    <div className="chips"><button className={'chip' + (r.active ? ' on' : '')} onClick={() => upd(i, { active: !r.active })}>{t('a_open_h')}</button>
+      <button className={'chip' + (r.coming_soon ? ' on' : '')} onClick={() => upd(i, { coming_soon: !r.coming_soon })}>{t('a_soon_h')}</button></div>
     <button className="btn sm b-ocean" onClick={() => save(r)}>{t('save')}</button></div>)}</div></>
 }
 

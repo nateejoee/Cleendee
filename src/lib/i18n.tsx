@@ -80,6 +80,13 @@ const D = {
     checklist: 'เช็กลิสต์งาน', job_photos: 'รูปก่อน/หลังทำงาน', job_photos_d: 'ถ่ายรูปก่อนเริ่มและหลังเสร็จ ลูกค้าจะเห็นในแอป',
     a_skills: 'บริการที่รับได้', a_shop: 'ตั้งค่าร้าน', a_urgent_fee: 'ค่าเรียกด่วน (บาท)', a_urgent_bonus: 'ส่วนแม่บ้านจากค่าด่วน', a_urgent_lead: 'ด่วนเร็วสุด (นาที)', a_resched_h: 'เลื่อนนัดได้ก่อน (ชม.)',
     a_biz_name: 'ชื่อร้าน (บนใบเสร็จ)', a_biz_addr: 'ที่อยู่ร้าน (บนใบเสร็จ)', a_prices: 'ราคาบริการ', a_open: 'เปิด', a_closed: 'ปิด', a_price_per: 'ราคาต่อ', a_payout_pct: 'ให้แม่บ้าน (%)',
+    // คำอธิบายช่องตั้งค่าราคาบริการ (หน้า Admin)
+    a_sec_price: 'ราคาและส่วนแบ่ง', a_sec_qty: 'จำนวนที่ลูกค้าเลือกได้', a_sec_status: 'สถานะบริการบนหน้าจอง', a_price_cust: 'ราคาที่ลูกค้าจ่าย', a_baht: 'บาท', a_minutes: 'นาที',
+    a_price_cust_h: 'ราคาขายให้ลูกค้าต่อ 1 หน่วย', a_payout_pct_h: 'ส่วนของราคาที่โอนให้แม่บ้าน ที่เหลือเป็นรายได้ร้าน',
+    a_example: 'ตัวอย่าง', a_cust_pays: 'ลูกค้าจ่าย', a_maid_gets: 'แม่บ้านได้', a_shop_gets: 'ร้านได้',
+    a_min_qty: 'ขั้นต่ำที่เลือกได้', a_max_qty: 'สูงสุดที่เลือกได้', a_min_qty_h: 'น้อยที่สุดที่ลูกค้าจองได้', a_max_qty_h: 'มากที่สุดที่ลูกค้าจองได้',
+    a_default_h: 'ค่าที่ติ๊กไว้ให้ตอนเปิดหน้าจอง', a_min_per_unit_h: 'ใช้คำนวณเวลาทำงานของแม่บ้าน',
+    a_open_h: 'เปิดให้จอง', a_soon_h: 'แสดงว่า "เร็วๆ นี้" (ยังจองไม่ได้)',
     a_default: 'ค่าเริ่มต้น', a_min_per_unit: 'นาทีต่อหน่วย', a_new_addon: 'เพิ่มงานเสริม', a_code: 'รหัส (ภาษาอังกฤษ)', a_name_th: 'ชื่อภาษาไทย', a_name_en: 'ชื่อภาษาอังกฤษ', a_to_maid: 'ให้แม่บ้าน',
     a_kind: 'แบบ', a_value: 'ลด', a_max_disc: 'ลดสูงสุด', a_min_total: 'ยอดขั้นต่ำ', a_max_uses: 'ใช้ได้กี่ครั้ง', a_ends: 'หมดอายุ (ไม่ใส่ = ไม่หมด)', a_add_promo: 'สร้างโค้ด', a_used: 'ใช้แล้ว', a_until: 'ถึง',
     // หน้าบังคับเข้าสู่ระบบ / ธีม / ลูกเล่น / หน้าแรกบนคอม (เพิ่ม 20/11/69)
@@ -170,6 +177,13 @@ const D = {
     checklist: 'Job checklist', job_photos: 'Before / after photos', job_photos_d: 'Take photos before you start and after you finish. The customer sees them in the app',
     a_skills: 'Services offered', a_shop: 'Shop settings', a_urgent_fee: 'Urgent fee (THB)', a_urgent_bonus: 'Helper share of urgent fee', a_urgent_lead: 'Earliest urgent start (min)', a_resched_h: 'Reschedule allowed until (h)',
     a_biz_name: 'Shop name (receipt)', a_biz_addr: 'Shop address (receipt)', a_prices: 'Service prices', a_open: 'Open', a_closed: 'Closed', a_price_per: 'Price per', a_payout_pct: 'Helper share (%)',
+    // service price field help (Admin)
+    a_sec_price: 'Price and share', a_sec_qty: 'Quantity the customer can choose', a_sec_status: 'Status on the booking page', a_price_cust: 'Customer pays', a_baht: 'THB', a_minutes: 'min',
+    a_price_cust_h: 'Selling price per 1 unit', a_payout_pct_h: 'Share of the price paid to the helper; the rest is shop income',
+    a_example: 'Example', a_cust_pays: 'customer pays', a_maid_gets: 'helper gets', a_shop_gets: 'shop gets',
+    a_min_qty: 'Minimum', a_max_qty: 'Maximum', a_min_qty_h: 'Least a customer can book', a_max_qty_h: 'Most a customer can book',
+    a_default_h: 'Pre-selected when the booking page opens', a_min_per_unit_h: 'Used to work out the helper\'s job time',
+    a_open_h: 'Open for booking', a_soon_h: 'Show "Coming soon" (cannot be booked)',
     a_default: 'Default', a_min_per_unit: 'Minutes per unit', a_new_addon: 'New add-on', a_code: 'Code (English)', a_name_th: 'Thai name', a_name_en: 'English name', a_to_maid: 'To helper',
     a_kind: 'Type', a_value: 'Discount', a_max_disc: 'Max discount', a_min_total: 'Minimum total', a_max_uses: 'Max uses', a_ends: 'Expires (blank = never)', a_add_promo: 'Create code', a_used: 'used', a_until: 'until',
     login_now: 'Log in now', lw_book: 'Log in or sign up before booking a helper. Use Google or LINE, it takes under a minute',
