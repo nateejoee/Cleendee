@@ -297,10 +297,10 @@ export function Claim() {
 }
 
 export function Messages() {
-  const { t, lang } = useI18n(); const { list } = useMyBookings(); const maids = useMaids()
+  const { t, lang } = useI18n(); const { list } = useMyBookings(); const maids = useMaids(); const helpers = useBookingHelpers()
   const rows = (list || []).filter(b => b.maid_id && ['confirmed', 'on_the_way', 'working', 'completed'].includes(b.status)).reverse()
   return <div className="page"><div className="hero"><h1>{t('tab_msgs')}</h1></div>
-    <div className="mt12">{rows.length === 0 ? <div className="pad"><div className="empty muted">{t('nothing')}</div></div> : rows.map(b => { const m = maids?.find(x => x.id === b.maid_id)
+    <div className="mt12">{rows.length === 0 ? <div className="pad"><div className="empty muted">{t('nothing')}</div></div> : rows.map(b => { const m = helpers.find(x => x.id === b.maid_id) ?? maids?.find(x => x.id === b.maid_id)
       return <Link key={b.id} to={'/bookings/' + b.id} className="listrow" style={{ color: 'var(--ink)' }}>{m && <Avatar name={m.nickname} seed={m.id} size={44} />}
         <span style={{ flex: 1 }}><b>{m?.nickname}</b><span className="small muted">{fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}</span></span><StatusPill s={b.status} /></Link> })}</div>
     <CustomerTabs /></div>
