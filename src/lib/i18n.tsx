@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 export type Lang = 'th' | 'en'
 const D = {
   th: {
-    tagline: 'บ้านสะอาด คนใกล้บ้าน', choose_area: 'บ้านคุณอยู่อำเภอไหน?', choose_area_sub: 'ตอนนี้ให้บริการในจังหวัดชุมพร',
+    tagline: 'บ้านสะอาด สบายใจ', choose_area: 'บ้านคุณอยู่อำเภอไหน?', choose_area_sub: 'ตอนนี้ให้บริการในจังหวัดชุมพร',
     onb1_t: 'เลือกวันและเวลา', onb1_d: 'เลือกจำนวนชั่วโมงและเวลาเริ่มได้เอง',
     onb2_t: 'แม่บ้านคนในพื้นที่', onb2_d: 'ตรวจประวัติทุกคน เลือกเองหรือให้เราหาให้',
     onb3_t: 'ปลอดภัย มีการันตีงาน', onb3_d: 'ของเสียหาย CleenDee ชดเชยสูงสุด 10,000 บาท',
