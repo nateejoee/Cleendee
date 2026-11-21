@@ -98,15 +98,17 @@ export function BookMaid() {
     if (suggestedOk && !autoPicked) { setAutoPicked(suggested); if (getDraft().maidId !== suggested) setD(setDraft({ maidId: suggested, hour: null })) }
     else if (!suggestedOk && autoPicked && getDraft().maidId === suggested) setD(setDraft({ maidId: null, hour: null }))
   }, [listReady, suggested, suggestedOk])
-  const qty = bookingQuantity(d, s)
+  // ขั้นนี้ยังไม่ได้เลือกชั่วโมง: แสดง "เริ่มต้นที่" จากชั่วโมงขั้นต่ำ ไม่รวมงานเสริม (ราคาจริงคิดในขั้นเลือกเวลา)
+  const qty = s ? s.min_qty : bookingQuantity(d, s)
+  const isOnce = d.plan === 'once'
   const pkgPrice = d.plan === 'weekly' || d.plan === 'biweekly' ? prices.pkg?.[d.plan] : undefined
   // ราคาครั้งเดียวใช้ราคาจากเซิร์ฟเวอร์ (รวมส่วนลดจองครั้งแรก) ระหว่างโหลด/ผิดพลาดใช้ราคาประมาณในเครื่อง
   const [q, setQ] = useState<{ key: string; total: number } | null>(null)
-  const quoteKey = JSON.stringify([s?.code, qty, d.addons, chosenCount, team])
+  const quoteKey = JSON.stringify([s?.code, qty, chosenCount, team])
   useEffect(() => {
     if (!s || d.plan !== 'once') return
     let active = true
-    sb.rpc('quote_booking_v2', { p_service_code: s.code, p_qty: qty, p_addons: d.addons, p_chose_maid: chosenCount > 0, p_start_at: null, p_use_points: false, p_promo: null, p_people: team ? 2 : 1, p_chosen: chosenCount })
+    sb.rpc('quote_booking_v2', { p_service_code: s.code, p_qty: qty, p_addons: [], p_chose_maid: chosenCount > 0, p_start_at: null, p_use_points: false, p_promo: null, p_people: team ? 2 : 1, p_chosen: chosenCount })
       .then(({ data, error }) => { if (active && !error && data) setQ({ key: quoteKey, total: Number((data as Quote2).total) }) })
     return () => { active = false }
   }, [quoteKey, d.plan])
@@ -121,8 +123,8 @@ export function BookMaid() {
 
   return <BookingLayout title={t('who_cleans')} service={s ? svcName(s, lang) : undefined} step={0}
     action={{ label: t('next'), onClick: () => nav('/book/time') }}
-    price={amount + ' ' + t('baht')} priceLabel={t('booking_estimate')}
-    meta={[quantityLabel, picked.length ? picked.join(', ') : null].filter(Boolean).join(' · ')}>
+    price={amount + ' ' + t('baht')} priceLabel={isOnce ? (th ? 'เริ่มต้นที่' : 'From') : t('booking_estimate')}
+    meta={[quantityLabel, isOnce ? (th ? 'เลือกชั่วโมงได้ในขั้นถัดไป' : 'Choose hours in the next step') : null, picked.length ? picked.join(', ') : null].filter(Boolean).join(' · ')}>
     <div className="booking-stack">
       <button type="button" className="booking-address" onClick={location.change}>
         <Icon n="pin" size={18} /><span>{location.address}</span><b>{t('change')}</b>
