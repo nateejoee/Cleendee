@@ -10,6 +10,17 @@ import { AdminTabs, Avatar, Icon, LangToggle, Loading, StatusPill, useToast } fr
 
 import { PublicPageEditor } from './PublicPageEditor'
 import { useDistricts } from './Start'
+import { usePrices } from './Book'
+
+// ผลตรวจสลิปอัตโนมัติ (รหัสจากเซิร์ฟเวอร์) เป็นข้อความที่อ่านเข้าใจ ไม่รู้จักรหัสก็แสดงรหัสเดิม
+const CHECK_NOTE: Record<string, Key> = {
+  amount_mismatch: 'chk_amount_mismatch', duplicate_slip: 'chk_duplicate_slip', wrong_receiver: 'chk_wrong_receiver',
+  not_image: 'chk_unreadable', bad_image: 'chk_unreadable', no_qr: 'chk_unreadable', not_payment_qr: 'chk_unreadable',
+  bank_delay: 'chk_bank_delay', bank_down: 'chk_bank_down', not_found_yet: 'chk_not_found_yet', no_trans_ref: 'chk_no_trans_ref',
+  old_slip: 'chk_old_slip', slipok_unreachable: 'chk_slipok_unreachable', slipok_quota: 'chk_slipok_quota',
+  slipok_key: 'chk_slipok_account', slipok_branch: 'chk_slipok_account', slipok_expired: 'chk_slipok_account', slipok_package: 'chk_slipok_account',
+  slip_missing: 'chk_slip_missing',
+}
 
 function useAdminGuard() { const { profile, ready } = useAuth(); return ready && profile?.role !== 'admin' }
 
@@ -109,21 +120,28 @@ export function AdminMoney() {
   const {hash} = useLocation(); const th = lang === 'th'
   useEffect(() => { if (d && hash) document.getElementById(hash.slice(1))?.scrollIntoView() }, [hash,d])
   const [claimAmt, setClaimAmt] = useState<Record<number, string>>({})
+  const services = useServices(); const prices = usePrices()
   if (useAdminGuard()) return <Navigate to="/" />
   if (!d) return <Loading />
   const run = async (fn: string, args: object) => { const { error } = await sb.rpc(fn, args); toast.show(error ? friendly(error, lang) : t('saved')); reload() }
   const showSlip = async (bucket: string, p: string) => { const { data } = await sb.storage.from(bucket).createSignedUrl(p, 300); setSlipUrl(data?.signedUrl ?? null) }
+  // ตัวอย่างการแบ่งเงิน จากราคาทำความสะอาดทั่วไปจริง (จำนวนตั้งต้น × ราคาต่อหน่วย) และค่าเลือกแม่บ้าน
+  const gc = services?.find(x => x.code === 'general_cleaning')
+  const job = gc ? (Number(gc.default_qty ?? gc.min_qty) || 0) * (Number(gc.price_per_unit) || 0) : null
+  const helperShare = job !== null && gc ? Math.round(job * (Number(gc.payout_pct) || 0) / 100) : null
+  const shopShare = job !== null && helperShare !== null ? job - helperShare : null
+  const fmt = (n: number | null) => (n !== null ? money(n) : '…')
   return <div className="page">
     <div className="hero"><h1>{t('tab_money')}</h1>
-      <div className="small mt8" style={{ color: '#CFE3F2' }}>{t('a_split')}</div>
-      <div className="split"><div style={{ flex: 800, background: 'var(--sun)' }} /><div style={{ flex: 700, background: '#fff' }} /></div>
-      <div className="between small"><b style={{ color: 'var(--sun)' }}>{t('tab_maids')} 800</b><b>CleenDee 700 (+20)</b></div></div>
+      <div className="small mt8" style={{ color: '#CFE3F2' }}>{t('a_split').replace('{job}', fmt(job))}</div>
+      <div className="split"><div style={{ flex: helperShare ?? 1, background: 'var(--sun)' }} /><div style={{ flex: shopShare ?? 1, background: '#fff' }} /></div>
+      <div className="between small"><b style={{ color: 'var(--sun)' }}>{t('tab_maids')} {fmt(helperShare)}</b><b>CleenDee {fmt(shopShare)}{prices.chooseFee ? ` (+${money(prices.chooseFee)})` : ''}</b></div></div>
     <div className="pad">
       <Section id="slips" title={t('a_slips')} count={d.pays.length}>
       {d.pays.length === 0 ? <Nothing /> : <div className="admin-grid">{d.pays.map(p => <div key={p.id} className="card">
         <div className="between"><b className="disp">{p.booking_id ? '#' + p.booking_id : 'Package ' + p.package_id}</b><b className="disp" style={{ fontSize: 19 }}>{money(p.amount)}</b></div>
         <div className="small muted">{fmtDate(p.created_at, lang)} {fmtTime(p.created_at)}</div>
-        {p.auto_checked && p.check_note && p.check_note !== 'not_configured' && <div className="small" style={{ color: 'var(--brick)' }}>{t('a_slip_auto')}: {p.check_note}</div>}
+        {p.auto_checked && p.check_note && p.check_note !== 'not_configured' && <div className="small" style={{ color: 'var(--brick)' }}>{t('a_slip_auto')}: {CHECK_NOTE[p.check_note] ? t(CHECK_NOTE[p.check_note]) : p.check_note}</div>}
         <div className="row mt8"><button className="btn sm b-line" onClick={() => p.slip_path && showSlip('slips', p.slip_path)}>{t('view_slip')}</button>
           <button className="btn sm b-ocean" style={{ flex: 1 }} onClick={() => run('admin_review_payment', { p_payment_id: p.id, p_approve: true })}>{t('approve')}</button>
           <button className="btn sm b-red" onClick={() => run('admin_review_payment', { p_payment_id: p.id, p_approve: false })}>{t('reject')}</button></div></div>)}</div>}
@@ -148,7 +166,7 @@ export function AdminMoney() {
         {c.description && <div className="small">{c.description}</div>}
         <div className="small muted">{c.purchase_price ? money(c.purchase_price) + ' ฿' : ''} {c.purchase_year ? '(' + c.purchase_year + ')' : ''} · {t('a_cap')}</div>
         <div className="row">{c.photo_paths.map((p, i) => <button key={p} className="btn sm b-ghost" onClick={() => showSlip('claims', p)}>📷 {i + 1}</button>)}</div>
-        <div className="row"><input className="input" placeholder={t('amount')} inputMode="numeric" value={claimAmt[c.id] ?? ''} onChange={e => setClaimAmt({ ...claimAmt, [c.id]: e.target.value.replace(/\D/g, '') })} />
+        <div className="row admin-claim-actions"><input className="input" placeholder={t('amount')} inputMode="numeric" value={claimAmt[c.id] ?? ''} onChange={e => setClaimAmt({ ...claimAmt, [c.id]: e.target.value.replace(/\D/g, '') })} />
           <button className="btn sm b-ocean" onClick={() => run('admin_decide_claim', { p_claim_id: c.id, p_approve: true, p_amount: Number(claimAmt[c.id] || 0) })}>{t('approve')}</button>
           <button className="btn sm b-red" onClick={() => run('admin_decide_claim', { p_claim_id: c.id, p_approve: false })}>{t('reject')}</button></div></div>)}</div>}
       </Section>
@@ -304,12 +322,12 @@ function ServicePrices({ toast }: { toast: (m: string) => void }) {
   }
   return <><div className="sec-title">{t('a_prices')}</div><div className="stack cols apc-cols">{rows.map((r, i) => {
     const u = svcUnit(r, lang), price = Number(r.price_per_unit) || 0, pct = Number(r.payout_pct) || 0
-    const maid = Math.round(price * pct) / 100, shop = Math.round((price - maid) * 100) / 100
+    const maid = Math.round(price * pct / 100), shop = price - maid // ปัดเป็นบาทเต็มแบบเดียวกับเซิร์ฟเวอร์ (round)
     const num = (k: keyof Service) => (v: string) => upd(i, { [k]: v as unknown as number })
     return <div key={r.code} className="card apc">
       <div className="between"><b className="disp">{svcName(r, lang)}</b><span className={'pill ' + (r.active ? 'p-leaf' : 'p-grey')}>{r.active ? t('a_open') : r.coming_soon ? t('soon') : t('a_closed')}</span></div>
       <div className="apc-g2"><SvcField label={t('a_price_cust')} unit={`${t('a_baht')} / ${u}`} v={r.price_per_unit} on={num('price_per_unit')} /><SvcField label={t('a_payout_pct')} unit="%" v={r.payout_pct} on={num('payout_pct')} /></div>
-      <div className="apc-sum"><div><span>{t('a_cust_pays')}</span><b>{price}</b></div><div><span>{t('a_maid_gets')}</span><b>{maid}</b></div><div><span>{t('a_shop_gets')}</span><b>{shop}</b></div></div>
+      <div className="apc-sum"><div><span>{t('a_cust_pays')}</span><b>{money(price)}</b></div><div><span>{t('a_maid_gets')}</span><b>{money(maid)}</b></div><div><span>{t('a_shop_gets')}</span><b>{money(shop)}</b></div></div>
       <div className="apc-sub">{t('a_sec_qty')} ({u})</div>
       <div className="apc-g3"><SvcField label={t('a_min_qty')} v={r.min_qty} on={num('min_qty')} /><SvcField label={t('a_max_qty')} v={r.max_qty} on={num('max_qty')} /><SvcField label={t('a_default')} v={r.default_qty} on={num('default_qty')} /></div>
       {r.pricing === 'unit' && <SvcField label={t('a_min_per_unit')} unit={t('a_minutes')} v={r.minutes_per_unit} on={num('minutes_per_unit')} />}

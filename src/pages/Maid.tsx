@@ -123,18 +123,20 @@ function Checklist({ b, onSaved }: { b: Booking; onSaved: () => void }) {
   const [list, setList] = useState(base); const latest = useRef(base); const pending = useRef(0); const chain = useRef<Promise<unknown>>(Promise.resolve())
   useEffect(() => { if (!pending.current) { latest.current = base; setList(base) } }, [base])
   const editable = ['confirmed', 'on_the_way', 'working'].includes(b.status)
+  const [err, setErr] = useState('')
   const toggle = (i: number) => {
     if (!editable) return
     const n = latest.current.map((x, j) => (j === i ? { ...x, done: !x.done } : x)); latest.current = n; setList(n); pending.current++
     chain.current = chain.current.then(async () => {
-      try { await sb.rpc('maid_set_checklist', { p_booking_id: b.id, p_checklist: latest.current }) }
+      try { const { error } = await sb.rpc('maid_set_checklist', { p_booking_id: b.id, p_checklist: latest.current }); setErr(error ? friendly(error, lang) : '') }
       finally { if (--pending.current === 0) onSaved() }
     }).catch(() => {})
   }
   if (!list.length) return null
   return <><div className="sec-title">{t('checklist')} ({list.filter(x => x.done).length}/{list.length})</div>
     <div className="stack" style={{ gap: 6 }}>{list.map((c, i) => <button key={i} className={'choice' + (c.done ? ' on' : '')} style={{ padding: '10px 12px' }} onClick={() => toggle(i)} disabled={!editable}>
-      <span className={'chk' + (c.done ? ' on' : '')}>{c.done && <Icon n="check" size={14} />}</span><span style={{ flex: 1 }}>{c.t}</span></button>)}</div></>
+      <span className={'chk' + (c.done ? ' on' : '')}>{c.done && <Icon n="check" size={14} />}</span><span style={{ flex: 1 }}>{c.t}</span></button>)}</div>
+    {err && <div className="err mt8">{err}</div>}</>
 }
 
 // แนบรูปก่อน/หลังทำงาน

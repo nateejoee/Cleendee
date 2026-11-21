@@ -10,7 +10,7 @@ import { sb, friendly, type Maid, type Rating, type Quote2, type Service } from 
 import { useServices, useAddons, svcName, svcUnit, jobHours } from '../lib/services'
 import { useI18n, money, fmtDate, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
-import { getDraft, setDraft, clearDraft, startIso, bkkToday, type Draft } from '../lib/draft'
+import { getDraft, setDraft, clearDraft, startIso, bkkToday, getAutoPicked, setAutoPicked, type Draft } from '../lib/draft'
 import { Avatar, Icon, Loading, useToast } from '../components/ui'
 import { BookingLayout } from './BookingLayout'
 import { useDistricts } from './Start'
@@ -73,9 +73,8 @@ export function BookMaid() {
   const location = useContext(SelectedAddress)
   const [params] = useSearchParams()
   const suggested = params.get('helper')
-  const { t, lang } = useI18n(); const nav = useNavigate(); const maids = useMaids(); const services = useServices(); const blocked = useBlockedMaids(); const prices = usePrices()
+  const { t, lang } = useI18n(); const nav = useNavigate(); const { maids, failed, retry } = useMaidsLoad(); const services = useServices(); const blocked = useBlockedMaids(); const prices = usePrices()
   const [d, setD] = useState<Draft>(getDraft())
-  const autoPicked = useRef(false)
   const s = services?.find(x => x.code === d.service)
   const pick = (id: string | null) => setD(setDraft({ maidId: id }))
   const list = maids?.filter(m => (m.services || []).includes(d.service) && !blocked.includes(m.id))
@@ -85,13 +84,27 @@ export function BookMaid() {
   // มาจาก "เลือกแม่บ้านคนนี้": เลือกให้เลย (ครั้งเดียว) ถ้าคนนี้รับบริการนี้และไม่ถูกบล็อก
   useEffect(() => {
     if (!listReady || !suggested) return
-    if (suggestedOk && !autoPicked.current) { autoPicked.current = true; if (getDraft().maidId !== suggested) setD(setDraft({ maidId: suggested, hour: null })) }
-    else if (!suggestedOk && autoPicked.current && getDraft().maidId === suggested) setD(setDraft({ maidId: null, hour: null }))
+    // จำไว้ใน sessionStorage ว่าเลือกคนนี้ให้แล้ว: กดย้อนกลับมาจะไม่เลือกทับสิ่งที่ลูกค้าเปลี่ยนเอง
+    const autoPicked = getAutoPicked() === suggested
+    if (suggestedOk && !autoPicked) { setAutoPicked(suggested); if (getDraft().maidId !== suggested) setD(setDraft({ maidId: suggested, hour: null })) }
+    else if (!suggestedOk && autoPicked && getDraft().maidId === suggested) setD(setDraft({ maidId: null, hour: null }))
   }, [listReady, suggested, suggestedOk])
   const qty = bookingQuantity(d, s)
   const pkgPrice = d.plan === 'weekly' || d.plan === 'biweekly' ? prices.pkg?.[d.plan] : undefined
+  // ราคาครั้งเดียวใช้ราคาจากเซิร์ฟเวอร์ (รวมส่วนลดจองครั้งแรก) ระหว่างโหลด/ผิดพลาดใช้ราคาประมาณในเครื่อง
+  const [q, setQ] = useState<{ key: string; total: number } | null>(null)
+  const quoteKey = JSON.stringify([s?.code, qty, d.addons, !!d.maidId])
+  useEffect(() => {
+    if (!s || d.plan !== 'once') return
+    let active = true
+    sb.rpc('quote_booking_v2', { p_service_code: s.code, p_qty: qty, p_addons: d.addons, p_chose_maid: !!d.maidId, p_start_at: null, p_use_points: false, p_promo: null })
+      .then(({ data, error }) => { if (active && !error && data) setQ({ key: quoteKey, total: Number((data as Quote2).total) }) })
+    return () => { active = false }
+  }, [quoteKey, d.plan])
+  const serverTotal = q && q.key === quoteKey && Number.isFinite(q.total) ? q.total : null
   const amount = d.plan === 'weekly' || d.plan === 'biweekly'
     ? (pkgPrice !== undefined ? money(pkgPrice) : '…') // แพ็กเกจไม่มีค่าเลือกแม่บ้าน
+    : serverTotal !== null ? money(serverTotal)
     : s && (!d.maidId || prices.chooseFee !== null) ? money(qty * s.price_per_unit + (d.maidId ? prices.chooseFee ?? 0 : 0)) : '…'
   const quantityLabel = s ? qty + ' ' + svcUnit(s, lang) : ''
   const selection = list?.find(m => m.id === d.maidId)
@@ -120,7 +133,9 @@ export function BookMaid() {
           <h2 id="manual-helper-title">{t('or_pick')}</h2>
           {d.plan === 'once' && <span>+{prices.chooseFee ?? '…'} {t('baht')}</span>}
         </div>
-        {!list ? <Loading /> : list.length === 0 ? <div className="empty muted">{t('no_maid_for_service')}</div> :
+        {failed ? <div className="empty stack" role="status"><p className="muted">{t('load_failed')}</p>
+          <button className="btn b-line" type="button" onClick={retry}>{t('try_again')}</button></div>
+          : !list ? <Loading /> : list.length === 0 ? <div className="empty muted">{t('no_maid_for_service')}</div> :
           <div className="booking-option-list">{list.map(m => {
             const selected = d.maidId === m.id
             return <article key={m.id} className={'booking-option' + (selected ? ' is-selected' : '')}>
@@ -155,7 +170,7 @@ export function MaidProfile() {
   if (maids && (!m || blocked.includes(m.id))) return <BookingLayout title={t('reviews_title')}><section className="booking-panel"><p className="muted">{t('not_available')}</p></section></BookingLayout>
   if (!m) return <Loading />
   return <BookingLayout title={m.nickname}
-    action={{ label: t('choose') + ' ' + m.nickname, onClick: () => { setDraft({ maidId: null, hour: null }); nav('/book?helper=' + encodeURIComponent(m.id)) } }}>
+    action={{ label: t('choose') + ' ' + m.nickname, onClick: () => { setDraft({ maidId: null, hour: null }); setAutoPicked(null); nav('/book?helper=' + encodeURIComponent(m.id)) } }}>
     <div className="booking-stack">
       <section className="booking-panel">
         <div className="booking-profile-intro">
@@ -197,14 +212,18 @@ function FreeDays({ maidId }: { maidId: string }) {
   useEffect(() => { if (s) sb.rpc('maid_free_days', { p_maid: maidId, p_service_code: s.code, p_hours: hours }).then(({ data }) => setDays((data as string[]) || [])) }, [maidId, s?.code, hours])
   return <><h2>{t('free_days')}</h2>
     {!days ? <Loading /> : days.length === 0 ? <div className="muted">{t('no_free_days')}</div> :
-      <div className="cal">{days.map(x => <button key={x} className="cd" onClick={() => { setDraft({ maidId: null, date: x, hour: null }); nav('/book?helper=' + encodeURIComponent(maidId)) }}>
+      <div className="cal">{days.map(x => <button key={x} className="cd" onClick={() => { setDraft({ maidId: null, date: x, hour: null }); setAutoPicked(null); nav('/book?helper=' + encodeURIComponent(maidId)) }}>
         <small>{fmtDate(x + 'T12:00:00+07:00', lang, { weekday: 'short' })}</small><b>{Number(x.slice(8))}</b></button>)}</div>}</>
 }
 
 export function BookTime() {
   const { t, lang } = useI18n(); const nav = useNavigate(); const [sp] = useSearchParams(); const services = useServices(); const allAddons = useAddons(); const prices = usePrices()
   const urgentMode = sp.get('urgent') === '1'
-  const [d, setD] = useState<Draft>(() => { const p = sp.get('plan'); return p === 'weekly' || p === 'biweekly' ? setDraft({ plan:p, service:'general_cleaning' }) : getDraft() })
+  const [d, setD] = useState<Draft>(() => {
+    const p = sp.get('plan'); const cur = p === 'weekly' || p === 'biweekly' ? setDraft({ plan:p, service:'general_cleaning' }) : getDraft()
+    // วันที่ในร่างเก่าอาจผ่านไปแล้ว (เปิดแท็บค้างข้ามคืน) ให้เป็นวันนี้และล้างเวลา
+    return cur.date && cur.date < bkkToday() ? setDraft({ date: bkkToday(), hour: null }) : cur
+  })
   const days = useMemo(() => Array.from({ length: 14 }, (_, i) => bkkToday(i)), [])
   const date = d.date ?? (urgentMode ? days[0] : days[1])
   const s = services?.find(x => x.code === d.service)

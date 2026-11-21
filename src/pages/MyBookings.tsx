@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css'
 import { sb, friendly, type Booking, type Maid, type Service } from '../lib/supabase'
 import { useI18n, money, fmtDate, fmtTime, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
-import { clearDraft, setDraft, emptyDraft, bkkToday, startIso } from '../lib/draft'
+import { clearDraft, setDraft, emptyDraft, bkkToday, startIso, setAutoPicked } from '../lib/draft'
 import { useServices, useAddons, svcName, svcUnit } from '../lib/services'
 import { AdminTabs, Avatar, CustomerTabs, Icon, Loading, MaidTabs, StatusPill, TopBar, useToast } from '../components/ui'
 import { useMaids, useBlockedMaids, AddressForm, useAddresses } from './Book'
@@ -129,13 +129,14 @@ export function BookingDetail() {
   const rebook = async () => {
     const { data } = await sb.from('customer_addresses').select('id').order('id')
     setDraft({ ...emptyDraft, service: svc?.code ?? 'general_cleaning', qty: b.qty, addons: b.addons || [], maidId: null, tags: b.tags, note: b.note ?? '', addressId: (data || [])[0]?.id ?? null })
+    setAutoPicked(null)
     nav(b.maid_id ? '/book?helper=' + encodeURIComponent(b.maid_id) : '/book')
   }
   const step = ['confirmed', 'on_the_way', 'working', 'completed'].indexOf(b.status)
   const cancel = async () => {
     if (!window.confirm(t('cancel_confirm'))) return
     const { data, error } = await sb.rpc('customer_cancel', { p_booking_id: b.id })
-    if (error) setErr(friendly(error, lang)); else { toast.show(`${t('cancelled_res')} ${money(data.refund)} ${t('baht')}`); load() }
+    if (error) setErr(friendly(error, lang)); else { toast.show(data?.refund_after_check ? t('cancelled_refund_after_check') : `${t('cancelled_res')} ${money(data.refund)} ${t('baht')}`); load() }
   }
   return <div className="page nobar">
     <TopBar title={t('details')} back="/bookings" />
@@ -153,10 +154,10 @@ export function BookingDetail() {
       <div className="card recv">
         <div><span className="muted">{svcName(svc, lang)} {b.qty ?? ''} {svcUnit(svc, lang)}</span><span>{money(b.base_price)}</span></div>
         {b.addons_price > 0 && <div><span className="muted">{t('addons')}: {(b.addons || []).map(c => { const a = addons?.find(x => x.code === c); return a ? (lang === 'th' ? a.name_th : a.name_en) : c }).join(', ')}</span><span>{money(b.addons_price)}</span></div>}
-        {b.choose_maid_fee > 0 && <div><span className="muted">{t('pick_fee')}</span><span>{b.choose_maid_fee}</span></div>}
+        {b.choose_maid_fee > 0 && <div><span className="muted">{t('pick_fee')}</span><span>{money(b.choose_maid_fee)}</span></div>}
         {b.urgent_fee > 0 && <div><span className="muted">{t('urgent_tag')}</span><span>{money(b.urgent_fee)}</span></div>}
         {b.promo_discount > 0 && <div><span className="muted">{b.promo_code ? t('promo_code') + ' ' + b.promo_code : t('first_promo')}</span><span>−{money(b.promo_discount)}</span></div>}
-        {b.points_discount > 0 && <div><span className="muted">{t('use_points')} {b.points_used}</span><span>−{b.points_discount}</span></div>}
+        {b.points_discount > 0 && <div><span className="muted">{t('use_points')} {b.points_used}</span><span>−{money(b.points_discount)}</span></div>}
         <div className="tot"><span>{t('total')}</span><span>{money(b.total_price)} {t('baht')}</span></div>
         {addr && <div className="small muted mt8" style={{ display: 'block' }}><Icon n="pin" size={14} /> {addr.address}</div>}
         {b.tags.length > 0 && <div className="chips mt8">{b.tags.map(x => <span key={x} className="pill p-ocean">{t(x as Key)}</span>)}</div>}
@@ -249,7 +250,8 @@ export function Receipt() {
   if (!b || !biz) return <Loading />
   const svc: Service | undefined = services?.find(x => x.id === b.service_type_id)
   const rows: [string, number][] = [[`${svcName(svc, lang)} ${b.qty ?? ''} ${svcUnit(svc, lang)}`, b.base_price],
-    ...(b.addons || []).map(c => { const a = addons?.find(x => x.code === c); return [a ? (lang === 'th' ? a.name_th : a.name_en) : c, a?.price ?? 0] as [string, number] }),
+    // ราคางานเสริมรายตัวอาจเปลี่ยนหลังจอง จึงแสดงแค่ชื่อ และยอดรวมงานเสริมตามที่จองไว้
+    ...((b.addons || []).length || b.addons_price ? [[t('addons') + ': ' + (b.addons || []).map(c => { const a = addons?.find(x => x.code === c); return a ? (lang === 'th' ? a.name_th : a.name_en) : c }).join(', '), b.addons_price ?? 0] as [string, number]] : []),
     ...(b.choose_maid_fee ? [[t('pick_fee'), b.choose_maid_fee] as [string, number]] : []), ...(b.urgent_fee ? [[t('urgent_tag'), b.urgent_fee] as [string, number]] : []),
     ...(b.promo_discount ? [[b.promo_code ? t('promo_code') + ' ' + b.promo_code : t('first_promo'), -b.promo_discount] as [string, number]] : []),
     ...(b.points_discount ? [[t('use_points') + ' ' + b.points_used, -b.points_discount] as [string, number]] : [])]
@@ -272,14 +274,14 @@ export function Receipt() {
 
 export function Claim() {
   const { id } = useParams(); const { t, lang } = useI18n(); const nav = useNavigate(); const { session } = useAuth(); const toast = useToast()
-  const [item, setItem] = useState(''); const [desc, setDesc] = useState(''); const [price, setPrice] = useState(''); const [year, setYear] = useState(''); const [files, setFiles] = useState<File[]>([]); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
+  const [item, setItem] = useState(''); const [desc, setDesc] = useState(''); const [price, setPrice] = useState(''); const [year, setYear] = useState(''); const [files, setFiles] = useState<File[]>([]); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false); const [done, setDone] = useState(false)
   const send = async () => {
-    setBusy(true); setErr('')
+    if (busy || done) return; setBusy(true); setErr('')
     try {
       const paths: string[] = []
       for (const f of files) { const p = `${session!.user.id}/claim-${id}-${Date.now()}-${paths.length}.${f.name.split('.').pop() || 'jpg'}`; const up = await sb.storage.from('claims').upload(p, f); if (up.error) throw up.error; paths.push(p) }
       const { error } = await sb.rpc('submit_claim', { p_booking_id: Number(id), p_item: item, p_description: desc, p_purchase_price: Number(price) || null, p_purchase_year: Number(year) || null, p_photo_paths: paths })
-      if (error) throw error; toast.show(t('claim_sent')); setTimeout(() => nav('/bookings/' + id), 1200)
+      if (error) throw error; setDone(true); toast.show(t('claim_sent')); setTimeout(() => nav('/bookings/' + id), 1200)
     } catch (e) { setErr(friendly(e, lang)) } finally { setBusy(false) }
   }
   return <div className="page nobar"><TopBar title={t('claim')} />
@@ -292,7 +294,7 @@ export function Claim() {
       <label className="btn b-line" style={{ cursor: 'pointer' }}><Icon n="camera" />{t('claim_photos')} ({files.length})<input type="file" accept="image/*" multiple hidden onChange={e => setFiles([...(e.target.files || [])].slice(0, 6))} /></label>
       {err && <div className="err">{err}</div>}
     </div>
-    <div className="bottom-bar"><button className="btn b-sun" disabled={!item || files.length === 0 || busy} onClick={send}>{t('send')}</button></div>{toast.node}
+    <div className="bottom-bar"><button className="btn b-sun" disabled={!item || files.length === 0 || busy || done} onClick={send}>{t('send')}</button></div>{toast.node}
   </div>
 }
 
@@ -310,8 +312,16 @@ export function Account() {
   const { t, lang, setLang } = useI18n(); const { profile, session } = useAuth(); const nav = useNavigate()
   const [maidApp, setMaidApp] = useState<{ status: string } | null>(null)
   useEffect(() => { if (session) sb.from('maids').select('status').eq('id', session.user.id).maybeSingle().then(({ data }) => setMaidApp(data)) }, [session])
+  // แพ็กเกจรายเดือนที่ใช้อยู่ (โหลดไม่ได้ก็แสดงข้อความเดิม)
+  const [activePkg, setActivePkg] = useState<string | null>(null)
+  useEffect(() => {
+    if (!session) return
+    sb.from('packages').select('id,plan_code,status').eq('customer_id', session.user.id).eq('status', 'active').limit(1)
+      .then(({ data, error }) => setActivePkg(error ? null : ((data as { plan_code: string }[] | null)?.[0]?.plan_code ?? null)))
+  }, [session])
+  const isCustomer = profile?.role === 'customer'
   // ยังไม่เข้าสู่ระบบ (แบบแอป bTaskee): ปุ่มสมัครสมาชิก / เข้าสู่ระบบ ด้านบน + การตั้งค่าและช่วยเหลือด้านล่าง
-  if (!session) return <div className="page"><div className="hero tall"><h1>{t('account')}</h1><p>{t('lw_book')}</p></div>
+  if (!session) return <div className="page"><div className="hero tall"><h1>{t('account')}</h1><p>{t('lw_account')}</p></div>
     <div className="pad" style={{ marginTop: -54, position: 'relative', zIndex: 2 }}><div className="card guestcard"><Link to="/login" className="btn b-ghost">{t('signup')}</Link><Link to="/login" className="btn b-ocean">{t('login')}</Link></div></div>
     <div className="pad"><div className="sec-title">{t('settings')}</div></div>
     <button className="listrow" onClick={() => setLang(lang === 'th' ? 'en' : 'th')}><span className="rico"><Icon n="chat" /></span><b style={{ flex: 1 }}>{t('language')}: {lang === 'th' ? 'ไทย' : 'English'}</b></button>
@@ -326,9 +336,13 @@ export function Account() {
     <div className="mt16">
       {profile?.role === 'admin' && <Link to="/admin" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--sun-l)' }}><Icon n="grid" /></span><b style={{ flex: 1 }}>Admin</b><Icon n="next" /></Link>}
       {profile?.role === 'maid' && <Link to="/maid" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--sun-l)' }}><Icon n="grid" /></span><b style={{ flex: 1 }}>{t('tab_jobs')}</b><Icon n="next" /></Link>}
+      {isCustomer && <>
       <Link to="/account/addresses" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico"><Icon n="pin" /></span><b style={{ flex: 1 }}>{t('my_addresses')}</b><Icon n="next" /></Link>
       <Link to="/account/favorites" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--sun-l)' }}><Icon n="heart" /></span><b style={{ flex: 1 }}>{t('favorites')}</b><Icon n="next" /></Link>
-      <Link to="/book/time?plan=weekly" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--leaf-l)' }}><Icon n="cal" /></span><span style={{ flex: 1 }}><b>{t('monthly_pkg')}</b><span className="small muted">{t('pkg_none')}</span></span><Icon n="next" /></Link>
+      {activePkg
+        ? <Link to="/bookings" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--leaf-l)' }}><Icon n="cal" /></span><span style={{ flex: 1 }}><b>{t('monthly_pkg')}</b><span className="small muted">{t('pkg_active')} · {activePkg === 'weekly' || activePkg === 'biweekly' ? t(activePkg) : activePkg}</span></span><Icon n="next" /></Link>
+        : <Link to="/book/time?plan=weekly" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--leaf-l)' }}><Icon n="cal" /></span><span style={{ flex: 1 }}><b>{t('monthly_pkg')}</b><span className="small muted">{t('pkg_none')}</span></span><Icon n="next" /></Link>}
+      </>}
       {profile?.role === 'customer' && <Link to="/maid/apply" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico"><Icon n="team" /></span><span style={{ flex: 1 }}><b>{t('become_maid')}</b>{maidApp?.status === 'pending' && <span className="small muted">{t('m_wait')}</span>}</span><Icon n="next" /></Link>}
       <button className="listrow" onClick={() => setLang(lang === 'th' ? 'en' : 'th')}><span className="rico"><Icon n="chat" /></span><b style={{ flex: 1 }}>{t('language')}: {lang === 'th' ? 'ไทย' : 'English'}</b></button>
       <ThemePicker />
@@ -358,5 +372,5 @@ export function Favorites() {
   return <div className="page nobar"><TopBar title={t('favorites')} />
     <div className="mt12">{ids.length === 0 ? <div className="pad"><div className="empty muted">{t('nothing')}</div></div> : ids.map(id => { const m = maids?.find(x => x.id === id); if (!m) return null
       return <div key={id} className="listrow"><Avatar name={m.nickname} seed={m.id} size={44} /><b style={{ flex: 1 }}>{m.nickname}</b>
-        <button className="btn b-ghost sm" onClick={() => { setDraft({ maidId:null, plan:'once', hour:null }); nav('/book?helper=' + encodeURIComponent(id)) }}>{t('s_rebook').replace('\n', '')}</button></div> })}</div></div>
+        <button className="btn b-ghost sm" onClick={() => { setDraft({ maidId:null, plan:'once', hour:null }); setAutoPicked(null); nav('/book?helper=' + encodeURIComponent(id)) }}>{t('s_rebook').replace('\n', ' ')}</button></div> })}</div></div>
 }

@@ -29,3 +29,7 @@ export function bkkToday(offsetDays = 0) {
   const d = new Date(Date.now() + 7 * 3600e3 + offsetDays * 86400e3)
   return d.toISOString().slice(0, 10)
 }
+// แม่บ้านที่เลือกให้อัตโนมัติจากลิงก์ ?helper= ไปแล้ว (กดย้อนกลับจะไม่เลือกทับอีก)
+const AUTO_KEY = 'cd_autopicked'
+export function getAutoPicked() { try { return sessionStorage.getItem(AUTO_KEY) } catch { return null } }
+export function setAutoPicked(id: string | null) { try { if (id) sessionStorage.setItem(AUTO_KEY, id); else sessionStorage.removeItem(AUTO_KEY) } catch { /* ignore */ } }

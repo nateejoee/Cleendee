@@ -105,7 +105,7 @@ export function Home() {
   return <div className="page home">
     {/* ภาพใหญ่หัวหน้า: ภาพถ่ายวิลล่า + ไล่สีกรมท่า ทับด้วยคำทักทายและปุ่มจอง */}
     <div className="lux-hero" style={{ backgroundImage: `url(${imgHero})` }}>
-      <div className="between"><span className="mob-only"><Logo white h={30} /></span><span className="lh-loc"><Icon n="pin" size={15} />{d ? (lang === 'th' ? 'อ.' + d.name_th + ' ชุมพร' : d.name_en + ', Chumphon') : 'Chumphon'}</span><LangToggle /></div>
+      <div className="between"><span className="mob-only"><Logo white h={30} /></span><span className="lh-loc"><Icon n="pin" size={15} /><span className="lh-loc-t">{d ? (lang === 'th' ? 'อ.' + d.name_th + ' ชุมพร' : d.name_en + ', Chumphon') : 'Chumphon'}</span></span><LangToggle /></div>
       <div className="lh-body">
         <div className="lh-greet">{t(greetKey())}{profile?.full_name ? ', ' + profile.full_name : ''}</div>
         <h1>{t('tagline')}</h1>
@@ -155,7 +155,7 @@ export function Home() {
         <div className="pad"><div className="between"><div className="sec-title">{t('top_maids')}</div><Link to="/book" className="link">{t('see_all')}</Link></div>
           <div className="stack">{(maids || []).slice(0, 3).map(m => <Link key={m.id} to={'/maid-profile/' + m.id} className="mcard" style={{ color: 'var(--ink)' }}>
             <Avatar name={m.nickname} url={m.photo_url} seed={m.id} size={52} />
-            <span style={{ flex: 1 }}><b className="disp">{m.nickname}</b><span className="small muted" style={{ display: 'block' }}><span className="star">★</span> {m.avg_rating ?? '–'} · {m.jobs_done ?? 0} {t('homes_done')}</span></span><Icon n="next" /></Link>)}
+            <span style={{ flex: 1 }}><b className="disp">{m.nickname}</b><span className="small muted" style={{ display: 'block' }}>{m.review_count ? <><span className="star">★</span> {m.avg_rating ?? '–'}</> : t('no_reviews')} · {m.jobs_done ?? 0} {t('homes_done')}</span></span><Icon n="next" /></Link>)}
             {maids && maids.length === 0 && <div className="empty muted">{maidsFailed ? t('load_failed') : t('nothing')}</div>}</div></div>
         <section className="pad" aria-labelledby="home-booking-heading">
           <h2 id="home-booking-heading" className="sec-title">{t('how_it_works')}</h2>
