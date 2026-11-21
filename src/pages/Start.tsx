@@ -12,7 +12,7 @@ import { setDraft, emptyDraft } from '../lib/draft'
 import { useServices, useServicesLoad, svcName, svcUnit } from '../lib/services'
 import { CountUp, greetKey } from '../lib/fx'
 import { useMaidsLoad, useBlockedMaids } from './Book'
-import imgHero from '../assets/ill/hero.webp'
+import { HeroArt, PromoArt } from '../components/BrandArt'
 import imgClean from '../assets/ill/cleaning.webp'
 import imgSched from '../assets/ill/schedule.webp'
 import imgSafe from '../assets/ill/safety.webp'
@@ -122,8 +122,8 @@ export function Home() {
     ['home_step_payment', 'home_step_payment_d'],
   ]
   return <div className="page home">
-    {/* ภาพใหญ่หัวหน้า: ภาพถ่ายวิลล่า + ไล่สีกรมท่า ทับด้วยคำทักทายและปุ่มจอง */}
-    <div className="lux-hero" style={{ backgroundImage: `url(${imgHero})` }}>
+    {/* ภาพใหญ่หัวหน้า: ภาพวาดแบรนด์ (บ้านเส้นทอง + หยดน้ำทอง) บนพื้นกรมท่า ทับด้วยคำทักทายและปุ่มจอง */}
+    <div className="lux-hero art"><HeroArt />
       <div className="between"><span className="mob-only"><Logo white h={30} /></span><span className="lh-loc"><Icon n="pin" size={15} /><span className="lh-loc-t">{placeText(live, provinces, districts, d, lang, t)}</span></span><LangToggle /></div>
       <div className="lh-body">
         <div className="lh-greet">{t(greetKey())}{profile?.full_name ? ', ' + profile.full_name : ''}</div>
@@ -134,7 +134,7 @@ export function Home() {
     </div>
     <div className="home-grid">
       <div className="hg-main">
-        <div className="promo lux"><div><span className="eyebrow">CleenDee</span><h3>{t('promo_t')}</h3><div className="small mt8">{t('promo_d')}</div></div><img src={imgHome} alt="" /></div>
+        <div className="promo lux art"><div><span className="eyebrow">CleenDee</span><h3>{t('promo_t')}</h3><div className="small mt8">{t('promo_d')}</div></div><PromoArt amount={100} /></div>
         <div className="pad mt16"><button className="urgent" style={{ width: '100%', textAlign: 'left' }} onClick={() => open('general_cleaning', '/book/time?urgent=1')}>
           <span className="rico" style={{ background: 'var(--card)', color: 'var(--brick)' }}><Icon n="clock" /></span>
           <span style={{ flex: 1 }}><b className="disp">{t('urgent_t')}</b><span className="small" style={{ display: 'block', color: 'var(--brick)' }}>{t('urgent_d')}</span></span><Icon n="next" /></button></div>

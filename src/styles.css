@@ -719,3 +719,19 @@ li{text-wrap:pretty}
 .msx-empty small{font-size:13px;color:var(--ink2)}
 .msx-empty-ic{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--foam);color:var(--ink2);margin-bottom:4px}
 @media (prefers-reduced-motion:reduce){.msx-ai-tag i{animation:none}}
+
+/* หน้าแรก: ภาพวาดแบรนด์แทนรูปถ่าย */
+.lux-hero.art{background:radial-gradient(90% 70% at 85% 25%,color-mix(in srgb,var(--sun) 22%,transparent),transparent 65%),linear-gradient(160deg,#1B3561 0%,#13294B 45%,#0B1B33 100%)}
+.lux-hero.art:before{background:linear-gradient(180deg,transparent 40%,rgba(8,20,40,.55) 70%,rgba(8,20,40,.75) 100%)}
+.cd-hero-art{position:absolute;z-index:-2;right:-14px;top:44px;width:min(78%,480px);height:auto;pointer-events:none}
+.cd-promo-art{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:min(34%,150px);height:auto;pointer-events:none}
+.cd-float{animation:cd-float 6s ease-in-out infinite}
+.cd-float.b{animation-delay:-2s}.cd-float.c{animation-delay:-4s}.cd-float.d{animation-duration:5s}
+@keyframes cd-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.cd-twinkle{transform-box:fill-box;transform-origin:center;animation:cd-twinkle 2.8s ease-in-out infinite}
+.cd-twinkle.b{animation-delay:-.9s}.cd-twinkle.c{animation-delay:-1.8s}
+@keyframes cd-twinkle{0%,100%{opacity:1;scale:1}50%{opacity:.35;scale:.7}}
+@media (prefers-reduced-motion:reduce){.cd-float,.cd-twinkle{animation:none}}
+/* ปุ่มบนหัวหน้าแรก: ไม่ตัดคำกลางคำ (เช่น "การัน/ตี") */
+.lh-cta .btn{white-space:nowrap;text-wrap:nowrap}
+@media (max-width:640px){.lux-hero.art{min-height:440px}.cd-hero-art{width:min(60%,300px);top:40px;right:-6px}}
