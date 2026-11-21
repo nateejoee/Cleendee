@@ -54,6 +54,7 @@ const ERR: Record<string, [string, string]> = {
   invalid_state: ['ทำรายการนี้ไม่ได้ในตอนนี้', 'This action is not available now'],
   full_name_required: ['กรุณากรอกชื่อ-นามสกุลจริง', 'Please enter your full name'],
   phone_invalid: ['เบอร์โทรไม่ถูกต้อง', 'Invalid phone number'],
+  phone_required: ['กรุณาใส่เบอร์โทรก่อนจอง', 'Please add your phone number before booking'],
   age_invalid: ['ผู้สมัครต้องมีอายุ 18 ปีขึ้นไป', 'Applicants must be 18 or older'],
   consent_required: ['กรุณายอมรับเงื่อนไขและการตรวจประวัติ', 'Please accept the terms and background check'],
   documents_required: ['กรุณาแนบรูปบัตรและรูปเซลฟี่', 'Please attach your ID photo and selfie'],

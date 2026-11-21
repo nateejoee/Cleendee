@@ -163,8 +163,8 @@ function JobPhotos({ b }: { b: Booking }) {
 export function MaidJob() {
   const { id } = useParams(); const { t, lang } = useI18n(); const nav = useNavigate(); const toast = useToast()
   const [b, setB] = useState<Booking | null>(null); const [addr, setAddr] = useState<{ address: string; lat:number|null; lng:number|null } | null>(null)
-  const [rated, setRated] = useState(true); const [custName, setCustName] = useState(''); const [busy, setBusy] = useState(false)
-  const load = () => { sb.from('bookings').select('*').eq('id', id!).single().then(({ data }) => setB(data as Booking)); sb.from('customer_reviews').select('id').eq('booking_id', id!).maybeSingle().then(({ data }) => setRated(!!data)); sb.rpc('maid_job_info', { p_booking_id: Number(id) }).then(({ data }) => setCustName(data?.first_name ?? '')); sb.from('booking_addresses').select('address,lat,lng').eq('booking_id', id!).maybeSingle().then(({ data }) => setAddr(data)) }
+  const [rated, setRated] = useState(true); const [custName, setCustName] = useState(''); const [custPhone, setCustPhone] = useState<string | null>(null); const [busy, setBusy] = useState(false)
+  const load = () => { sb.from('bookings').select('*').eq('id', id!).single().then(({ data }) => setB(data as Booking)); sb.from('customer_reviews').select('id').eq('booking_id', id!).maybeSingle().then(({ data }) => setRated(!!data)); sb.rpc('maid_job_info', { p_booking_id: Number(id) }).then(({ data }) => { setCustName(data?.first_name ?? ''); setCustPhone(data?.phone ?? null) }); sb.from('booking_addresses').select('address,lat,lng').eq('booking_id', id!).maybeSingle().then(({ data }) => setAddr(data)) }
   useEffect(load, [id])
   useEffect(() => {
     if (b?.status !== 'on_the_way' || !navigator.geolocation) return
@@ -190,7 +190,8 @@ export function MaidJob() {
     <div className="hero"><div className="between"><button className="back" onClick={() => nav('/maid')} aria-label="Back"><Icon n="back" /></button><LangToggle /></div>
       <div className="sub mt12">{fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}–{fmtTime(b.end_at)}</div><h1>{money(b.maid_payout)} {t('baht')}</h1>
       {addr && <div className="sub" style={{ display: 'flex', gap: 6 }}><Icon n="pin" size={16} />{addr.address}</div>}
-      {addr?.lat != null && addr.lng != null && <a className="btn b-glass mt8" href={'https://www.google.com/maps/dir/?api=1&destination='+addr.lat+','+addr.lng} target="_blank" rel="noreferrer">{lang === 'th' ? 'เปิดเส้นทางไปบ้านลูกค้า' : 'Get directions'}</a>}</div>
+      {addr?.lat != null && addr.lng != null && <a className="btn b-glass mt8" href={'https://www.google.com/maps/dir/?api=1&destination='+addr.lat+','+addr.lng} target="_blank" rel="noreferrer">{lang === 'th' ? 'เปิดเส้นทางไปบ้านลูกค้า' : 'Get directions'}</a>}
+      {custPhone && <a className="btn b-glass mt8" href={'tel:' + custPhone}><Icon n="user" size={17} />{(lang === 'th' ? 'โทรหาลูกค้า ' : 'Call customer ') + custPhone}</a>}</div>
     <div className="pad mt20">
       {steps.map(([k, d], i) => <div key={k} className="sv-step"><div className="rail"><div className={'c' + (i < idx + 1 ? '' : i === idx + 1 ? ' now' : ' off')}>{i <= idx && <Icon n="check" size={15} />}</div>{i < 3 && <div className={'l' + (i < idx + 1 ? '' : ' off')} />}</div>
         <div className="txt"><b style={{ color: i <= idx + 1 ? 'var(--ink)' : 'var(--ink3)' }}>{t(k)}</b>{d && i === idx + 1 && <span className="small muted">{t(d)}</span>}</div></div>)}

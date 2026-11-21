@@ -342,6 +342,23 @@ export function Messages() {
     <CustomerTabs /></div>
 }
 
+// เบอร์โทรของลูกค้า (แก้ไขได้) แม่บ้านที่รับงานเห็นหลังชำระเงินจนงานเสร็จ
+function PhoneRow() {
+  const { t, lang } = useI18n(); const { profile, refresh } = useAuth(); const toast = useToast(); const th = lang === 'th'
+  const [edit, setEdit] = useState(false); const [v, setV] = useState(''); const [busy, setBusy] = useState(false)
+  const save = async () => {
+    setBusy(true); const { error } = await sb.rpc('set_my_phone', { p_phone: v }); setBusy(false)
+    if (error) { toast.show(friendly(error, lang)); return }
+    await refresh(); setEdit(false); toast.show(t('saved'))
+  }
+  return <div className="listrow" style={{ flexWrap: 'wrap' }}><span className="rico"><Icon n="user" /></span>
+    <span style={{ flex: 1, minWidth: 0 }}><b>{th ? 'เบอร์โทร' : 'Phone'}</b><span className="small muted">{edit ? t('phone') : profile?.phone || (th ? 'ยังไม่ได้ใส่ (ต้องใส่ก่อนจอง)' : 'Not added yet (needed to book)')}</span></span>
+    {!edit && <button className="link" onClick={() => { setV(profile?.phone || ''); setEdit(true) }}>{profile?.phone ? (th ? 'แก้ไข' : 'Edit') : (th ? 'เพิ่ม' : 'Add')}</button>}
+    {edit && <div className="row" style={{ width: '100%', marginTop: 10 }}><input className="input" type="tel" inputMode="tel" autoComplete="tel" maxLength={12} placeholder="08xxxxxxxx" value={v} onChange={e => setV(e.target.value)} aria-label={th ? 'เบอร์โทร' : 'Phone'} />
+      <button className="btn sm b-ocean" disabled={busy} onClick={save}>{t('save')}</button><button className="btn sm b-line" onClick={() => setEdit(false)}>{th ? 'ยกเลิก' : 'Cancel'}</button></div>}
+    {toast.node}</div>
+}
+
 export function Account() {
   const { t, lang, setLang } = useI18n(); const { profile, session } = useAuth(); const nav = useNavigate()
   const [maidApp, setMaidApp] = useState<{ status: string } | null>(null)
@@ -372,6 +389,7 @@ export function Account() {
       {profile?.role === 'admin' && <Link to="/admin" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--sun-l)' }}><Icon n="grid" /></span><b style={{ flex: 1 }}>Admin</b><Icon n="next" /></Link>}
       {profile?.role === 'maid' && <Link to="/maid" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--sun-l)' }}><Icon n="grid" /></span><b style={{ flex: 1 }}>{t('tab_jobs')}</b><Icon n="next" /></Link>}
       {isCustomer && <>
+      <PhoneRow />
       <Link to="/account/addresses" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico"><Icon n="pin" /></span><b style={{ flex: 1 }}>{t('my_addresses')}</b><Icon n="next" /></Link>
       <Link to="/account/favorites" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--sun-l)' }}><Icon n="heart" /></span><b style={{ flex: 1 }}>{t('favorites')}</b><Icon n="next" /></Link>
       {activePkg

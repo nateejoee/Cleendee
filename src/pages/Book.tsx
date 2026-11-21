@@ -455,7 +455,8 @@ export function BookDetails() {
 
 export function BookConfirm() {
   const location = useContext(SelectedAddress)
-  const { t, lang } = useI18n(); const nav = useNavigate(); const { refresh } = useAuth(); const maids = useMaids(); const services = useServices(); const allAddons = useAddons(); const prices = usePrices()
+  const { t, lang } = useI18n(); const nav = useNavigate(); const { refresh, profile } = useAuth(); const maids = useMaids(); const services = useServices(); const allAddons = useAddons(); const prices = usePrices()
+  const needPhone = !profile?.phone; const [phone, setPhone] = useState('')
   const d = getDraft(); const [usePts, setUsePts] = useState(d.usePoints); const [q, setQ] = useState<Quote2 | null>(null); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
   const [code, setCode] = useState(d.promo); const [promo, setPromo] = useState(d.promo)
   const s = services?.find(x => x.code === d.service)
@@ -474,6 +475,8 @@ export function BookConfirm() {
   const go = async () => {
     setBusy(true); setErr('')
     try {
+      // ต้องมีเบอร์ติดต่อก่อนจอง (บันทึกลงบัญชี ใช้ครั้งต่อไปได้เลย)
+      if (needPhone) { const { error } = await sb.rpc('set_my_phone', { p_phone: phone }); if (error) throw error; await refresh() }
       if (d.plan === 'once') {
         const { data, error } = await sb.rpc('create_booking_v2', { p_service_code: d.service, p_qty: d.qty, p_addons: d.addons, p_maid_id: d.maidId, p_start_at: start, p_address_id: d.addressId, p_note: d.note, p_tags: d.tags, p_use_points: usePts, p_promo: promo || null })
         if (error) throw error; void bookingStep(d.service, 'booked', Number(data)); clearDraft(); await refresh(); nav('/pay/booking/' + data, { replace: true })
@@ -488,9 +491,14 @@ export function BookConfirm() {
   const invalidQuote = d.plan === 'once' && (!q || (!!promo && !!q.promo_error))
 
   return <BookingLayout title={t('confirm_booking')} service={svcName(s, lang)} step={3}
-    action={{ label: busy ? t('loading') : t('create_and_pay'), disabled: busy || invalidQuote, onClick: go }}
+    action={{ label: busy ? t('loading') : t('create_and_pay'), disabled: busy || invalidQuote || (needPhone && !/^0\d{8,9}$/.test(phone.replace(/\D/g, ''))), onClick: go }}
     price={(total === undefined ? '…' : money(total)) + ' ' + t('baht')} priceLabel={t('total')}>
     <div className="booking-stack">
+      {needPhone && <section className="booking-panel">
+        <h2><label htmlFor="booking-phone">{lang === 'th' ? 'เบอร์โทรติดต่อ' : 'Contact number'}</label></h2>
+        <input id="booking-phone" className="input" type="tel" inputMode="tel" autoComplete="tel" maxLength={12} placeholder="08xxxxxxxx" value={phone} onChange={e => setPhone(e.target.value)} />
+        <p className="small muted">{lang === 'th' ? 'แม่บ้านที่รับงานจะเห็นเบอร์นี้หลังชำระเงิน จนงานเสร็จ' : 'Your helper can see this number after payment, until the job is done'}</p>
+      </section>}
       <section className="booking-panel">
         <h2>{t('booking_summary')}</h2>
         <div className="row">
