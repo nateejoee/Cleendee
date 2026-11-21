@@ -15,7 +15,8 @@ import { useMaidsLoad, useBlockedMaids } from './Book'
 import imgHero from '../assets/ill/hero.webp'
 import { PromoArt } from '../components/BrandArt'
 import { RewardsCard } from '../components/Rewards'
-import { ServiceArt, ART_TINT } from '../components/ServiceArt'
+import { ServiceArt } from '../components/ServiceArt'
+import { ART_TINT } from '../lib/serviceTint'
 import imgClean from '../assets/ill/cleaning.webp'
 import imgSched from '../assets/ill/schedule.webp'
 import imgSafe from '../assets/ill/safety.webp'
@@ -150,7 +151,6 @@ export function Home() {
     ['home_step_details', 'home_step_details_d'],
     ['home_step_payment', 'home_step_payment_d'],
   ]
-  const th = lang === 'th'
   const bookable = (services || []).filter(s => s.active)
   return <div className="page home">
     {/* หัวหน้า: ภาพจริง + คำทักทาย + พาดหัวตัวใหญ่ แล้วการ์ด "เริ่มจอง" ซ้อนขึ้นมาจากด้านล่าง */}
