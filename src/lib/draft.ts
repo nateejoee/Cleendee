@@ -5,6 +5,8 @@ export type Draft = {
   addons: string[] // งานเสริม
   promo: string // โค้ดส่วนลด
   maidId: string | null
+  people: 1 | 2 // จำนวนแม่บ้านในงานนี้
+  maid2Id: string | null // แม่บ้านคนที่ 2 ที่ลูกค้าเลือกเอง (งาน 2 คน)
   date: string | null // YYYY-MM-DD
   hour: number | null
   plan: 'once' | 'biweekly' | 'weekly'
@@ -14,7 +16,7 @@ export type Draft = {
   usePoints: boolean
 }
 const KEY = 'cd_draft'
-export const emptyDraft: Draft = { service: 'general_cleaning', qty: null, addons: [], promo: '', maidId: null, date: null, hour: null, plan: 'once', addressId: null, tags: [], note: '', usePoints: false }
+export const emptyDraft: Draft = { service: 'general_cleaning', qty: null, addons: [], promo: '', maidId: null, people: 1, maid2Id: null, date: null, hour: null, plan: 'once', addressId: null, tags: [], note: '', usePoints: false }
 export function getDraft(): Draft {
   try { return { ...emptyDraft, ...JSON.parse(sessionStorage.getItem(KEY) || '{}') } } catch { return { ...emptyDraft } }
 }

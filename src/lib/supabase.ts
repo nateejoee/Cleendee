@@ -20,6 +20,7 @@ export type Booking = {
   total_price: number; maid_payout: number; status: BookingStatus; needs_replacement: boolean
   qty: number | null; addons: string[]; addons_price: number; urgent_fee: number; promo_code: string | null
   checklist: { t: string; done: boolean }[]; rescheduled_at: string | null
+  team_id?: number | null // งาน 2 คน: แถวแรก team_id = id ตัวเอง, แถวคนที่ 2 team_id = id แถวแรก
   created_at: string; confirmed_at: string | null; completed_at: string | null; cancelled_at: string | null
 }
 // บริการ (ราคาแก้ได้ในหน้าแอดมิน)
@@ -28,6 +29,7 @@ export type Service = {
   pricing: 'hourly' | 'unit'; price_per_unit: number; payout_pct: number; min_qty: number; max_qty: number; default_qty: number; minutes_per_unit: number
   unit_th: string; unit_en: string; icon: string; sort: number; desc_th: string | null; desc_en: string | null
   included_th: string[]; included_en: string[]; excluded_th: string[]; excluded_en: string[]
+  allow_team?: boolean // จองแม่บ้าน 2 คนในงานเดียวได้
 }
 export type Addon = { code: string; name_th: string; name_en: string; price: number; maid_payout: number; minutes: number; service_codes: string[]; active: boolean; sort: number }
 // ราคาที่คำนวณจากเซิร์ฟเวอร์ (quote_booking_v2)
@@ -35,6 +37,7 @@ export type Quote2 = {
   qty: number; hours: number; base: number; addons_price: number; choose_maid_fee: number; urgent_fee: number
   promo_discount: number; promo_code: string | null; promo_error: string | null; first_discount: boolean
   points_used: number; points_discount: number; total: number; maid_payout: number; points_available: number
+  people?: number; base_each?: number
 }
 export type Quote = { base: number; choose_maid_fee: number; promo_discount: number; points_used: number; points_discount: number; total: number; maid_payout: number; duration_hours: number; points_available: number }
 
@@ -54,6 +57,8 @@ const ERR: Record<string, [string, string]> = {
   invalid_state: ['ทำรายการนี้ไม่ได้ในตอนนี้', 'This action is not available now'],
   full_name_required: ['กรุณากรอกชื่อ-นามสกุลจริง', 'Please enter your full name'],
   phone_invalid: ['เบอร์โทรไม่ถูกต้อง', 'Invalid phone number'],
+  team_not_available: ['บริการนี้ยังจองแม่บ้าน 2 คนไม่ได้', 'This service cannot be booked with 2 helpers'],
+  same_helper_twice: ['เลือกแม่บ้านคนเดียวกันซ้ำไม่ได้', 'Please pick two different helpers'],
   phone_required: ['กรุณาใส่เบอร์โทรก่อนจอง', 'Please add your phone number before booking'],
   age_invalid: ['ผู้สมัครต้องมีอายุ 18 ปีขึ้นไป', 'Applicants must be 18 or older'],
   consent_required: ['กรุณายอมรับเงื่อนไขและการตรวจประวัติ', 'Please accept the terms and background check'],

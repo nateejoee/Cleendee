@@ -76,7 +76,16 @@ export function BookMaid() {
   const { t, lang } = useI18n(); const nav = useNavigate(); const { maids, failed, retry } = useMaidsLoad(); const services = useServices(); const blocked = useBlockedMaids(); const prices = usePrices()
   const [d, setD] = useState<Draft>(getDraft())
   const s = services?.find(x => x.code === d.service)
-  const pick = (id: string | null) => setD(setDraft({ maidId: id }))
+  const team = d.people === 2 && d.plan === 'once'
+  // งาน 2 คน: เลือกได้สูงสุด 2 คน กดคนที่เลือกแล้วซ้ำเพื่อเอาออก ที่เหลือให้ระบบหาให้
+  const pick = (id: string | null) => {
+    if (!team || id === null) { setD(setDraft({ maidId: id, maid2Id: null, hour: null })); return }
+    const cur = [d.maidId, d.maid2Id].filter(Boolean) as string[]
+    const next = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id].slice(-2)
+    setD(setDraft({ maidId: next[0] ?? null, maid2Id: next[1] ?? null, hour: null }))
+  }
+  const setPeople = (n: 1 | 2) => setD(setDraft(n === 2 ? { people: 2, plan: 'once', hour: null } : { people: 1, maid2Id: null, hour: null }))
+  const chosenCount = (d.maidId ? 1 : 0) + (team && d.maid2Id ? 1 : 0)
   const list = maids?.filter(m => (m.services || []).includes(d.service) && !blocked.includes(m.id))
   if (suggested) list?.sort((a, b) => Number(b.id === suggested) - Number(a.id === suggested))
   const listReady = !!list
@@ -93,11 +102,11 @@ export function BookMaid() {
   const pkgPrice = d.plan === 'weekly' || d.plan === 'biweekly' ? prices.pkg?.[d.plan] : undefined
   // ราคาครั้งเดียวใช้ราคาจากเซิร์ฟเวอร์ (รวมส่วนลดจองครั้งแรก) ระหว่างโหลด/ผิดพลาดใช้ราคาประมาณในเครื่อง
   const [q, setQ] = useState<{ key: string; total: number } | null>(null)
-  const quoteKey = JSON.stringify([s?.code, qty, d.addons, !!d.maidId])
+  const quoteKey = JSON.stringify([s?.code, qty, d.addons, chosenCount, team])
   useEffect(() => {
     if (!s || d.plan !== 'once') return
     let active = true
-    sb.rpc('quote_booking_v2', { p_service_code: s.code, p_qty: qty, p_addons: d.addons, p_chose_maid: !!d.maidId, p_start_at: null, p_use_points: false, p_promo: null })
+    sb.rpc('quote_booking_v2', { p_service_code: s.code, p_qty: qty, p_addons: d.addons, p_chose_maid: chosenCount > 0, p_start_at: null, p_use_points: false, p_promo: null, p_people: team ? 2 : 1, p_chosen: chosenCount })
       .then(({ data, error }) => { if (active && !error && data) setQ({ key: quoteKey, total: Number((data as Quote2).total) }) })
     return () => { active = false }
   }, [quoteKey, d.plan])
@@ -105,23 +114,32 @@ export function BookMaid() {
   const amount = d.plan === 'weekly' || d.plan === 'biweekly'
     ? (pkgPrice !== undefined ? money(pkgPrice) : '…') // แพ็กเกจไม่มีค่าเลือกแม่บ้าน
     : serverTotal !== null ? money(serverTotal)
-    : s && (!d.maidId || prices.chooseFee !== null) ? money(qty * s.price_per_unit + (d.maidId ? prices.chooseFee ?? 0 : 0)) : '…'
-  const quantityLabel = s ? qty + ' ' + svcUnit(s, lang) : ''
-  const selection = list?.find(m => m.id === d.maidId)
+    : s && (!chosenCount || prices.chooseFee !== null) ? money(qty * s.price_per_unit * (team ? 2 : 1) + chosenCount * (prices.chooseFee ?? 0)) : '…'
+  const quantityLabel = s ? qty + ' ' + svcUnit(s, lang) + (team ? (lang === 'th' ? ' × 2 คน' : ' × 2 helpers') : '') : ''
+  const picked = [d.maidId, team ? d.maid2Id : null].filter(Boolean).map(id => list?.find(m => m.id === id)?.nickname).filter(Boolean) as string[]
+  const th = lang === 'th'
 
   return <BookingLayout title={t('who_cleans')} service={s ? svcName(s, lang) : undefined} step={0}
     action={{ label: t('next'), onClick: () => nav('/book/time') }}
     price={amount + ' ' + t('baht')} priceLabel={t('booking_estimate')}
-    meta={[quantityLabel, d.maidId ? selection?.nickname ?? t('pick_fee') : null].filter(Boolean).join(' · ')}>
+    meta={[quantityLabel, picked.length ? picked.join(', ') : null].filter(Boolean).join(' · ')}>
     <div className="booking-stack">
       <button type="button" className="booking-address" onClick={location.change}>
         <Icon n="pin" size={18} /><span>{location.address}</span><b>{t('change')}</b>
       </button>
-      <div className={'booking-option' + (d.maidId === null ? ' is-selected' : '')}>
-        <button type="button" className="booking-option-select" aria-pressed={d.maidId === null} onClick={() => pick(null)}>
+      {s?.allow_team && d.plan === 'once' && <section className="booking-panel team-picker" aria-labelledby="team-title">
+        <h2 id="team-title">{th ? 'จำนวนแม่บ้าน' : 'Number of helpers'}</h2>
+        <div className="seg-cards">{([1, 2] as const).map(n => <button key={n} type="button" aria-pressed={(team ? 2 : 1) === n} className={'seg-card' + ((team ? 2 : 1) === n ? ' on' : '')} onClick={() => setPeople(n)}>
+          <span className="seg-ic">{n === 1 ? <Icon n="user" size={20} /> : <Icon n="team" size={20} />}</span>
+          <b>{n === 1 ? (th ? '1 คน' : '1 helper') : (th ? '2 คน' : '2 helpers')}</b>
+          <small>{n === 1 ? (th ? 'งานทั่วไป' : 'Regular job') : (th ? 'เสร็จไวขึ้นเกือบครึ่ง' : 'Done in about half the time')}</small></button>)}</div>
+        {team && <p className="small muted">{th ? 'คิดราคาตามจำนวนคน × ชั่วโมง เลือกแม่บ้านเองได้สูงสุด 2 คน คนที่ไม่ได้เลือกระบบจะหาให้' : 'Price is helpers × hours. Pick up to 2 helpers; we find the rest.'}</p>}
+      </section>}
+      <div className={'booking-option' + (chosenCount === 0 ? ' is-selected' : '')}>
+        <button type="button" className="booking-option-select" aria-pressed={chosenCount === 0} onClick={() => pick(null)}>
           <span className="booking-option-icon"><Icon n="team" size={21} /></span>
           <span className="booking-option-info">
-            <strong>{t('auto_pick')}</strong>
+            <strong>{team ? (th ? 'ให้เราหาให้ทั้ง 2 คน' : 'Find both helpers for me') : t('auto_pick')}</strong>
             <span className="booking-option-meta">{t('auto_pick_d')}</span>
           </span>
           <span className="booking-option-tail"><span className="booking-option-radio" aria-hidden="true" />{t('free')}</span>
@@ -131,13 +149,14 @@ export function BookMaid() {
       <section aria-labelledby="manual-helper-title">
         <div className="booking-section-heading">
           <h2 id="manual-helper-title">{t('or_pick')}</h2>
-          {d.plan === 'once' && <span>+{prices.chooseFee ?? '…'} {t('baht')}</span>}
+          {d.plan === 'once' && <span>+{prices.chooseFee ?? '…'} {t('baht')}{team ? (th ? ' / คน' : ' each') : ''}</span>}
         </div>
         {failed ? <div className="empty stack" role="status"><p className="muted">{t('load_failed')}</p>
           <button className="btn b-line" type="button" onClick={retry}>{t('try_again')}</button></div>
           : !list ? <Loading /> : list.length === 0 ? <div className="empty muted">{t('no_maid_for_service')}</div> :
           <div className="booking-option-list">{list.map(m => {
-            const selected = d.maidId === m.id
+            const selected = d.maidId === m.id || (team && d.maid2Id === m.id)
+            const order = team && selected ? (d.maidId === m.id ? 1 : 2) : null
             return <article key={m.id} className={'booking-option' + (selected ? ' is-selected' : '')}>
               <button type="button" className="booking-option-select" aria-pressed={selected} onClick={() => pick(m.id)}>
                 <HelperAvatar maid={m} />
@@ -148,7 +167,7 @@ export function BookMaid() {
                     {' · '}{m.jobs_done ?? 0} {t('homes_done')}
                   </span>
                 </span>
-                <span className="booking-option-radio" aria-hidden="true" />
+                {order ? <span className="team-badge" aria-label={th ? 'คนที่ ' + order : 'Helper ' + order}>{order}</span> : <span className={'booking-option-radio' + (team ? ' sq' : '')} aria-hidden="true" />}
               </button>
               <Link to={'/maid-profile/' + m.id} className="booking-profile-link" aria-label={t('view_profile') + ' · ' + m.nickname}>
                 {t('view_profile')}<Icon n="next" size={14} />
@@ -228,6 +247,9 @@ export function BookTime() {
   const date = d.date ?? (urgentMode ? days[0] : days[1])
   const s = services?.find(x => x.code === d.service)
   const isPkg = d.plan !== 'once'
+  const team = !isPkg && d.people === 2 && !!s?.allow_team
+  const maid2 = team ? d.maid2Id : null
+  const chosenCount = (d.maidId ? 1 : 0) + (maid2 ? 1 : 0)
   const qty = bookingQuantity(d, s)
   const addons = (allAddons || []).filter(a => a.active && a.service_codes.includes(d.service))
   const chosen = isPkg ? [] : addons.filter(a => d.addons.includes(a.code))
@@ -237,12 +259,12 @@ export function BookTime() {
   const [slotError, setSlotError] = useState(false)
   const [retry, setRetry] = useState(0)
   const [loadedKey, setLoadedKey] = useState('')
-  const slotKey = JSON.stringify([date, d.maidId, s?.code, hours, d.plan])
+  const slotKey = JSON.stringify([date, d.maidId, maid2, team, s?.code, hours, d.plan])
   useEffect(() => {
     if (!s) return
     let active = true
     setSlots(null); setSlotError(false)
-    sb.rpc('booking_times', { p_date: date, p_maid: d.maidId, p_service_code: s.code, p_hours: hours, p_plan: d.plan })
+    sb.rpc('booking_times', { p_date: date, p_maid: d.maidId, p_service_code: s.code, p_hours: hours, p_plan: d.plan, p_maid2: maid2, p_people: team ? 2 : 1 })
       .then(({ data, error }) => {
         if (!active) return
         setSlotError(!!error); setLoadedKey(slotKey)
@@ -255,9 +277,9 @@ export function BookTime() {
   const picked = loadedKey === slotKey && d.hour !== null && d.date === date ? slots?.find(x => x.h === d.hour) : undefined
   useEffect(() => {
     if (!s || isPkg) return
-    sb.rpc('quote_booking_v2', { p_service_code: s.code, p_qty: qty, p_addons: d.addons, p_chose_maid: !!d.maidId, p_start_at: picked ? startIso(date, picked.h) : null })
+    sb.rpc('quote_booking_v2', { p_service_code: s.code, p_qty: qty, p_addons: d.addons, p_chose_maid: chosenCount > 0, p_start_at: picked ? startIso(date, picked.h) : null, p_people: team ? 2 : 1, p_chosen: chosenCount })
       .then(({ data }) => setQ(data as Quote2))
-  }, [s?.code, qty, d.addons.join(), d.maidId, picked?.h, date, isPkg])
+  }, [s?.code, qty, d.addons.join(), d.maidId, maid2, team, picked?.h, date, isPkg])
   if (!services) return <Loading />
   if (!s) return <BookingLayout title={t('pick_date')} step={1}><div className="empty muted">{t('service_closed')}</div></BookingLayout>
   const pkgBlocked = isPkg && !d.maidId
@@ -266,7 +288,7 @@ export function BookTime() {
   const discounted = !(d.plan === 'weekly' || d.plan === 'biweekly') && !!q && q.promo_discount > 0
   const unit = svcUnit(s, lang)
   const selectedDate = fmtDate(date + 'T12:00:00+07:00', lang, { weekday: 'long', month: 'long', day: 'numeric' })
-  const quantityLabel = isPkg ? t(d.plan) : qty + ' ' + unit
+  const quantityLabel = isPkg ? t(d.plan) : qty + ' ' + unit + (team ? (lang === 'th' ? ' × 2 คน' : ' × 2 helpers') : '')
   const timeLabel = picked ? String(picked.h).padStart(2, '0') + ':00' : ''
 
   return <BookingLayout title={t('pick_date')} service={svcName(s, lang)} step={1}
@@ -277,7 +299,7 @@ export function BookTime() {
     meta={[quantityLabel, chosen.length ? chosen.length + ' ' + t('addons') : null, timeLabel].filter(Boolean).join(' · ')}>
     <div className="booking-stack">
       {(s.code === 'general_cleaning' || !isPkg) && <section className="booking-panel">
-        {s.code === 'general_cleaning' && <>
+        {s.code === 'general_cleaning' && !team && <>
           <h2>{t('booking_frequency')}</h2>
           <div className="plan-grid">{(['once', 'biweekly', 'weekly'] as const).map(p =>
             <button key={p} aria-pressed={d.plan === p} className={'plan-card' + (d.plan === p ? ' chosen' : '')} onClick={() => setD(setDraft({ plan: p, hour: null }))}>
@@ -289,7 +311,7 @@ export function BookTime() {
         </>}
         {pkgBlocked && <div className="infonote">{t('pkg_need_maid')} <button className="link" onClick={() => nav('/book')}>{t('choose')}</button></div>}
         {!isPkg && <>
-          <h2>{s.pricing === 'hourly' ? t('how_long') : t('how_many')}</h2>
+          <h2>{s.pricing === 'hourly' ? t('how_long') : t('how_many')}{team && <span className="small muted"> {lang === 'th' ? '(ต่อคน · แม่บ้าน 2 คนทำพร้อมกัน)' : '(each · 2 helpers work together)'}</span>}</h2>
           <div className="chips">{Array.from({ length: s.max_qty - s.min_qty + 1 }, (_, i) => s.min_qty + i).map(n =>
             <button key={n} aria-pressed={n === qty} className={'chip' + (n === qty ? ' on' : '')} onClick={() => setD(setDraft({ qty: n, hour: null }))}>{n} {unit}</button>)}</div>
           {s.pricing === 'hourly' && <p className="small muted">{t('qty_hint')}</p>}
@@ -316,7 +338,7 @@ export function BookTime() {
         </button>)}</div>
         <h2>{t('start_time')}</h2>
         {loadedKey !== slotKey || !slots ? <Loading /> : slotError ? <button className="btn b-line" onClick={() => setRetry(n => n+1)}>{lang === 'th' ? 'โหลดคิวไม่สำเร็จ · ลองอีกครั้ง' : 'Could not load times · Retry'}</button> :
-          slots.length === 0 ? (pkgBlocked ? <p>{t('pkg_need_maid')}</p> : <SlotAlternatives key={slotKey} date={date} maid={d.maidId} service={s.code} hours={hours} plan={d.plan} choose={row => {
+          slots.length === 0 ? (pkgBlocked ? <p>{t('pkg_need_maid')}</p> : team ? <p className="muted">{lang === 'th' ? 'วันนี้ไม่มีเวลาที่แม่บ้านว่างพร้อมกัน 2 คน ลองเลือกวันอื่น' : 'No time with 2 free helpers on this day. Try another day.'}</p> : <SlotAlternatives key={slotKey} date={date} maid={d.maidId} service={s.code} hours={hours} plan={d.plan} choose={row => {
             void bookingStep(s.code, 'alternative')
             setD(setDraft({ date: row.visit_date, hour: Number(row.slot_time.slice(0, 2)), maidId: row.helper_id }))
           }} />) :
@@ -460,13 +482,17 @@ export function BookConfirm() {
   const d = getDraft(); const [usePts, setUsePts] = useState(d.usePoints); const [q, setQ] = useState<Quote2 | null>(null); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
   const [code, setCode] = useState(d.promo); const [promo, setPromo] = useState(d.promo)
   const s = services?.find(x => x.code === d.service)
+  const team = d.plan === 'once' && d.people === 2 && !!s?.allow_team
+  const maid2 = team ? d.maid2Id : null
+  const chosenCount = (d.maidId ? 1 : 0) + (maid2 ? 1 : 0)
   const start = d.date && d.hour !== null ? startIso(d.date, d.hour) : null
   useEffect(() => {
     if (d.plan !== 'once' || !start) return
-    sb.rpc('quote_booking_v2', { p_service_code: d.service, p_qty: d.qty, p_addons: d.addons, p_chose_maid: !!d.maidId, p_start_at: start, p_use_points: usePts, p_promo: promo || null })
+    sb.rpc('quote_booking_v2', { p_service_code: d.service, p_qty: d.qty, p_addons: d.addons, p_chose_maid: chosenCount > 0, p_start_at: start, p_use_points: usePts, p_promo: promo || null, p_people: team ? 2 : 1, p_chosen: chosenCount })
       .then(({ data, error }) => { if (error) setErr(friendly(error, lang)); else setQ(data as Quote2) })
-  }, [usePts, promo])
+  }, [usePts, promo, team, chosenCount])
   const m = maids?.find(x => x.id === d.maidId)
+  const m2 = maid2 ? maids?.find(x => x.id === maid2) : undefined
   if (!start || !d.addressId) return <BookingLayout title={t('confirm_booking')} step={3}
     action={{ label: t('book_now'), onClick: () => nav('/book') }}><p className="muted">{t('booking_missing_details')}</p></BookingLayout>
   const pkgPrice = d.plan === 'weekly' || d.plan === 'biweekly' ? prices.pkg?.[d.plan] : undefined
@@ -478,7 +504,7 @@ export function BookConfirm() {
       // ต้องมีเบอร์ติดต่อก่อนจอง (บันทึกลงบัญชี ใช้ครั้งต่อไปได้เลย)
       if (needPhone) { const { error } = await sb.rpc('set_my_phone', { p_phone: phone }); if (error) throw error; await refresh() }
       if (d.plan === 'once') {
-        const { data, error } = await sb.rpc('create_booking_v2', { p_service_code: d.service, p_qty: d.qty, p_addons: d.addons, p_maid_id: d.maidId, p_start_at: start, p_address_id: d.addressId, p_note: d.note, p_tags: d.tags, p_use_points: usePts, p_promo: promo || null })
+        const { data, error } = await sb.rpc('create_booking_v2', { p_service_code: d.service, p_qty: d.qty, p_addons: d.addons, p_maid_id: d.maidId, p_start_at: start, p_address_id: d.addressId, p_note: d.note, p_tags: d.tags, p_use_points: usePts, p_promo: promo || null, p_people: team ? 2 : 1, p_maid2: maid2 })
         if (error) throw error; void bookingStep(d.service, 'booked', Number(data)); clearDraft(); await refresh(); nav('/pay/booking/' + data, { replace: true })
       } else {
         const { data, error } = await sb.rpc('create_package', { p_plan: d.plan, p_maid_id: d.maidId, p_first_start: start, p_address_id: d.addressId, p_note: d.note, p_tags: d.tags })
@@ -501,10 +527,13 @@ export function BookConfirm() {
       </section>}
       <section className="booking-panel">
         <h2>{t('booking_summary')}</h2>
-        <div className="row">
+        {team ? <>{[m, m2].map((x, i) => <div key={i} className="row">
+          {x ? <HelperAvatar maid={x} /> : <span className="booking-option-icon"><Icon n="team" /></span>}
+          <div className="booking-grow"><b>{(lang === 'th' ? 'แม่บ้านคนที่ ' : 'Helper ') + (i + 1)}: {x ? x.nickname : t('auto_pick')}</b><div className="small muted">{t(d.plan)} · {lang === 'th' ? 'ทำพร้อมกัน 2 คน' : '2 helpers together'}</div></div>
+        </div>)}</> : <div className="row">
           {m ? <HelperAvatar maid={m} /> : <span className="booking-option-icon"><Icon n="team" /></span>}
           <div className="booking-grow"><b>{m ? m.nickname : t('auto_pick')}</b><div className="small muted">{t(d.plan)}</div></div>
-        </div>
+        </div>}
         <div className="booking-appointment"><Icon n="cal" size={18} /><span>{fmtDate(start, lang)} · {time}</span></div>
         {location.address && <div className="booking-appointment"><Icon n="pin" size={18} /><span>{location.address}</span></div>}
       </section>
@@ -512,9 +541,9 @@ export function BookConfirm() {
         <section className="booking-panel">
           <h2>{t('booking_breakdown')}</h2>
           {q ? <div className="recv">
-            <div><span className="muted">{svcName(s, lang)} {q.qty} {svcUnit(s, lang)}</span><span>{money(q.base)} {t('baht')}</span></div>
+            <div><span className="muted">{svcName(s, lang)} {q.qty} {svcUnit(s, lang)}{team ? (lang === 'th' ? ' × 2 คน' : ' × 2 helpers') : ''}</span><span>{money(q.base)} {t('baht')}</span></div>
             {addonRows.map(a => <div key={a.code}><span className="muted">+ {lang === 'th' ? a.name_th : a.name_en}</span><span>{money(a.price)} {t('baht')}</span></div>)}
-            {q.choose_maid_fee > 0 && <div><span className="muted">{t('pick_fee')}</span><span>{money(q.choose_maid_fee)} {t('baht')}</span></div>}
+            {q.choose_maid_fee > 0 && <div><span className="muted">{t('pick_fee')}{chosenCount > 1 ? ' × ' + chosenCount : ''}</span><span>{money(q.choose_maid_fee)} {t('baht')}</span></div>}
             {q.urgent_fee > 0 && <div><span className="muted">{t('urgent_tag')}</span><span>{money(q.urgent_fee)} {t('baht')}</span></div>}
             {q.promo_discount > 0 && <div><span>{q.promo_code ? t('promo_code') + ' ' + q.promo_code : t('first_promo')}</span><span>−{money(q.promo_discount)} {t('baht')}</span></div>}
             {q.points_discount > 0 && <div><span>{t('use_points')} {q.points_used}</span><span>−{money(q.points_discount)} {t('baht')}</span></div>}
@@ -551,7 +580,8 @@ export function Pay() {
   const [file, setFile] = useState<File | null>(null); const [busy, setBusy] = useState(false); const [err, setErr] = useState(''); const [checking, setChecking] = useState(false); const [done, setDone] = useState(false)
   useEffect(() => {
     sb.from('payment_settings').select('promptpay_id,promptpay_name').maybeSingle().then(({ data }) => setPp(data))
-    if (kind === 'booking') sb.from('bookings').select('total_price').eq('id', id!).single().then(({ data }) => setAmount(data?.total_price ?? null))
+    // งาน 2 คน: จ่ายครั้งเดียวรวมทั้งทีม (แถวแรกและแถวของแม่บ้านคนที่ 2)
+    if (kind === 'booking') sb.from('bookings').select('total_price').or(`id.eq.${Number(id)},team_id.eq.${Number(id)}`).then(({ data }) => setAmount(data ? data.reduce((a, r) => a + r.total_price, 0) : null))
     else sb.from('packages').select('price').eq('id', id!).single().then(({ data }) => setAmount(data?.price ?? null))
   }, [kind, id])
   const payload = pp?.promptpay_id && amount ? generatePayload(pp.promptpay_id, { amount }) : null

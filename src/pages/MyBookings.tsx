@@ -41,22 +41,35 @@ function useBookingHelpers() {
   return h
 }
 
+// งาน 2 คน: รวมยอดของทั้งทีมเพื่อแสดงเป็นงานเดียว (แถวแรกเก็บงานเสริม/ส่วนลด/แต้ม)
+export function teamSummary(rows: Booking[]) {
+  const sum = (k: keyof Booking) => rows.reduce((a, r) => a + (Number(r[k]) || 0), 0)
+  const lead = rows.find(r => r.team_id === r.id) ?? rows[0]
+  return { lead, people: rows.length, base: sum('base_price'), choose: sum('choose_maid_fee'), urgent: sum('urgent_fee'), total: sum('total_price'),
+    addons: lead.addons, addons_price: lead.addons_price, promo: lead.promo_discount, promo_code: lead.promo_code, points: lead.points_discount, points_used: lead.points_used }
+}
+const isSecond = (b: Booking) => !!b.team_id && b.team_id !== b.id
+
 export function Bookings() {
   const { t, lang } = useI18n(); const nav = useNavigate(); const { session } = useAuth(); const { list } = useMyBookings(); const maids = useMaids(); const helpers = useBookingHelpers(); const services = useServices()
   const [tab, setTab] = useState<'up' | 'hist'>('up')
   if (!session) return <div className="page"><div className="hero"><h1>{t('my_bookings')}</h1></div><div className="pad mt20"><Link className="btn b-ocean" to="/login">{t('login')}</Link></div><CustomerTabs /></div>
-  const rows = (list || []).filter(b => (tab === 'up') === ACTIVE.includes(b.status))
+  const rows = (list || []).filter(b => !isSecond(b) && (tab === 'up') === ACTIVE.includes(b.status))
+  const teamOf = (b: Booking) => (list || []).filter(x => b.team_id && x.team_id === b.team_id)
   if (tab === 'hist') rows.reverse()
   return <div className="page">
     <div className="hero"><h1>{t('my_bookings')}</h1>
       <div className="seg mt12"><button className={tab === 'up' ? 'on' : ''} onClick={() => setTab('up')}>{t('upcoming')}</button><button className={tab === 'hist' ? 'on' : ''} onClick={() => setTab('hist')}>{t('history')}</button></div></div>
     <div className="pad mt16 stack cols">
       {!list ? <Loading /> : rows.length === 0 ? <div className="empty"><div className="muted">{t('no_bookings')}</div><button className="btn b-sun mt12" onClick={() => nav('/book')}>{t('book_now')}</button></div> :
-        rows.map((b, i) => { const m: Helper | undefined = helpers.find(x => x.id === b.maid_id) ?? maids?.find(x => x.id === b.maid_id); const svc = services?.find(x => x.id === b.service_type_id)
+        rows.map((b, i) => { const svc = services?.find(x => x.id === b.service_type_id)
+          const team = b.team_id ? teamOf(b) : [b]
+          const names = team.map(r => { const h: Helper | undefined = helpers.find(x => x.id === r.maid_id) ?? maids?.find(x => x.id === r.maid_id); return h ? h.nickname : t('auto_pick') })
+          const total = team.reduce((a, r) => a + r.total_price, 0)
           const big = tab === 'up' && i === 0
           return <Link key={b.id} to={'/bookings/' + b.id} className={big ? 'ticket' : 'card'} style={{ color: 'var(--ink)', display: 'block' }}>
             <div className="between"><span className="disp" style={{ fontWeight: 700 }}>{fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}</span><StatusPill s={b.status} /></div>
-            <div className="small mt8">{m ? m.nickname : t('auto_pick')} · {svcName(svc, lang)} {b.qty ?? ''} {svcUnit(svc, lang)} · {money(b.total_price)} {t('baht')}{b.package_id ? ' · ' + t('monthly_pkg') : ''}</div>
+            <div className="small mt8">{[...new Set(names)].join(', ')} · {svcName(svc, lang)} {b.qty ?? ''} {svcUnit(svc, lang)}{team.length > 1 ? (lang === 'th' ? ' × 2 คน' : ' × 2 helpers') : ''} · {money(total)} {t('baht')}{b.package_id ? ' · ' + t('monthly_pkg') : ''}</div>
           </Link> })}
     </div>
     <CustomerTabs />
@@ -116,9 +129,13 @@ function haversine(a: [number, number], b: [number, number]) {
 export function BookingDetail() {
   const { id } = useParams(); const { t, lang } = useI18n(); const nav = useNavigate(); const toast = useToast(); const maids = useMaids(); const helpers = useBookingHelpers(); const services = useServices(); const addons = useAddons()
   const [b, setB] = useState<Booking | null>(null); const [addr, setAddr] = useState<{ address: string; lat: number | null; lng: number | null } | null>(null)
-  const [reviewed, setReviewed] = useState(false); const [err, setErr] = useState('')
+  const [reviewed, setReviewed] = useState(false); const [err, setErr] = useState(''); const [team, setTeam] = useState<Booking[]>([])
   const load = () => {
-    sb.from('bookings').select('*').eq('id', id!).single().then(({ data }) => setB(data as Booking))
+    sb.from('bookings').select('*').eq('id', id!).single().then(({ data }) => {
+      setB(data as Booking)
+      const tid = (data as Booking | null)?.team_id
+      if (tid) sb.from('bookings').select('*').eq('team_id', tid).order('id').then(({ data: rows }) => setTeam((rows as Booking[]) || []))
+    })
     sb.from('booking_addresses').select('address,lat,lng').eq('booking_id', id!).maybeSingle().then(({ data }) => setAddr(data))
     sb.from('reviews').select('id').eq('booking_id', id!).maybeSingle().then(({ data }) => setReviewed(!!data))
   }
@@ -134,6 +151,9 @@ export function BookingDetail() {
     nav(b.maid_id ? '/book?helper=' + encodeURIComponent(b.maid_id) : '/book')
   }
   const step = ['confirmed', 'on_the_way', 'working', 'completed'].indexOf(b.status)
+  const ts = team.length > 1 ? teamSummary(team) : null
+  const second = isSecond(b)
+  const th = lang === 'th'
   const cancel = async () => {
     if (!window.confirm(t('cancel_confirm'))) return
     const { data, error } = await sb.rpc('customer_cancel', { p_booking_id: b.id })
@@ -151,15 +171,21 @@ export function BookingDetail() {
         {step >= 0 && <><div className="prog mt12">{[0, 1, 2, 3].map(i => <span key={i} style={{ display: 'contents' }}>{i > 0 && <span className={'ln' + (i <= step ? '' : ' off')} />}<span className={'dot' + (i <= step ? '' : ' off')}>{i <= step && <Icon n="check" size={13} />}</span></span>)}</div>
           <div className="proglab"><span>{t('s_confirmed')}</span><span>{t('s_on_the_way')}</span><span>{t('s_working')}</span><span>{t('s_completed')}</span></div></>}
       </div>
-      {(b.status === 'pending_payment' || b.status === 'payment_rejected') && <button className="btn b-sun" onClick={() => nav(b.package_id ? '/pay/package/' + b.package_id : '/pay/booking/' + b.id)}>{t('pay_title')} {money(b.total_price)} {t('baht')}</button>}
+      {ts && <div className="card team-card"><div className="sec-title" style={{ margin: 0 }}>{th ? 'แม่บ้านในงานนี้ (2 คน)' : 'Helpers on this job (2)'}</div>
+        {team.map((r, i) => { const h: Helper | undefined = helpers.find(x => x.id === r.maid_id) ?? maids?.find(x => x.id === r.maid_id)
+          return <Link key={r.id} to={'/bookings/' + r.id} className={'team-row' + (r.id === b.id ? ' on' : '')} aria-current={r.id === b.id ? 'page' : undefined}>
+            {h ? <Avatar name={h.nickname} seed={h.id} url={h.photo_url} size={36} /> : <span className="rico"><Icon n="team" /></span>}
+            <span style={{ flex: 1, minWidth: 0 }}><b>{(th ? 'คนที่ ' : 'Helper ') + (i + 1)}: {h ? h.nickname : t('s_awaiting_maid')}</b>{r.id !== b.id && <span className="small muted">{th ? 'แตะเพื่อดูสถานะ แชท และการเดินทาง' : 'Tap for status, chat and arrival'}</span>}</span>
+            <StatusPill s={r.status} /></Link> })}</div>}
+      {(b.status === 'pending_payment' || b.status === 'payment_rejected') && <button className="btn b-sun" onClick={() => nav(b.package_id ? '/pay/package/' + b.package_id : '/pay/booking/' + (b.team_id ?? b.id))}>{t('pay_title')} {money(ts ? ts.total : b.total_price)} {t('baht')}</button>}
       <div className="card recv">
-        <div><span className="muted">{svcName(svc, lang)} {b.qty ?? ''} {svcUnit(svc, lang)}</span><span>{money(b.base_price)}</span></div>
-        {b.addons_price > 0 && <div><span className="muted">{t('addons')}: {(b.addons || []).map(c => { const a = addons?.find(x => x.code === c); return a ? (lang === 'th' ? a.name_th : a.name_en) : c }).join(', ')}</span><span>{money(b.addons_price)}</span></div>}
-        {b.choose_maid_fee > 0 && <div><span className="muted">{t('pick_fee')}</span><span>{money(b.choose_maid_fee)}</span></div>}
-        {b.urgent_fee > 0 && <div><span className="muted">{t('urgent_tag')}</span><span>{money(b.urgent_fee)}</span></div>}
-        {b.promo_discount > 0 && <div><span className="muted">{b.promo_code ? t('promo_code') + ' ' + b.promo_code : t('first_promo')}</span><span>−{money(b.promo_discount)}</span></div>}
-        {b.points_discount > 0 && <div><span className="muted">{t('use_points')} {b.points_used}</span><span>−{money(b.points_discount)}</span></div>}
-        <div className="tot"><span>{t('total')}</span><span>{money(b.total_price)} {t('baht')}</span></div>
+        <div><span className="muted">{svcName(svc, lang)} {b.qty ?? ''} {svcUnit(svc, lang)}{ts ? (th ? ' × 2 คน' : ' × 2 helpers') : ''}</span><span>{money(ts ? ts.base : b.base_price)}</span></div>
+        {(ts ? ts.addons_price : b.addons_price) > 0 && <div><span className="muted">{t('addons')}: {((ts ? ts.addons : b.addons) || []).map(c => { const a = addons?.find(x => x.code === c); return a ? (lang === 'th' ? a.name_th : a.name_en) : c }).join(', ')}</span><span>{money(ts ? ts.addons_price : b.addons_price)}</span></div>}
+        {(ts ? ts.choose : b.choose_maid_fee) > 0 && <div><span className="muted">{t('pick_fee')}</span><span>{money(ts ? ts.choose : b.choose_maid_fee)}</span></div>}
+        {(ts ? ts.urgent : b.urgent_fee) > 0 && <div><span className="muted">{t('urgent_tag')}</span><span>{money(ts ? ts.urgent : b.urgent_fee)}</span></div>}
+        {(ts ? ts.promo : b.promo_discount) > 0 && <div><span className="muted">{(ts ? ts.promo_code : b.promo_code) ? t('promo_code') + ' ' + (ts ? ts.promo_code : b.promo_code) : t('first_promo')}</span><span>−{money(ts ? ts.promo : b.promo_discount)}</span></div>}
+        {(ts ? ts.points : b.points_discount) > 0 && <div><span className="muted">{t('use_points')} {ts ? ts.points_used : b.points_used}</span><span>−{money(ts ? ts.points : b.points_discount)}</span></div>}
+        <div className="tot"><span>{ts ? (th ? 'รวมทั้ง 2 คน' : 'Total for both') : t('total')}</span><span>{money(ts ? ts.total : b.total_price)} {t('baht')}</span></div>
         {addr && <div className="small muted mt8" style={{ display: 'block' }}><Icon n="pin" size={14} /> {addr.address}</div>}
         {b.tags.length > 0 && <div className="chips mt8">{b.tags.map(x => <span key={x} className="pill p-ocean">{t(x as Key)}</span>)}</div>}
         {b.note && <div className="small mt8" style={{ display: 'block' }}>{b.note}</div>}
@@ -168,11 +194,11 @@ export function BookingDetail() {
       {['pending_payment', 'payment_review', 'awaiting_maid', 'confirmed'].includes(b.status) && <Reschedule b={b} svc={svc?.code ?? 'general_cleaning'} onDone={() => { toast.show(t('saved')); load() }} />}
       {(b.checklist?.length > 0 || ['working', 'completed'].includes(b.status)) && <JobProof b={b} />}
       {b.maid_id && ['confirmed', 'on_the_way', 'working', 'completed'].includes(b.status) && <><div className="sec-title" style={{ margin: '6px 0 0' }}>{t('chat')}</div><Chat bookingId={b.id} /></>}
-      {['completed', 'cancelled_by_customer'].includes(b.status) && !b.package_id && <button className="btn b-sun" onClick={rebook}><Icon n="redo" />{t('book_again')}</button>}
-      {!['pending_payment', 'payment_review', 'payment_rejected'].includes(b.status) && <Link to={'/receipt/' + b.id} className="btn b-line"><Icon n="print" />{t('receipt')}</Link>}
+      {['completed', 'cancelled_by_customer'].includes(b.status) && !b.package_id && !second && <button className="btn b-sun" onClick={rebook}><Icon n="redo" />{t('book_again')}</button>}
+      {!['pending_payment', 'payment_review', 'payment_rejected'].includes(b.status) && <Link to={'/receipt/' + (b.team_id ?? b.id)} className="btn b-line"><Icon n="print" />{t('receipt')}</Link>}
       {b.status === 'completed' && !reviewed && b.maid_id && <div className="card"><RatingForm bookingId={b.id} side="customer" name={m?.nickname ?? ''} onDone={() => { setReviewed(true); confetti(); toast.show(t('thanks_review')) }} /></div>}
       {b.status === 'completed' && <Link to={'/claim/' + b.id} className="btn b-line">{t('claim')}</Link>}
-      {['pending_payment', 'payment_review', 'awaiting_maid', 'confirmed', 'payment_rejected'].includes(b.status) && <><div className="small muted">{t('cancel_rules')}</div><button className="btn b-red" onClick={cancel}>{t('cancel_booking')}</button></>}
+      {['pending_payment', 'payment_review', 'awaiting_maid', 'confirmed', 'payment_rejected'].includes(b.status) && <><div className="small muted">{t('cancel_rules')}{ts ? (th ? ' · ยกเลิกแล้วจะยกเลิกทั้ง 2 คน' : ' · Cancelling cancels both helpers') : ''}</div><button className="btn b-red" onClick={cancel}>{t('cancel_booking')}</button></>}
       {err && <div className="err">{err}</div>}
     </div>{toast.node}
   </div>
@@ -241,16 +267,23 @@ export function JobProof({ b, photosOnly = false, refreshKey = 0 }: { b: Booking
 // ใบเสร็จรับเงิน (พิมพ์หรือบันทึกเป็น PDF จากเบราว์เซอร์)
 export function Receipt() {
   const { id } = useParams(); const { t, lang } = useI18n(); const services = useServices(); const addons = useAddons()
-  const [b, setB] = useState<Booking | null>(null); const [biz, setBiz] = useState<{ business_name: string; business_address: string; tax_id: string | null } | null>(null)
-  const [paidAt, setPaidAt] = useState<string | null>(null); const { profile } = useAuth()
+  const [b0, setB] = useState<Booking | null>(null); const [biz, setBiz] = useState<{ business_name: string; business_address: string; tax_id: string | null } | null>(null)
+  const [paidAt, setPaidAt] = useState<string | null>(null); const { profile } = useAuth(); const [team, setTeam] = useState<Booking[]>([])
   useEffect(() => {
-    sb.from('bookings').select('*').eq('id', id!).single().then(({ data }) => setB(data as Booking))
+    sb.from('bookings').select('*').eq('id', id!).single().then(({ data }) => {
+      setB(data as Booking)
+      const tid = (data as Booking | null)?.team_id
+      if (tid) sb.from('bookings').select('*').eq('team_id', tid).order('id').then(({ data: rows }) => setTeam((rows as Booking[]) || []))
+    })
     sb.from('settings').select('business_name,business_address,tax_id').maybeSingle().then(({ data }) => setBiz(data))
     sb.from('payments').select('reviewed_at,status').eq('booking_id', id!).eq('status', 'approved').maybeSingle().then(({ data }) => setPaidAt(data?.reviewed_at ?? null))
   }, [id])
-  if (!b || !biz) return <Loading />
-  const svc: Service | undefined = services?.find(x => x.id === b.service_type_id)
-  const rows: [string, number][] = [[`${svcName(svc, lang)} ${b.qty ?? ''} ${svcUnit(svc, lang)}`, b.base_price],
+  if (!b0 || !biz) return <Loading />
+  const svc: Service | undefined = services?.find(x => x.id === b0.service_type_id)
+  // งาน 2 คน: ใบเสร็จเดียวรวมทั้งทีม (ลูกค้าจ่ายครั้งเดียว)
+  const ts = team.length > 1 ? teamSummary(team) : null
+  const b: Booking = ts ? { ...ts.lead, base_price: ts.base, choose_maid_fee: ts.choose, urgent_fee: ts.urgent, total_price: ts.total } : b0
+  const rows: [string, number][] = [[`${svcName(svc, lang)} ${b.qty ?? ''} ${svcUnit(svc, lang)}${ts ? (lang === 'th' ? ' × 2 คน' : ' × 2 helpers') : ''}`, b.base_price],
     // ราคางานเสริมรายตัวอาจเปลี่ยนหลังจอง จึงแสดงแค่ชื่อ และยอดรวมงานเสริมตามที่จองไว้
     ...((b.addons || []).length || b.addons_price ? [[t('addons') + ': ' + (b.addons || []).map(c => { const a = addons?.find(x => x.code === c); return a ? (lang === 'th' ? a.name_th : a.name_en) : c }).join(', '), b.addons_price ?? 0] as [string, number]] : []),
     ...(b.choose_maid_fee ? [[t('pick_fee'), b.choose_maid_fee] as [string, number]] : []), ...(b.urgent_fee ? [[t('urgent_tag'), b.urgent_fee] as [string, number]] : []),

@@ -189,6 +189,7 @@ export function MaidJob() {
   return <div className="page nobar">
     <div className="hero"><div className="between"><button className="back" onClick={() => nav('/maid')} aria-label="Back"><Icon n="back" /></button><LangToggle /></div>
       <div className="sub mt12">{fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}–{fmtTime(b.end_at)}</div><h1>{money(b.maid_payout)} {t('baht')}</h1>
+      {b.team_id && <div className="sub" style={{ display: 'flex', gap: 6 }}><Icon n="team" size={16} />{lang === 'th' ? 'งานนี้ทำ 2 คนพร้อมกัน' : 'Team job: 2 helpers work together'}</div>}
       {addr && <div className="sub" style={{ display: 'flex', gap: 6 }}><Icon n="pin" size={16} />{addr.address}</div>}
       {addr?.lat != null && addr.lng != null && <a className="btn b-glass mt8" href={'https://www.google.com/maps/dir/?api=1&destination='+addr.lat+','+addr.lng} target="_blank" rel="noreferrer">{lang === 'th' ? 'เปิดเส้นทางไปบ้านลูกค้า' : 'Get directions'}</a>}
       {custPhone && <a className="btn b-glass mt8" href={'tel:' + custPhone}><Icon n="user" size={17} />{(lang === 'th' ? 'โทรหาลูกค้า ' : 'Call customer ') + custPhone}</a>}</div>

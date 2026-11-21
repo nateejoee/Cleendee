@@ -362,7 +362,10 @@ function ServicePrices({ toast }: { toast: (m: string) => void }) {
       {r.pricing === 'unit' && <SvcField label={t('a_min_per_unit')} unit={t('a_minutes')} v={r.minutes_per_unit} on={num('minutes_per_unit')} />}
       <div className="tiny muted">{t('a_qty_note')}</div>
       <div className="apc-foot"><div className="chips"><button className={'chip' + (r.active ? ' on' : '')} onClick={() => upd(i, { active: !r.active })}>{t('a_open_h')}</button>
-        <button className={'chip' + (r.coming_soon ? ' on' : '')} onClick={() => upd(i, { coming_soon: !r.coming_soon })}>{t('a_soon_h')}</button></div>
+        <button className={'chip' + (r.coming_soon ? ' on' : '')} onClick={() => upd(i, { coming_soon: !r.coming_soon })}>{t('a_soon_h')}</button>
+        <button className={'chip' + (r.allow_team ? ' on' : '')} aria-pressed={!!r.allow_team} onClick={async () => {
+          const { error } = await sb.rpc('admin_set_service_team', { p_code: r.code, p_allow: !r.allow_team })
+          if (error) toast(friendly(error, lang)); else { upd(i, { allow_team: !r.allow_team }); toast(t('saved')) } }}>{lang === 'th' ? 'จองแม่บ้าน 2 คนได้' : 'Allow 2 helpers'}</button></div>
         <button className="btn sm b-ocean" onClick={() => save(r)}>{t('save')}</button></div></div>
   })}</div></>
 }
