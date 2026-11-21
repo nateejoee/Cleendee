@@ -15,7 +15,7 @@ import { useTheme } from '../lib/theme'
 import { RatingForm } from '../components/Rating'
 import { RewardsCard } from '../components/Rewards'
 import { Orb } from './Support'
-import { NotificationFeed } from './Notifications'
+import { NotificationFeed, QuietChat } from './Notifications'
 import { useUnread } from '../lib/notify'
 
 function ThemePicker() {
@@ -378,7 +378,7 @@ export function Messages() {
     {profile?.role === 'customer' && <div className="pad msx-sec"><div className="msx-label">{th ? 'ช่วยเหลือ' : 'Help'}</div><AssistantCard /></div>}
     <div className="pad msx-sec"><div className="msx-label">{th ? 'แชทกับแม่บ้าน' : 'Chats with helpers'}{rows.length > 0 && <span>{rows.length}</span>}</div>
       {rows.length === 0
-        ? <div className="msx-empty"><span className="msx-empty-ic"><Icon n="chat" size={22} /></span><b>{th ? 'ยังไม่มีแชทกับแม่บ้าน' : 'No helper chats yet'}</b><small>{th ? 'แชทจะขึ้นที่นี่เมื่อจองและได้แม่บ้านแล้ว' : 'Chats appear here once your booking has a helper'}</small></div>
+        ? <div className="msx-empty ntf-empty"><QuietChat /><b>{th ? 'ยังไม่มีแชทกับแม่บ้าน' : 'No helper chats yet'}</b><small>{th ? 'แชทจะขึ้นที่นี่เมื่อจองและได้แม่บ้านแล้ว' : 'Chats appear here once your booking has a helper'}</small></div>
         : <div className="msx-list">{rows.map(b => { const m = helpers.find(x => x.id === b.maid_id) ?? maids?.find(x => x.id === b.maid_id)
           return <Link key={b.id} to={'/bookings/' + b.id} className="msx-row">{m && <Avatar name={m.nickname} seed={m.id} size={46} />}
             <span className="msx-row-main"><b>{m?.nickname}</b><small>{fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}</small></span><StatusPill s={b.status} /></Link> })}</div>}
