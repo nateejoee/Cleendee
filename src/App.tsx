@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './lib/auth'
 import { Onboarding, Login, Home, Service } from './pages/Start'
 import { BookingLocation, BookMaid, MaidProfile, BookTime, BookDetails, BookConfirm, Pay } from './pages/Book'
 import { Support, AdminSupport } from './pages/Support'
+import { AdminAuditLog } from './pages/AuditLog'
 import { Bookings, BookingDetail, Receipt, Claim, Messages, Account, Addresses, Favorites } from './pages/MyBookings'
 import { MaidHome, MaidJob, MaidAvailability, MaidIncome, MaidApply } from './pages/Maid'
 import { AdminHome, AdminMoney, AdminMaids, AdminSettings, AdminPublicPages } from './pages/Admin'
@@ -74,6 +75,7 @@ export default function App() {
       <Route path="/maid/income" element={<Member title="tab_income" text="lw_page"><MaidIncome /></Member>} />
       <Route path="/maid/apply" element={<Member title="become_maid" text="lw_page"><MaidApply /></Member>} />
       <Route path="/admin" element={<Member title="a_title" text="lw_page"><AdminHome /></Member>} />
+      <Route path="/admin/log" element={<Member title="a_title" text="lw_page"><AdminAuditLog /></Member>} />
       <Route path="/admin/support" element={<Member title="a_title" text="lw_page"><AdminSupport /></Member>} />
       <Route path="/admin/money" element={<Member title="tab_money" text="lw_page"><AdminMoney /></Member>} />
       <Route path="/admin/maids" element={<Member title="tab_maids" text="lw_page"><AdminMaids /></Member>} />

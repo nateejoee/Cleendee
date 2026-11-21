@@ -731,3 +731,21 @@ li{text-wrap:pretty}
 @media (prefers-reduced-motion:reduce){.cd-float,.cd-twinkle{animation:none}}
 /* ปุ่มบนหัวหน้าแรก: ไม่ตัดคำกลางคำ (เช่น "การัน/ตี") */
 .lh-cta .btn{white-space:nowrap;text-wrap:nowrap}
+
+/* admin activity log */
+.audit-tools select.input{flex:0 0 38%}
+.audit-tools input.input{flex:1;min-width:0}
+.audit-list{display:flex;flex-direction:column}
+.audit-day{font-size:12px;font-weight:700;color:var(--ink3);letter-spacing:.3px;margin:14px 4px 6px}
+.audit-item{display:flex;gap:10px;width:100%;text-align:left;padding:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:6px;color:var(--ink)}
+.audit-ic{flex:none;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--foam);color:var(--ink2)}
+.a-login .audit-ic{background:var(--sun-l);color:#8A6200}.a-delete .audit-ic{background:var(--brick-l);color:var(--brick)}.a-insert .audit-ic{background:var(--leaf-l);color:var(--leaf)}
+.audit-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.audit-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12.5px}
+.audit-meta .pill{font-size:11px;padding:1px 8px}
+.audit-sum{display:flex;flex-direction:column;gap:2px;font-size:12.5px;color:var(--ink2);overflow:hidden}
+.audit-sum>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.audit-item code,.audit-kv code{font-size:11.5px;background:var(--foam);border-radius:6px;padding:0 5px;color:var(--ink)}
+.audit-detail{margin:-2px 0 8px 40px;padding:10px 12px;background:var(--foam);border-radius:12px;display:flex;flex-direction:column;gap:6px;font-size:12.5px}
+.audit-kv{display:flex;flex-direction:column;gap:2px;overflow-wrap:anywhere}
+.audit-kv code{align-self:flex-start;background:var(--card)}

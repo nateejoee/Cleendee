@@ -251,6 +251,7 @@ export function AdminSettings() {
   const save = async () => { const { error } = await sb.rpc('admin_set_promptpay', { p_id: id.replace(/\D/g, ''), p_name: name }); toast.show(error ? friendly(error, lang) : t('saved')) }
   return <div className="page"><div className="hero"><div className="between"><h1>{t('tab_settings')}</h1><LangToggle /></div></div>
     <div className="pad mt16 stack">
+      <Link to="/admin/log" className="btn b-line"><Icon n="clock" size={18} />{th ? 'บันทึกการทำงาน (Log)' : 'Activity log'}</Link>
       <Link to="/admin/settings/pages" className="btn b-line"><Icon n="grid" size={18} />{lang === 'th' ? 'จัดการการันตีและนโยบายความเป็นส่วนตัว' : 'Manage guarantee and privacy pages'}</Link>
       <div className="chips admin-jump">{([['s-pay', th ? 'รับเงิน' : 'Payment'], ['s-areas', th ? 'พื้นที่ให้บริการ' : 'Service areas'], ['s-shop', t('a_shop')], ['s-prices', t('a_prices')], ['s-addons', t('addons')], ['s-promo', t('promo_code')]] as [string, string][]).map(([k, label]) => <button key={k} className="chip" onClick={() => jump(k)}>{label}</button>)}</div>
       <section id="s-pay" className="admin-sec card stack"><div className="sec-title" style={{ margin: 0 }}>{th ? 'บัญชีรับเงิน (พร้อมเพย์)' : 'Payment account (PromptPay)'}</div>

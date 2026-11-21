@@ -21,7 +21,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     sb.auth.getSession().then(({ data }) => load(data.session))
-    const { data: sub } = sb.auth.onAuthStateChange((_e, s) => { load(s) })
+    const { data: sub } = sb.auth.onAuthStateChange((e, s) => {
+      load(s)
+      // บันทึกการเข้าสู่ระบบของแอดมินลง log หลังบ้าน (เซิร์ฟเวอร์บันทึกเฉพาะแอดมิน)
+      if (e === 'SIGNED_IN') setTimeout(() => { sb.rpc('log_admin_login').then(() => {}, () => {}) }, 0)
+    })
     return () => sub.subscription.unsubscribe()
   }, [load])
 
