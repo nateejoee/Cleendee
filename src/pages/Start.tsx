@@ -216,7 +216,7 @@ export function Home() {
       </div>
       <aside className="hg-side">
         {profile?.role === 'customer' ? <div className="pad"><div className="sec-title">{t('my_points')}</div>
-          <RewardsCard points={profile.points} onClick={() => nav('/account')} /></div>
+          <RewardsCard points={profile.points} onClick={() => nav('/account/rewards')} /></div>
           : <div className="pad mt20"><div className="card guestcard col"><b className="disp">{t('lw_book')}</b><Link to="/login" className="btn b-ocean">{t('login')} / {t('signup')}</Link></div></div>}
         <section className="pad" aria-labelledby="home-booking-heading">
           <h2 id="home-booking-heading" className="sec-title">{t('how_it_works')}</h2>

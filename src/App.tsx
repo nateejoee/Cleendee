@@ -7,6 +7,7 @@ import { Support, AdminSupport } from './pages/Support'
 import { AdminAuditLog } from './pages/AuditLog'
 import { Notifications } from './pages/Notifications'
 import { Bookings, BookingDetail, Receipt, Claim, Messages, Account, Addresses, Favorites } from './pages/MyBookings'
+import { RewardsDetail } from './pages/RewardsDetail'
 import { MaidHome, MaidJob, MaidAvailability, MaidIncome, MaidApply } from './pages/Maid'
 import { EditProfile, MaidEditProfile } from './pages/Profile'
 import { AdminHome, AdminMoney, AdminMaids, AdminSettings, AdminPublicPages } from './pages/Admin'
@@ -84,6 +85,7 @@ export default function App() {
       <Route path="/account/addresses" element={<Member title="my_addresses" text="lw_page"><Addresses /></Member>} />
       <Route path="/account/profile" element={<Member title="edit_profile" text="lw_page"><EditProfile /></Member>} />
       <Route path="/account/favorites" element={<Member title="favorites" text="lw_page"><Favorites /></Member>} />
+      <Route path="/account/rewards" element={<Member title="my_points" text="lw_page"><RewardsDetail /></Member>} />
       <Route path="/maid" element={<Member title="tab_jobs" text="lw_page"><MaidHome /></Member>} />
       <Route path="/maid/job/:id" element={<Member title="tab_jobs" text="lw_page"><MaidJob /></Member>} />
       <Route path="/maid/availability" element={<Member title="tab_avail" text="lw_page"><MaidAvailability /></Member>} />

@@ -155,3 +155,34 @@ h1,h2,h3{font-feature-settings:"kern"}
 @media (min-width:640px){.pricing{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (prefers-reduced-motion:reduce){.pz{transition:none}}
 @media (min-width:640px){.pz{padding:18px 16px 16px}.pz-price strong{font-size:1.875rem}.pz-price small:first-child:not(:last-child){flex-basis:100%;margin-bottom:-4px}.pz-feats{font-size:.8125rem}}
+
+/* หน้ารายละเอียดบัตรสมาชิก */
+button.memcard{width:100%;text-align:left}
+.rw-page .rw-spent{gap:6px}
+.rw-big{font-size:30px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.rw-big small{font-size:15px;font-weight:600;color:var(--ink3)}
+.rw-next{margin-top:6px;padding:10px 12px;border-radius:12px;background:var(--sun-l);font-size:14px}
+.rw-tiers,.rw-how,.rw-hist{padding:4px 0;gap:0}
+.rw-tier{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.rw-tier:last-child,.rw-row:last-child{border-bottom:0}
+.rw-tier.on{background:linear-gradient(90deg,rgba(201,162,77,.16),transparent)}
+.rw-dot{width:14px;height:14px;border-radius:50%;flex:none;background:#B9C2CF}
+.rw-tier.t-silver .rw-dot{background:linear-gradient(135deg,#F4F6F9,#9AA5B4)}
+.rw-tier.t-gold .rw-dot{background:linear-gradient(135deg,#F3E3B8,#B8914A)}
+.rw-tier.t-platinum .rw-dot{background:linear-gradient(135deg,#E9ECF5,#5B6478)}
+.rw-tn{flex:1;min-width:0;display:flex;flex-direction:column}
+.rw-tn em{font-style:normal;font-size:11px;font-weight:700;color:#8A6A2B;margin-top:1px}
+.rw-tn small,.rw-how small,.rw-rt small{font-size:12.5px;color:var(--ink3)}
+.rw-mult{font-size:18px;font-weight:800;color:var(--ink);text-align:right;display:flex;flex-direction:column;line-height:1.1}
+.rw-mult small{font-size:11px;font-weight:600;color:var(--ink3)}
+.rw-how>div{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-bottom:1px solid var(--line)}
+.rw-how>div:last-child{border-bottom:0}
+.rw-how>div>span:last-child{display:flex;flex-direction:column;gap:2px}
+.rw-n{width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:800;font-size:13px;background:var(--ink);color:#F3E3B8}
+.rw-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.rw-rt{flex:1;min-width:0;display:flex;flex-direction:column}
+.rw-d{font-weight:800;font-size:16px;color:#2E8B57;font-variant-numeric:tabular-nums}
+.rw-d.neg{color:var(--ink3)}
+[data-dark="1"] .rw-tier.on{background:linear-gradient(90deg,rgba(201,162,77,.22),transparent)}
+[data-dark="1"] .rw-tn em{color:#E3C47E}
+[data-dark="1"] .rw-n{background:#E3C47E;color:#141B2D}
