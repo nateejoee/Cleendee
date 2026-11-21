@@ -13,7 +13,7 @@
 [data-dark="1"]{--sh-1:0 1px 0 rgba(255,255,255,.03) inset,0 2px 8px rgba(0,0,0,.35);--sh-2:0 1px 0 rgba(255,255,255,.04) inset,0 12px 28px -10px rgba(0,0,0,.6);--sh-3:0 1px 0 rgba(255,255,255,.05) inset,0 24px 48px -18px rgba(0,0,0,.75);--hair:color-mix(in srgb,var(--sun) 22%,var(--line))}
 
 /* ตัวหนังสือ: พาดหัวและตัวเลขราคาใช้เซอริฟ, เนื้อหายังเป็นซานส์ */
-.sec-title,.lux-hero h1,.promo h3,.quick-book h2,.page-title,.topbar h1,.income-big,.qb-price b,.price-big{font-family:var(--font-display);letter-spacing:-.005em}
+.sec-title,.lux-hero h1,.promo h3,.quick-book h2,.page-title,.topbar h1,.ie-big,.qb-price b,.price-big{font-family:var(--font-display);letter-spacing:-.005em}
 .sec-title{font-size:1.25rem;font-weight:600;margin:32px 0 14px}
 h1,h2,h3{font-feature-settings:"kern"}
 

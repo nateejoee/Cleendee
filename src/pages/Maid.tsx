@@ -292,12 +292,21 @@ function IncomeEstimate() {
   const s = services?.find(x => x.code === 'general_cleaning' && x.active)
   if (!s) return null
   const perHour = Math.round(s.price_per_unit * s.payout_pct / 100)
-  const month = perHour * hrs * days
-  return <section className="card apply-sec income-est"><h3>{th ? 'ตัวอย่างรายได้ต่อเดือน' : 'Example monthly income'}</h3>
-    <div className="income-big">{money(month)} <small>{th ? 'บาท/เดือน' : 'THB/month'}</small></div>
-    <div className="income-row"><span>{th ? 'ชั่วโมงต่อวัน' : 'Hours a day'}</span><div className="chips">{[4, 6, 8].map(n => <button type="button" key={n} className={'chip' + (hrs === n ? ' on' : '')} onClick={() => setHrs(n)}>{n} {th ? 'ชม.' : 'h'}</button>)}</div></div>
-    <div className="income-row"><span>{th ? 'วันต่อเดือน' : 'Days a month'}</span><div className="chips">{[12, 22, 26].map(n => <button type="button" key={n} className={'chip' + (days === n ? ' on' : '')} onClick={() => setDays(n)}>{n} {th ? 'วัน' : 'days'}</button>)}</div></div>
-    <small className="muted">{th ? `คิดจากงานทำความสะอาดทั่วไป แม่บ้านได้ ${perHour} บาท/ชม. (${s.payout_pct}% ของราคา) ไม่รวมงานเสริมและโบนัสงานด่วน รายได้จริงขึ้นกับจำนวนงานที่รับ` : `Based on general cleaning: you earn ${perHour} THB/h (${s.payout_pct}% of the price), before add-ons and urgent bonuses. Real income depends on the jobs you take.`}</small>
+  const day = perHour * hrs, month = day * days, year = month * 12
+  const fill = Math.round(hrs * days / (8 * 26) * 100)
+  const seg = (vals: number[], cur: number, set: (n: number) => void, u: string) => <div className="ie-seg" role="group">{vals.map(n =>
+    <button type="button" key={n} className={cur === n ? 'on' : ''} aria-pressed={cur === n} onClick={() => set(n)}>{n} <small>{u}</small></button>)}</div>
+  return <section className="card apply-sec income-est">
+    <div className="ie-hero">
+      <span className="ie-k">{th ? 'ตัวอย่างรายได้ต่อเดือน' : 'Example monthly income'}</span>
+      <div className="ie-big" key={month}>{money(month)}<small>{th ? 'บาท' : 'THB'}</small></div>
+      <div className="ie-f"><span>{perHour} {th ? 'บาท/ชม.' : 'THB/h'}</span><i>×</i><span>{hrs} {th ? 'ชม.' : 'h'}</span><i>×</i><span>{days} {th ? 'วัน' : 'days'}</span></div>
+      <div className="ie-bar" aria-hidden="true"><b style={{ width: fill + '%' }} /></div>
+      <div className="ie-st"><div><span>{th ? 'ต่อวัน' : 'Per day'}</span><b>{money(day)}</b></div><div><span>{th ? 'ต่อปี' : 'Per year'}</span><b>{money(year)}</b></div></div>
+    </div>
+    <div className="ie-ctl"><span>{th ? 'ชั่วโมงต่อวัน' : 'Hours a day'}</span>{seg([4, 6, 8], hrs, setHrs, th ? 'ชม.' : 'h')}</div>
+    <div className="ie-ctl"><span>{th ? 'วันต่อเดือน' : 'Days a month'}</span>{seg([12, 22, 26], days, setDays, th ? 'วัน' : 'days')}</div>
+    <small className="muted ie-note">{th ? `คิดจากงานทำความสะอาดทั่วไป (แม่บ้านได้ ${s.payout_pct}% ของราคา) ไม่รวมงานเสริมและโบนัสงานด่วน รายได้จริงขึ้นกับจำนวนงานที่รับ` : `Based on general cleaning (you earn ${s.payout_pct}% of the price), before add-ons and urgent bonuses. Real income depends on the jobs you take.`}</small>
   </section>
 }
 
