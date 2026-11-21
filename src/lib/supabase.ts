@@ -8,7 +8,16 @@ export const sb = createClient(SUPABASE_URL, KEY, {
 })
 
 export type Role = 'customer' | 'maid' | 'admin'
-export type Profile = { id: string; role: Role; full_name: string | null; phone: string | null; lang: 'th' | 'en'; district_id: number | null; points: number }
+export type Gender = 'female' | 'male' | 'other' | 'unspecified'
+export type Profile = {
+  id: string; role: Role; full_name: string | null; phone: string | null; lang: 'th' | 'en'; district_id: number | null; points: number
+  avatar_url?: string | null; contact_email?: string | null; birth_date?: string | null; gender?: Gender | null
+}
+// คำขอแก้ไขข้อมูลแม่บ้าน (รูปโปรไฟล์ / บัญชีรับเงิน) ที่ต้องให้แอดมินอนุมัติ
+export type MaidChangeRequest = {
+  id: number; maid_id: string; kind: 'photo' | 'bank'; photo_url: string | null; bank_name: string | null; bank_account: string | null
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'; admin_note: string | null; created_at: string; decided_at: string | null
+}
 export type District = { id: number; province_code: string; name_th: string; name_en: string; active: boolean }
 export type Maid = { id: string; nickname: string; bio: string | null; photo_url: string | null; status: string; district_id: number | null; id_verified: boolean; background_checked: boolean; services?: string[] }
 export type Rating = { maid_id: string; avg_rating: number | null; review_count: number; jobs_done: number }
@@ -58,9 +67,6 @@ const ERR: Record<string, [string, string]> = {
   invalid_state: ['ทำรายการนี้ไม่ได้ในตอนนี้', 'This action is not available now'],
   full_name_required: ['กรุณากรอกชื่อ-นามสกุลจริง', 'Please enter your full name'],
   phone_invalid: ['เบอร์โทรไม่ถูกต้อง', 'Invalid phone number'],
-  admin_cannot_delete: ['บัญชีแอดมินลบเองไม่ได้', 'Admin accounts cannot be deleted here'],
-  account_has_active_jobs: ['ยังมีงานที่ยังไม่เสร็จ กรุณายกเลิกหรือรอให้งานเสร็จก่อน', 'You still have unfinished jobs. Cancel them or wait until they are done'],
-  account_has_pending_money: ['ยังมีเงินคืน ค่าจ้าง หรือเคลมที่รอดำเนินการ กรุณารอให้เสร็จก่อน', 'You still have a pending refund, payout or claim. Please wait until it is done'],
   quiz_failed: ['ตอบแบบทดสอบถูกไม่ถึง 4 ข้อ ลองทบทวนแล้วตอบใหม่', 'Fewer than 4 quiz answers were correct. Please review and try again'],
   quiz_required: ['กรุณาตอบแบบทดสอบให้ครบทุกข้อ', 'Please answer every quiz question'],
   job_offered_to_other: ['งานนี้กำลังเสนอให้แม่บ้านคนอื่นอยู่ ลองใหม่ภายหลัง', 'This job is being offered to another helper. Try again later'],
@@ -85,7 +91,10 @@ const ERR: Record<string, [string, string]> = {
   promo_already_used: ['คุณใช้โค้ดนี้ไปแล้ว', 'You already used this code'],
   promo_min_total: ['ยอดยังไม่ถึงขั้นต่ำของโค้ดนี้', 'Order total is below this code’s minimum'],
   too_many_photos: ['แนบรูปได้สูงสุด 20 รูป', 'Up to 20 photos'],
-  invalid_input: ['ข้อมูลไม่ถูกต้อง', 'Invalid input'],
+  invalid_input: ['ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง', 'Some details are not valid. Please check and try again'],
+  account_has_active_jobs: ['ยังลบบัญชีไม่ได้ เพราะมีการจองที่กำลังดำเนินอยู่ กรุณารอให้งานเสร็จหรือยกเลิกก่อน', 'You can’t delete your account while a booking is in progress. Please wait until it is finished or cancel it first'],
+  account_has_pending_money: ['ยังลบบัญชีไม่ได้ เพราะมีเงินคืน เงินที่รอโอน หรือเรื่องแจ้งของเสียหายที่ยังดำเนินการอยู่ กรุณารอให้เสร็จก่อน', 'You can’t delete your account while a refund, payout or claim is still pending. Please wait until it is settled'],
+  admin_cannot_delete: ['บัญชีแอดมินลบเองไม่ได้', 'Admin accounts can’t be deleted here'],
   'Invalid login credentials': ['อีเมลหรือรหัสผ่านไม่ถูกต้อง', 'Wrong email or password'],
 }
 export function friendly(e: unknown, lang: 'th' | 'en') {

@@ -11,6 +11,7 @@ import { AdminTabs, Avatar, Icon, Bell, LangToggle, Loading, StatusPill, useToas
 import { PublicPageEditor } from './PublicPageEditor'
 import { useDistricts, useProvinces, reloadAreas } from '../lib/areas'
 import { usePrices } from './Book'
+import { maskAcc } from '../lib/profile'
 
 // ผลตรวจสลิปอัตโนมัติ (รหัสจากเซิร์ฟเวอร์) เป็นข้อความที่อ่านเข้าใจ ไม่รู้จักรหัสก็แสดงรหัสเดิม
 const CHECK_NOTE: Record<string, Key> = {
@@ -81,9 +82,10 @@ function LowRatings({ rows, reload }: { rows: Low[]; reload: () => void }) {
 export function AdminHome() {
   const { t, lang } = useI18n(); const { d, reload } = useAdminData(); const toast = useToast(); const low = useLowRatings()
   const { hash, key } = useLocation()
-  const [chatWaiting, setChatWaiting] = useState(0); const [changes, setChanges] = useState(0)
-  useEffect(() => { sb.rpc('admin_maid_change_requests').then(({ data }) => setChanges(((data as unknown[]) || []).length)) }, [])
+  const [chatWaiting, setChatWaiting] = useState(0)
   useEffect(() => { sb.from('support_threads').select('id', { count: 'exact', head: true }).eq('status', 'waiting_staff').then(({ count }) => setChatWaiting(count || 0)) }, [])
+  const [changeReqs, setChangeReqs] = useState(0)
+  useEffect(() => { sb.rpc('admin_maid_change_requests').then(({ data }) => setChangeReqs(Array.isArray(data) ? data.length : 0)) }, [])
   useEffect(() => { if (d && hash) document.getElementById(hash.slice(1))?.scrollIntoView() }, [hash, key, d, low.rows.length])
   if (useAdminGuard()) return <Navigate to="/" />
   if (!d) return <Loading />
@@ -97,7 +99,7 @@ export function AdminHome() {
     [d.refunds.length, t('a_refunds'), money(d.refunds.reduce((a, p) => a + p.amount, 0)) + ' ' + t('baht'), 'var(--brick-l)', 'var(--brick)', '/admin/money#refunds'],
     [d.claims.length, t('a_claims'), '', 'var(--brick-l)', 'var(--brick)', '/admin/money#claims'],
     [d.maidsPending, t('a_newmaids'), '', 'var(--leaf-l)', 'var(--leaf)', '/admin/maids'],
-    [changes, lang === 'th' ? 'คำขอเปลี่ยนข้อมูลแม่บ้าน' : 'Helper change requests', lang === 'th' ? 'รูปโปรไฟล์ / บัญชีรับเงิน' : 'Photo / bank account', 'var(--sun-l)', '#8A6200', '/admin/maids#changes'],
+    [changeReqs, t('a_change_reqs'), t('a_change_reqs_d'), 'var(--sun-l)', '#8A6200', '/admin/maids#changes'],
     [chatWaiting, lang === 'th' ? 'แชทรอตอบ' : 'Chats waiting', lang === 'th' ? 'ลูกค้าขอคุยกับเจ้าหน้าที่' : 'Customers asking for staff', 'var(--sun-l)', '#8A6200', '/admin/support'],
     [low.rows.filter(r => !r.admin_seen).length, t('a_low'), t('a_low_d'), 'var(--brick-l)', 'var(--brick)', '#low-ratings'],
   ].sort((a, b) => Number(Number(b[0]) > 0) - Number(Number(a[0]) > 0)) as [number, string, string, string, string, string][]
@@ -209,35 +211,43 @@ function ApplicationInfo({ a, onDoc }: { a: Application; onDoc: (path: string) =
     <small className="muted">{th ? 'ยินยอมตรวจประวัติเมื่อ ' : 'Consent given '}{fmtDate(a.consent_at, lang)}</small></div>
 }
 
-const MAID_STATUS: Record<string, [string, string]> = { pending: ['รออนุมัติ', 'Pending'], approved: ['อนุมัติแล้ว', 'Approved'], suspended: ['ถูกระงับ', 'Suspended'] }
-// คำขอเปลี่ยนรูปโปรไฟล์/บัญชีรับเงินของแม่บ้าน (ต้องอนุมัติก่อนมีผล)
 type ChangeReq = { id: number; kind: 'photo' | 'bank'; photo_url: string | null; bank_name: string | null; bank_account: string | null; created_at: string; maid_id: string; nickname: string; full_name: string | null; current_photo: string | null; current_bank_name: string | null; current_bank_account: string | null }
-function ChangeRequests({ toast }: { toast: (m: string) => void }) {
-  const { t, lang } = useI18n(); const th = lang === 'th'
-  const [rows, setRows] = useState<ChangeReq[] | null>(null); const [note, setNote] = useState<Record<number, string>>({})
-  const load = () => { sb.rpc('admin_maid_change_requests').then(({ data }) => setRows((data as ChangeReq[]) || [])) }
+// คำขอแก้ไขรูปโปรไฟล์ / บัญชีรับเงินของแม่บ้าน (ต้องอนุมัติก่อนจึงเปลี่ยนจริง)
+function MaidChangeRequests() {
+  const { t, lang } = useI18n(); const toast = useToast(); const th = lang === 'th'
+  const [rows, setRows] = useState<ChangeReq[] | null>(null); const [note, setNote] = useState<Record<number, string>>({}); const [busy, setBusy] = useState<number | null>(null)
+  const load = () => { sb.rpc('admin_maid_change_requests').then(({ data }) => setRows(Array.isArray(data) ? (data as ChangeReq[]) : [])) }
   useEffect(load, [])
-  const decide = async (r: ChangeReq, ok: boolean) => {
-    const { error } = await sb.rpc('admin_decide_maid_change', { p_id: r.id, p_approve: ok, p_note: note[r.id] || null })
-    toast(error ? friendly(error, lang) : t('saved')); load()
+  const decide = async (r: ChangeReq, approve: boolean) => {
+    if (busy) return; setBusy(r.id)
+    const { error } = await sb.rpc('admin_decide_maid_change', { p_id: r.id, p_approve: approve, p_note: approve ? null : (note[r.id]?.trim() || null) })
+    setBusy(null); toast.show(error ? friendly(error, lang) : t('saved')); load()
   }
-  if (!rows) return <Loading />
-  return <Section id="changes" title={th ? 'คำขอเปลี่ยนข้อมูล' : 'Change requests'} count={rows.length} hint={th ? 'รูปโปรไฟล์และบัญชีรับเงินจะเปลี่ยนหลังอนุมัติ' : 'Photos and bank accounts change only after approval'}>
-    {rows.length === 0 ? <Nothing /> : <div className="stack">{rows.map(r => <div key={r.id} className="card stack">
-      <div className="between"><b className="disp">{r.nickname}{r.full_name ? ' · ' + r.full_name : ''}</b><span className="pill p-sun">{r.kind === 'bank' ? (th ? 'บัญชีรับเงิน' : 'Bank account') : (th ? 'รูปโปรไฟล์' : 'Photo')}</span></div>
-      {r.kind === 'photo' ? <div className="row change-cmp"><span><small className="muted">{th ? 'เดิม' : 'Now'}</small><Avatar name={r.nickname} url={r.current_photo} seed={r.maid_id} size={64} /></span><Icon n="next" /><span><small className="muted">{th ? 'ใหม่' : 'New'}</small><Avatar name={r.nickname} url={r.photo_url} seed={r.maid_id} size={64} /></span></div>
-        : <div className="recv"><div><span className="muted">{th ? 'เดิม' : 'Now'}</span><span>{r.current_bank_name ?? '–'} {r.current_bank_account ?? ''}</span></div><div><span className="muted">{th ? 'ใหม่' : 'New'}</span><b>{r.bank_name} {r.bank_account}</b></div></div>}
-      <input className="input" placeholder={th ? 'หมายเหตุถึงแม่บ้าน (ถ้ามี)' : 'Note to the helper (optional)'} value={note[r.id] || ''} onChange={e => setNote({ ...note, [r.id]: e.target.value })} />
-      <div className="row"><button className="btn sm b-ocean" onClick={() => decide(r, true)}>{t('approve')}</button><button className="btn sm b-red" onClick={() => decide(r, false)}>{th ? 'ไม่อนุมัติ' : 'Reject'}</button></div>
-    </div>)}</div>}
+  const photo = (url: string | null, name: string) => url ? <a href={url} target="_blank" rel="noreferrer"><img src={url} alt={name} /></a> : <Avatar name={name} size={72} seed={name} />
+  return <Section id="changes" title={t('a_change_reqs')} count={rows?.length ?? 0} hint={t('a_change_reqs_d')}>
+    {!rows ? <Loading /> : rows.length === 0 ? <Nothing /> : <div className="admin-grid">{rows.map(r => <div key={r.id} className="card stack">
+      <div className="between"><b className="disp">{r.nickname}{r.full_name ? <span className="small muted" style={{ fontWeight: 400 }}> · {r.full_name}</span> : null}</b><span className="pill p-sun">{r.kind === 'photo' ? t('a_kind_photo') : t('a_kind_bank')}</span></div>
+      <div className="small muted">{fmtDate(r.created_at, lang)} {fmtTime(r.created_at)}</div>
+      <div className="admin-cmp">
+        <div><small className="muted">{t('a_cur')}</small>{r.kind === 'photo' ? photo(r.current_photo, r.nickname) : <><b>{r.current_bank_name || '–'}</b><span className="small">{maskAcc(r.current_bank_account)}</span></>}</div>
+        <div className="req"><small className="muted">{t('a_req')}</small>{r.kind === 'photo' ? photo(r.photo_url, r.nickname) : <><b>{r.bank_name || '–'}</b><span className="small" style={{ fontVariantNumeric: 'tabular-nums' }}>{r.bank_account || '–'}</span></>}</div>
+      </div>
+      <input className="input" maxLength={200} placeholder={t('a_note_ph')} value={note[r.id] ?? ''} onChange={e => setNote({ ...note, [r.id]: e.target.value })} aria-label={t('a_note_ph')} />
+      <div className="row"><button className="btn sm b-ocean" style={{ flex: 1 }} disabled={busy === r.id} onClick={() => decide(r, true)}>{t('approve')}</button>
+        <button className="btn sm b-red" style={{ flex: 1 }} disabled={busy === r.id} onClick={() => decide(r, false)}>{th ? 'ไม่อนุมัติ' : 'Reject'}</button></div>
+    </div>)}</div>}{toast.node}
   </Section>
 }
+
+const MAID_STATUS: Record<string, [string, string]> = { pending: ['รออนุมัติ', 'Pending'], approved: ['อนุมัติแล้ว', 'Approved'], suspended: ['ถูกระงับ', 'Suspended'] }
 
 export function AdminMaids() {
   const { t, lang } = useI18n(); const toast = useToast(); const services = useServices(); const [rows, setRows] = useState<MaidRow[] | null>(null); const [filter, setFilter] = useState<string | null>(null); const th = lang === 'th'; const [apps, setApps] = useState<Record<string, Application>>({}); const [openApp, setOpenApp] = useState<string | null>(null); const [docUrl, setDocUrl] = useState<{ url: string; pdf: boolean } | null>(null); const [avg, setAvg] = useState<Record<string, { avg_rating: number; review_count: number }>>({})
   useEffect(() => { sb.rpc('admin_maid_ratings').then(({ data }) => setAvg(Object.fromEntries(((data as { maid_id: string; avg_rating: number; review_count: number }[]) || []).map(x => [x.maid_id, x])))) }, [])
   const load = () => sb.from('maids').select('id,nickname,bio,status,id_verified,background_checked,created_at,services,trial').order('created_at', { ascending: false }).then(({ data }) => setRows(data || []))
   useEffect(() => { load() }, [])
+  const { hash } = useLocation()
+  useEffect(() => { if (hash && rows) setTimeout(() => document.getElementById(hash.slice(1))?.scrollIntoView(), 300) }, [hash, rows])
   useEffect(() => { sb.rpc('admin_maid_applications').then(({ data }) => setApps(Object.fromEntries(((data as Application[]) || []).map(x => [x.id, x])))) }, [])
   if (useAdminGuard()) return <Navigate to="/" />
   const showDoc = async (path: string) => { const { data } = await sb.storage.from('maid-docs').createSignedUrl(path, 300); if (data?.signedUrl) setDocUrl({ url: data.signedUrl, pdf: path.endsWith('.pdf') }) }
@@ -246,7 +256,7 @@ export function AdminMaids() {
   const cur = filter ?? (count('pending') ? 'pending' : 'all')
   const shown = (rows || []).filter(m => cur === 'all' || m.status === cur)
   return <div className="page"><div className="hero"><h1>{t('tab_maids')}</h1></div>
-    <div className="pad mt12"><ChangeRequests toast={toast.show} /></div>
+    <div className="pad"><MaidChangeRequests /></div>
     {rows && <div className="pad mt12"><div className="chips">{([['pending', count('pending')], ['approved', count('approved')], ['suspended', count('suspended')], ['all', rows.length]] as [string, number][]).map(([k, n]) =>
       <button key={k} className={'chip' + (cur === k ? ' on' : '')} onClick={() => setFilter(k)}>{k === 'all' ? (th ? 'ทั้งหมด' : 'All') : MAID_STATUS[k][th ? 0 : 1]} ({n})</button>)}</div></div>}
     <div className="pad mt12 stack cols">{!rows ? <Loading /> : shown.length === 0 ? <div className="empty">{t('nothing')}</div> : shown.map(m => <div key={m.id} className="card stack">

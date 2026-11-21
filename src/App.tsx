@@ -8,6 +8,7 @@ import { AdminAuditLog } from './pages/AuditLog'
 import { Notifications } from './pages/Notifications'
 import { Bookings, BookingDetail, Receipt, Claim, Messages, Account, Addresses, Favorites } from './pages/MyBookings'
 import { MaidHome, MaidJob, MaidAvailability, MaidIncome, MaidApply } from './pages/Maid'
+import { EditProfile, MaidEditProfile } from './pages/Profile'
 import { AdminHome, AdminMoney, AdminMaids, AdminSettings, AdminPublicPages } from './pages/Admin'
 import { Loading, LoginWall } from './components/ui'
 import { Guarantee, Privacy } from './pages/PublicPages'
@@ -79,11 +80,13 @@ export default function App() {
       <Route path="/notifications" element={<Notifications />} />
       <Route path="/account" element={<Account />} />
       <Route path="/account/addresses" element={<Member title="my_addresses" text="lw_page"><Addresses /></Member>} />
+      <Route path="/account/profile" element={<Member title="edit_profile" text="lw_page"><EditProfile /></Member>} />
       <Route path="/account/favorites" element={<Member title="favorites" text="lw_page"><Favorites /></Member>} />
       <Route path="/maid" element={<Member title="tab_jobs" text="lw_page"><MaidHome /></Member>} />
       <Route path="/maid/job/:id" element={<Member title="tab_jobs" text="lw_page"><MaidJob /></Member>} />
       <Route path="/maid/availability" element={<Member title="tab_avail" text="lw_page"><MaidAvailability /></Member>} />
       <Route path="/maid/income" element={<Member title="tab_income" text="lw_page"><MaidIncome /></Member>} />
+      <Route path="/maid/profile" element={<Member title="mp_title" text="lw_page"><MaidEditProfile /></Member>} />
       <Route path="/maid/apply" element={<Member title="become_maid" text="lw_page"><MaidApply /></Member>} />
       <Route path="/admin" element={<AdminOnly><AdminHome /></AdminOnly>} />
       <Route path="/admin/log" element={<AdminOnly><AdminAuditLog /></AdminOnly>} />

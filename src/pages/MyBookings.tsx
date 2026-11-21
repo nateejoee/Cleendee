@@ -376,45 +376,6 @@ export function Messages() {
     <CustomerTabs /></div>
 }
 
-// เบอร์โทรของลูกค้า (แก้ไขได้) แม่บ้านที่รับงานเห็นหลังชำระเงินจนงานเสร็จ
-function PhoneRow() {
-  const { t, lang } = useI18n(); const { profile, refresh } = useAuth(); const toast = useToast(); const th = lang === 'th'
-  const [edit, setEdit] = useState(false); const [v, setV] = useState(''); const [busy, setBusy] = useState(false)
-  const save = async () => {
-    setBusy(true); const { error } = await sb.rpc('set_my_phone', { p_phone: v }); setBusy(false)
-    if (error) { toast.show(friendly(error, lang)); return }
-    await refresh(); setEdit(false); toast.show(t('saved'))
-  }
-  return <div className="listrow" style={{ flexWrap: 'wrap' }}><span className="rico"><Icon n="user" /></span>
-    <span style={{ flex: 1, minWidth: 0 }}><b>{th ? 'เบอร์โทร' : 'Phone'}</b><span className="small muted">{edit ? t('phone') : profile?.phone || (th ? 'ยังไม่ได้ใส่ (ต้องใส่ก่อนจอง)' : 'Not added yet (needed to book)')}</span></span>
-    {!edit && <button className="link" onClick={() => { setV(profile?.phone || ''); setEdit(true) }}>{profile?.phone ? (th ? 'แก้ไข' : 'Edit') : (th ? 'เพิ่ม' : 'Add')}</button>}
-    {edit && <div className="row" style={{ width: '100%', marginTop: 10 }}><input className="input" type="tel" inputMode="tel" autoComplete="tel" maxLength={12} placeholder="08xxxxxxxx" value={v} onChange={e => setV(e.target.value)} aria-label={th ? 'เบอร์โทร' : 'Phone'} />
-      <button className="btn sm b-ocean" disabled={busy} onClick={save}>{t('save')}</button><button className="btn sm b-line" onClick={() => setEdit(false)}>{th ? 'ยกเลิก' : 'Cancel'}</button></div>}
-    {toast.node}</div>
-}
-
-// ลบบัญชีของฉัน (ตามสิทธิ์ใน PDPA) ต้องพิมพ์คำยืนยันก่อน ทำไม่ได้ถ้ายังมีงานหรือเงินค้างอยู่
-function DeleteAccount() {
-  const { lang } = useI18n(); const nav = useNavigate(); const th = lang === 'th'
-  const [open, setOpen] = useState(false); const [word, setWord] = useState(''); const [busy, setBusy] = useState(false); const [err, setErr] = useState('')
-  const confirmWord = th ? 'ลบบัญชี' : 'DELETE'
-  const go = async () => {
-    setBusy(true); setErr('')
-    const { error } = await sb.rpc('delete_my_account')
-    if (error) { setErr(friendly(error, lang)); setBusy(false); return }
-    await sb.auth.signOut().catch(() => {}); clearDraft(); nav('/', { replace: true })
-  }
-  if (!open) return <button className="listrow danger-row" onClick={() => setOpen(true)}><span className="rico"><Icon n="logout" /></span><b style={{ flex: 1 }}>{th ? 'ลบบัญชี' : 'Delete account'}</b></button>
-  return <div className="pad mt12"><div className="card stack delete-card" role="region" aria-label={th ? 'ลบบัญชี' : 'Delete account'}>
-    <b>{th ? 'ลบบัญชีถาวร' : 'Delete your account permanently'}</b>
-    <ul className="small">{(th ? ['ลบชื่อ เบอร์โทร ที่อยู่ แม่บ้านคนโปรด และแต้มทั้งหมด', 'เข้าสู่ระบบด้วยบัญชีนี้ไม่ได้อีก', 'ประวัติการจองและการชำระเงินเก็บไว้แบบไม่ระบุตัวตนตามกฎหมายบัญชี', 'ต้องไม่มีงานที่ยังไม่เสร็จ หรือเงินคืน/ค่าจ้างที่ยังค้างอยู่'] : ['Your name, phone, addresses, favourites and points are removed', 'You cannot sign in with this account again', 'Booking and payment records are kept without your name for accounting', 'You must have no unfinished jobs or pending refunds/payouts']).map(x => <li key={x}>{x}</li>)}</ul>
-    <div className="field"><label>{th ? `พิมพ์ "${confirmWord}" เพื่อยืนยัน` : `Type "${confirmWord}" to confirm`}</label><input className="input" value={word} onChange={e => setWord(e.target.value)} autoComplete="off" /></div>
-    {err && <div className="err" role="alert">{err}</div>}
-    <div className="row"><button className="btn b-red" style={{ flex: 1 }} disabled={busy || word.trim() !== confirmWord} onClick={go}>{busy ? '…' : (th ? 'ลบบัญชีถาวร' : 'Delete permanently')}</button>
-      <button className="btn b-line" onClick={() => { setOpen(false); setWord(''); setErr('') }}>{th ? 'ยกเลิก' : 'Cancel'}</button></div>
-  </div></div>
-}
-
 export function Account() {
   const { t, lang, setLang } = useI18n(); const { profile, session } = useAuth(); const nav = useNavigate()
   const [maidApp, setMaidApp] = useState<{ status: string } | null>(null)
@@ -438,13 +399,16 @@ export function Account() {
     <Link to="/privacy" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico"><Icon n="shield" /></span><b style={{ flex: 1 }}>Privacy</b><Icon n="next" /></Link>
     <CustomerTabs /></div>
   return <div className="page">
-    <div className={'hero' + (isCustomer ? ' tall' : '')}><div className="row"><Avatar name={profile?.full_name || 'C'} size={54} seed={session.user.id} /><div><h1 style={{ fontSize: 21 }}>{profile?.full_name}</h1><div className="sub">{session.user.email}</div></div></div></div>
+    <div className={'hero' + (isCustomer ? ' tall' : '')}><Link to="/account/profile" className="acc-head" aria-label={t('edit_profile')}><Avatar name={profile?.full_name || 'C'} url={profile?.avatar_url} size={58} seed={session.user.id} />
+      <div style={{ minWidth: 0 }}><h1 style={{ fontSize: 21 }}>{profile?.full_name}</h1><div className="sub">{session.user.email}</div><span className="acc-edit">{t('edit_profile')} <Icon n="next" size={14} /></span></div></Link></div>
     {isCustomer && <div className="pad" style={{ marginTop: -54, position: 'relative', zIndex: 2 }}><RewardsCard points={profile?.points ?? 0} /></div>}
     <div className="mt16">
       {profile?.role === 'admin' && <Link to="/admin" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--sun-l)' }}><Icon n="grid" /></span><b style={{ flex: 1 }}>Admin</b><Icon n="next" /></Link>}
       {profile?.role === 'maid' && <Link to="/maid" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--sun-l)' }}><Icon n="grid" /></span><b style={{ flex: 1 }}>{t('tab_jobs')}</b><Icon n="next" /></Link>}
+      <Link to="/account/profile" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico"><Icon n="user" /></span>
+        <span style={{ flex: 1, minWidth: 0 }}><b>{t('edit_profile')}</b><span className="small muted">{profile?.phone || (isCustomer ? (lang === 'th' ? 'ยังไม่ได้ใส่เบอร์โทร (ต้องใส่ก่อนจอง)' : 'No phone yet (needed to book)') : (lang === 'th' ? 'ชื่อ รูป เบอร์โทร' : 'Name, photo, phone'))}</span></span><Icon n="next" /></Link>
+      {profile?.role === 'maid' && <Link to="/maid/profile" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--sun-l)' }}><Icon n="team" /></span><span style={{ flex: 1, minWidth: 0 }}><b>{t('mp_title')}</b><span className="small muted">{lang === 'th' ? 'ชื่อเล่น แนะนำตัว พื้นที่ รูป บัญชีรับเงิน' : 'Nickname, bio, area, photo, bank account'}</span></span><Icon n="next" /></Link>}
       {isCustomer && <>
-      <PhoneRow />
       <Link to="/account/addresses" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico"><Icon n="pin" /></span><b style={{ flex: 1 }}>{t('my_addresses')}</b><Icon n="next" /></Link>
       <Link to="/account/favorites" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--sun-l)' }}><Icon n="heart" /></span><b style={{ flex: 1 }}>{t('favorites')}</b><Icon n="next" /></Link>
       {activePkg
@@ -455,7 +419,6 @@ export function Account() {
       <button className="listrow" onClick={() => setLang(lang === 'th' ? 'en' : 'th')}><span className="rico"><Icon n="chat" /></span><b style={{ flex: 1 }}>{t('language')}: {lang === 'th' ? 'ไทย' : 'English'}</b></button>
       <ThemePicker />
       <button className="listrow" onClick={async () => { await sb.auth.signOut(); clearDraft(); nav('/') }}><span className="rico"><Icon n="logout" /></span><b style={{ flex: 1 }}>{t('logout')}</b></button>
-      {profile && profile.role !== 'admin' && <DeleteAccount />}
     </div>
     {profile?.role === 'maid' ? <MaidTabs /> : profile?.role === 'admin' ? <AdminTabs /> : <CustomerTabs />}
   </div>

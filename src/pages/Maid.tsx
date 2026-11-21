@@ -30,42 +30,16 @@ function useMaidData() {
   return { mine, open, payouts, reload: load }
 }
 
-function MaidPhoto({id, name}: {id:string; name:string}) {
-  const {lang} = useI18n(); const th = lang === 'th'
-  const [url,setUrl] = useState<string | null>(null)
-  const [busy,setBusy] = useState(false); const [message,setMessage] = useState('')
-  const [pending,setPending] = useState(false)
-  useEffect(() => {
-    sb.from('maids').select('photo_url').eq('id',id).maybeSingle().then(({data}) => setUrl(data?.photo_url ?? null))
-    sb.from('maid_change_requests').select('id').eq('maid_id',id).eq('kind','photo').eq('status','pending').limit(1).then(({data}) => setPending(!!data?.length))
-  },[id])
-  const upload = async (file?:File) => {
-    if (!file || busy) return
-    const formats: Record<string,string> = {'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}
-    if (!formats[file.type] || file.size > 5*1024*1024) {setMessage(th ? 'เลือกรูป JPG, PNG หรือ WebP ขนาดไม่เกิน 5 MB' : 'Choose a JPG, PNG or WebP up to 5 MB');return}
-    setBusy(true); setMessage('')
-    try {
-      const bucket = sb.storage.from('avatars')
-      const path = id+'/'+crypto.randomUUID()+'.'+formats[file.type]
-      const result = await bucket.upload(path,file,{contentType:file.type})
-      if (result.error) throw result.error
-      const photo = bucket.getPublicUrl(path).data.publicUrl
-      // รูปโปรไฟล์ต้องให้แอดมินอนุมัติก่อน (ลูกค้าเห็นรูปนี้ตอนเลือกแม่บ้าน)
-      const { error } = await sb.rpc('maid_request_change', { p_kind: 'photo', p_photo_url: photo, p_bank_name: null, p_bank_account: null })
-      if (error) throw error
-      setPending(true); setMessage(th ? 'ส่งรูปใหม่ให้แอดมินตรวจแล้ว จะเปลี่ยนเมื่ออนุมัติ' : 'New photo sent for approval')
-    } catch (e) { setMessage(friendly(e,lang)) } finally { setBusy(false) }
-  }
-  return <div><label className="photo-control"><Avatar name={name} url={url} seed={id} size={54} />
-    <span>{busy ? '…' : pending ? (th ? 'รูปใหม่รออนุมัติ' : 'New photo pending') : th ? 'เปลี่ยนรูปโปรไฟล์' : 'Change profile photo'}</span>
-    <input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={e => {void upload(e.target.files?.[0]);e.target.value=''}} /></label>
-    <small role="status">{message}</small></div>
+// รูปโปรไฟล์ในหน้าแรกของแม่บ้าน: แตะเพื่อไปหน้าโปรไฟล์ (เปลี่ยนรูปต้องส่งคำขอให้แอดมินอนุมัติ)
+function MaidPhoto({ id, name, url }: { id: string; name: string; url: string | null }) {
+  const { t } = useI18n()
+  return <Link to="/maid/profile" className="photo-control" style={{ color: '#fff' }}><Avatar name={name} url={url} seed={id} size={54} /><span>{t('edit_profile')}</span></Link>
 }
 
 export function MaidHome() {
   const { t, lang } = useI18n(); const { profile } = useAuth(); const { mine, open, payouts, reload } = useMaidData(); const toast = useToast(); const districts = useDistricts()
-  const [nick, setNick] = useState('')
-  useEffect(() => { if (profile) sb.from('maids').select('nickname').eq('id', profile.id).maybeSingle().then(({ data }) => setNick(data?.nickname || '')) }, [profile])
+  const [nick, setNick] = useState(''); const [photo, setPhoto] = useState<string | null>(null)
+  useEffect(() => { if (profile) sb.from('maids').select('nickname,photo_url').eq('id', profile.id).maybeSingle().then(({ data }) => { setNick(data?.nickname || ''); setPhoto(data?.photo_url ?? null) }) }, [profile])
   // เดือนตามเวลาไทย (Asia/Bangkok, UTC+7)
   const month = bkkToday().slice(0, 7)
   const bkkMonth = (iso: string) => new Date(new Date(iso).getTime() + 7 * 3600e3).toISOString().slice(0, 7)
@@ -76,7 +50,7 @@ export function MaidHome() {
   const dn = (id: number) => { const d = districts.find(x => x.id === id); return d ? (lang === 'th' ? 'อ.' + d.name_th : d.name_en) : '' }
   const act = async (fn: string, args: object) => { const { error } = await sb.rpc(fn, args); if (error) toast.show(friendly(error, lang)); reload() }
   return <div className="page">
-    <div className="hero tall"><div className="between"><span className="sub">{t('hello')}</span><span className="hdr-tools"><Bell /><LangToggle /></span></div><div className="between"><h1>{nick || profile?.full_name}</h1>{profile?.role === 'maid' && <MaidPhoto id={profile.id} name={nick || profile.full_name || 'C'} />}</div></div>
+    <div className="hero tall"><div className="between"><span className="sub">{t('hello')}</span><span className="hdr-tools"><Bell /><LangToggle /></span></div><div className="between"><h1>{nick || profile?.full_name}</h1>{profile?.role === 'maid' && <MaidPhoto id={profile.id} name={nick || profile.full_name || 'C'} url={photo} />}</div></div>
     <div className="pad" style={{ marginTop: -50, position: 'relative', zIndex: 2 }}><div className="earn"><div><span>{t('m_month')}</span><b>{money(earned)} ฿</b></div><div style={{ background: 'var(--sun)' }}><span style={{ color: 'var(--ink)' }}>{t('m_pending')}</span><b>{money(pending)} ฿</b></div></div></div>
     <div className="pad mt16 stack">
       <div className="desk-nav"><a href="#maid-offers">{lang === 'th' ? 'รอตอบรับ' : 'Offers'} <b>{req.length + open.length}</b></a><a href="#maid-active">{t('m_my_jobs')} <b>{jobs.length}</b></a></div>
@@ -263,37 +237,11 @@ export function MaidAvailability() {
   </div>
 }
 
-// แม่บ้านขอเปลี่ยนบัญชีรับเงิน: แอดมินอนุมัติก่อนจึงจะใช้บัญชีใหม่
-function BankChange({ current }: { current: { bank_name: string; bank_account: string } | null }) {
-  const { t, lang } = useI18n(); const { session } = useAuth(); const toast = useToast(); const th = lang === 'th'
-  const [open, setOpen] = useState(false); const [name, setName] = useState(''); const [acct, setAcct] = useState(''); const [busy, setBusy] = useState(false)
-  const [pending, setPending] = useState<{ bank_name: string; bank_account: string } | null>(null)
-  const load = () => { if (session) sb.from('maid_change_requests').select('bank_name,bank_account').eq('maid_id', session.user.id).eq('kind', 'bank').eq('status', 'pending').limit(1).then(({ data }) => setPending(data?.[0] ?? null)) }
-  useEffect(load, [session])
-  const send = async () => {
-    setBusy(true); const { error } = await sb.rpc('maid_request_change', { p_kind: 'bank', p_photo_url: null, p_bank_name: name, p_bank_account: acct }); setBusy(false)
-    if (error) { toast.show(friendly(error, lang)); return }
-    setOpen(false); setName(''); setAcct(''); load(); toast.show(th ? 'ส่งคำขอแล้ว รอแอดมินอนุมัติ' : 'Request sent for approval')
-  }
-  const digits = acct.replace(/\D/g, '')
-  return <div className="card stack bank-card">
-    <div className="between"><span><span className="small muted" style={{ display: 'block' }}>{t('m_bank')}</span><b>{current ? `${current.bank_name} ${current.bank_account}` : '–'}</b></span>
-      {!open && !pending && <button className="btn sm b-line" onClick={() => setOpen(true)}>{th ? 'ขอเปลี่ยน' : 'Change'}</button>}</div>
-    {pending && <div className="infonote"><Icon n="clock" />{th ? `รออนุมัติเปลี่ยนเป็น ${pending.bank_name} ${pending.bank_account}` : `Waiting for approval: ${pending.bank_name} ${pending.bank_account}`}</div>}
-    {open && <>
-      <div className="field"><label>{t('m_bank_name')}</label><input className="input" value={name} onChange={e => setName(e.target.value)} /></div>
-      <div className="field"><label>{t('m_bank_acc')}</label><input className="input" inputMode="numeric" value={acct} onChange={e => setAcct(e.target.value)} /></div>
-      <small className="muted">{th ? 'ค่าจ้างจะโอนเข้าบัญชีใหม่หลังแอดมินอนุมัติ' : 'Pay goes to the new account after approval'}</small>
-      <div className="row"><button className="btn b-ocean" style={{ flex: 1 }} disabled={busy || !name.trim() || digits.length < 10 || digits.length > 15} onClick={send}>{th ? 'ส่งคำขอ' : 'Send request'}</button>
-        <button className="btn b-line" onClick={() => setOpen(false)}>{th ? 'ยกเลิก' : 'Cancel'}</button></div></>}
-    {toast.node}</div>
-}
 
 export function MaidIncome() {
   const { t, lang } = useI18n(); const { payouts } = useMaidData(); const [bank, setBank] = useState<{ bank_name: string; bank_account: string } | null>(null)
   useEffect(() => { sb.rpc('my_bank').then(({ data }) => setBank((data as { bank_name: string; bank_account: string }[])?.[0] ?? null)) }, [])
-  return <div className="page"><div className="hero"><h1>{t('m_income')}</h1></div>
-    <div className="pad mt12"><BankChange current={bank} /></div>
+  return <div className="page"><div className="hero"><h1>{t('m_income')}</h1>{bank && <p>{t('m_bank')}: {bank.bank_name} {bank.bank_account}</p>}<Link to="/maid/profile" className="link" style={{ color: 'var(--sun)' }}>{lang === 'th' ? 'ขอเปลี่ยนบัญชีรับเงิน' : 'Change bank account'}</Link></div>
     <div className="mt12">{payouts.length === 0 ? <div className="pad"><div className="empty muted">{t('nothing')}</div></div> : [...payouts].reverse().map((p, i) => <div key={i} className="listrow">
       <span style={{ flex: 1 }}><b>#{p.booking_id}</b><span className="small muted">{p.transferred_at ? fmtDate(p.transferred_at, lang) : ''}</span></span>
       <b className="disp">{money(p.amount)} ฿</b><span className={'pill ' + (p.status === 'done' ? 'p-ocean' : 'p-sun')}>{p.status === 'done' ? t('paid_out') : t('waiting')}</span></div>)}</div>

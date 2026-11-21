@@ -821,3 +821,18 @@ li{text-wrap:pretty}
 .bank-card b{font-size:15px}
 .change-cmp{gap:14px;align-items:center}
 .change-cmp>span{display:flex;flex-direction:column;align-items:center;gap:4px}
+/* แก้ไขโปรไฟล์ (/account/profile, /maid/profile) */
+.pf-photo-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.pf-photo{position:relative;display:block;border-radius:50%;cursor:pointer}
+.pf-photo input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.pf-photo:focus-within{outline:2px solid var(--ocean);outline-offset:3px}
+.pf-cam{position:absolute;right:0;bottom:2px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--sun);color:var(--on-sun,#13294B);border:3px solid var(--card);pointer-events:none}
+.pf-cmp{display:flex;flex-direction:column;align-items:center;gap:4px}
+.pf-danger{color:var(--brick);font-weight:500;align-self:center;margin-top:18px;padding:8px}
+.acc-head{display:flex;gap:12px;align-items:center;color:inherit;min-width:0}
+.acc-head .sub{overflow-wrap:anywhere}
+.acc-edit{display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:13px;font-weight:600;color:var(--sun)}
+.admin-cmp{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.admin-cmp>div{display:flex;flex-direction:column;gap:6px;align-items:flex-start;padding:10px;border-radius:14px;background:var(--foam);min-width:0}
+.admin-cmp>div.req{background:var(--sun-l)}
+.admin-cmp img{width:100%;max-width:160px;aspect-ratio:1;object-fit:cover;border-radius:14px}
