@@ -186,3 +186,18 @@ button.memcard{width:100%;text-align:left}
 [data-dark="1"] .rw-tier.on{background:linear-gradient(90deg,rgba(201,162,77,.22),transparent)}
 [data-dark="1"] .rw-tn em{color:#E3C47E}
 [data-dark="1"] .rw-n{background:#E3C47E;color:#141B2D}
+
+/* การ์ดเชื่อมแจ้งเตือน LINE ของแม่บ้าน */
+.card.ln-card{display:flex;flex-direction:column;gap:12px}
+.card.ln-card.on{flex-direction:row;align-items:center}
+.ln-head{display:flex;gap:12px;align-items:center}
+.ln-ico{flex:none;width:42px;height:42px;border-radius:12px;background:#06C755;color:#fff;font-weight:800;font-size:11px;letter-spacing:.3px;display:grid;place-items:center}
+.ln-txt{flex:1;min-width:0;display:flex;flex-direction:column}
+.ln-txt small{font-size:12.5px;color:var(--ink3)}
+.ln-steps{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;font-size:14px;counter-reset:ln}
+.ln-steps li{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--sun-l);counter-increment:ln}
+.ln-steps li::before{content:counter(ln);flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;background:var(--ink);color:#F3E3B8}
+.ln-steps li>span{flex:1;min-width:0}
+.b-line{background:#06C755;color:#fff;border:0}
+.ln-code{font-size:22px;letter-spacing:4px;color:var(--ink);font-variant-numeric:tabular-nums}
+[data-dark="1"] .ln-steps li::before{background:#E3C47E;color:#141B2D}

@@ -12,6 +12,7 @@ import { Chat, JobProof } from './MyBookings'
 import { useServices, useAddons, svcName, svcUnit } from '../lib/services'
 import { useDistricts, useServiceAreas } from '../lib/areas'
 import { RatingForm } from '../components/Rating'
+import { LineLink } from '../components/LineLink'
 
 function useMaidData() {
   const { session } = useAuth(); const [mine, setMine] = useState<Booking[] | null>(null); const [open, setOpen] = useState<Booking[]>([])
@@ -54,6 +55,7 @@ export function MaidHome() {
     <div className="hero tall"><div className="between"><span className="sub">{t('hello')}</span><span className="hdr-tools"><Bell /><LangToggle /></span></div><div className="between"><h1>{nick || profile?.full_name}</h1>{profile?.role === 'maid' && <MaidPhoto id={profile.id} name={nick || profile.full_name || 'C'} url={photo} />}</div></div>
     <div className="pad" style={{ marginTop: -50, position: 'relative', zIndex: 2 }}><div className="earn"><div><span>{t('m_month')}</span><b>{money(earned)} ฿</b></div><div style={{ background: 'var(--sun)' }}><span style={{ color: 'var(--ink)' }}>{t('m_pending')}</span><b>{money(pending)} ฿</b></div></div></div>
     <div className="pad mt16 stack">
+      {profile?.role === 'maid' && <LineLink />}
       <div className="desk-nav"><a href="#maid-offers">{lang === 'th' ? 'รอตอบรับ' : 'Offers'} <b>{req.length + open.length}</b></a><a href="#maid-active">{t('m_my_jobs')} <b>{jobs.length}</b></a></div>
       <h2 id="maid-offers" className="desk-heading">{lang === 'th' ? 'งานที่รอตอบรับ' : 'Job offers'}</h2>
       {open.map(b => profile && b.offer_maid_id === profile.id && b.offer_expires_at && new Date(b.offer_expires_at) > new Date()
