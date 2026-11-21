@@ -34,7 +34,7 @@ function Nothing() { const th = useI18n().lang === 'th'; return <div className="
 
 type Pay = { id: number; booking_id: number | null; package_id: number | null; amount: number; slip_path: string | null; created_at: string; auto_checked?: boolean; check_note?: string | null }
 type Payout = { payout_id: number; booking_id: number; nickname: string; amount: number; bank_name: string | null; bank_account: string | null; work_date: string }
-type Refund = { id: number; booking_id: number; amount: number; points_returned: number }
+type Refund = { id: number; booking_id: number; amount: number; points_returned: number; reason?: string | null }
 type Claim = { id: number; booking_id: number; item: string; description: string | null; purchase_price: number | null; purchase_year: number | null; photo_paths: string[]; created_at: string }
 
 function useAdminData() {
@@ -156,7 +156,7 @@ export function AdminMoney() {
       </Section>
 
       <Section id="refunds" title={t('a_refunds')} count={d.refunds.length}>
-      {d.refunds.length === 0 ? <Nothing /> : <div className="admin-grid">{d.refunds.map(r => <div key={r.id} className="card between"><span><b className="disp">#{r.booking_id}</b> <span className="small muted">{money(r.amount)} ฿{r.points_returned ? ` + ${r.points_returned} pts` : ''}</span></span>
+      {d.refunds.length === 0 ? <Nothing /> : <div className="admin-grid">{d.refunds.map(r => <div key={r.id} className="card between"><span><b className="disp">#{r.booking_id}</b> <span className="small muted">{money(r.amount)} ฿{r.points_returned ? ` + ${r.points_returned} pts` : ''}{r.reason === 'choose_fee' ? ' · ' + t('a_refund_choose_fee') : ''}</span></span>
         <button className="btn sm b-line" onClick={() => run('admin_mark_refund_done', { p_id: r.id })}>{t('a_mark_refunded')}</button></div>)}</div>}
       </Section>
 

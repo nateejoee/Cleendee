@@ -59,7 +59,7 @@ const D = {
     m_off: 'ไม่รับงาน', m_no_jobs: 'ยังไม่มีงานใหม่', m_cancel_job: 'ยกเลิกงานนี้', m_bank: 'บัญชีรับเงิน', m_apply_t: 'ร่วมงานกับ CleenDee', m_apply_d: 'แอดมินจะตรวจบัตรประชาชนและประวัติก่อนอนุมัติ',
     m_nick: 'ชื่อเล่น', m_bio: 'แนะนำตัวสั้นๆ', m_bank_name: 'ธนาคาร', m_bank_acc: 'เลขบัญชี', m_submit: 'ส่งใบสมัคร', m_wait: 'ส่งใบสมัครแล้ว รอแอดมินอนุมัติ', m_income: 'รายได้', paid_out: 'โอนแล้ว', waiting: 'รอโอน',
     a_title: 'ภาพรวมร้าน', a_income: 'รายได้ของคุณเดือนนี้', a_jobs: 'งาน', a_maids: 'แม่บ้าน', a_todo: 'ต้องจัดการ', a_slips: 'สลิปรอตรวจ', a_unmatched: 'งานที่ยังไม่มีแม่บ้าน', a_unmatched_d: 'ถ้าไม่มีคนรับ คืนเงินเต็ม',
-    a_payouts: 'รอโอนให้แม่บ้าน', a_refunds: 'รอคืนเงินลูกค้า', a_claims: 'เรื่องแจ้งของเสียหาย', a_newmaids: 'แม่บ้านสมัครใหม่', approve: 'อนุมัติ', reject: 'ไม่ผ่าน', view_slip: 'ดูสลิป',
+    a_payouts: 'รอโอนให้แม่บ้าน', a_refunds: 'รอคืนเงินลูกค้า', a_refund_choose_fee: 'คืนค่าเลือกแม่บ้าน (แม่บ้านที่เลือกไม่รับงาน)', a_claims: 'เรื่องแจ้งของเสียหาย', a_newmaids: 'แม่บ้านสมัครใหม่', approve: 'อนุมัติ', reject: 'ไม่ผ่าน', view_slip: 'ดูสลิป',
     a_mark_paid: 'โอนแล้ว', a_mark_refunded: 'คืนเงินแล้ว', a_refund_full: 'คืนเงินเต็ม', a_split: 'แบ่งเงินต่องาน {job} บาท', a_pp: 'เลขพร้อมเพย์ร้าน', a_pp_name: 'ชื่อบัญชี', a_cap: 'วงเงินสูงสุด 10,000 บาท', amount: 'จำนวนเงิน',
 
     urgent_t: 'ต้องการด่วน?', urgent_d: 'เริ่มได้ใน 1 ชม. มีค่าเรียกด่วน', urgent_tag: 'ด่วน', urgent_fee_note: 'เวลานี้เป็นงานด่วน มีค่าเรียกด่วน {fee} บาท',
@@ -159,7 +159,7 @@ const D = {
     m_off: 'Off', m_no_jobs: 'No new jobs yet', m_cancel_job: 'Cancel this job', m_bank: 'Payout account', m_apply_t: 'Join the CleenDee team', m_apply_d: 'Admin checks your ID and background before approval',
     m_nick: 'Nickname', m_bio: 'Short intro', m_bank_name: 'Bank', m_bank_acc: 'Account number', m_submit: 'Submit application', m_wait: 'Application sent. Waiting for approval', m_income: 'Income', paid_out: 'Paid', waiting: 'Pending',
     a_title: 'Shop overview', a_income: 'Your income this month', a_jobs: 'jobs', a_maids: 'helpers', a_todo: 'To do', a_slips: 'Slips to check', a_unmatched: 'Jobs without a helper', a_unmatched_d: 'Refund in full if nobody takes it',
-    a_payouts: 'Pay helpers', a_refunds: 'Refund customers', a_claims: 'Damage reports', a_newmaids: 'New helper applications', approve: 'Approve', reject: 'Reject', view_slip: 'View slip',
+    a_payouts: 'Pay helpers', a_refunds: 'Refund customers', a_refund_choose_fee: 'choose-helper fee (chosen helper did not take the job)', a_claims: 'Damage reports', a_newmaids: 'New helper applications', approve: 'Approve', reject: 'Reject', view_slip: 'View slip',
     a_mark_paid: 'Mark as paid', a_mark_refunded: 'Mark refunded', a_refund_full: 'Refund in full', a_split: 'Split per {job} THB job', a_pp: 'Shop PromptPay ID', a_pp_name: 'Account name', a_cap: 'Max 10,000 THB', amount: 'Amount',
 
     urgent_t: 'Need it soon?', urgent_d: 'Start in 1 hour, urgent fee applies', urgent_tag: 'Urgent', urgent_fee_note: 'This is an urgent slot: {fee} THB urgent fee',
