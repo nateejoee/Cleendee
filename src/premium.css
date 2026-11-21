@@ -109,3 +109,23 @@ h1,h2,h3{font-feature-settings:"kern"}
 .memcard .mc-bar{height:4px}
 .memcard .mc-foot{margin-top:0;font-size:11px}
 .memcard .mc-name{font-size:13px}
+
+/* บริการหน้าแรก: รายการในการ์ดเดียว + ทางลัด 2 ปุ่ม + แถวเร็วๆ นี้ */
+.svc-list{background:var(--card);border:1px solid var(--hair);border-radius:var(--r-lg);box-shadow:var(--sh-1);overflow:hidden}
+.svl-row{display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;text-align:left;color:var(--ink);border-bottom:1px solid var(--rule);transition:background .15s}
+.svl-row:last-child{border-bottom:0}
+.svl-row>svg{flex:none;color:var(--ink3)}
+@media (hover:hover){.svl-row:hover{background:color-mix(in srgb,var(--sun) 7%,var(--card))}}
+.svl-ic{flex:none;display:grid;place-items:center;width:46px;height:46px;border-radius:50%;color:var(--ocean);background:radial-gradient(circle at 30% 25%,color-mix(in srgb,var(--sun) 30%,var(--card)),color-mix(in srgb,var(--sun) 14%,var(--card)));box-shadow:0 0 0 1px color-mix(in srgb,var(--sun) 35%,transparent) inset}
+.svl-ic.sm{width:36px;height:36px}
+[data-dark="1"] .svl-ic{color:var(--sun)}
+.svl-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.svl-txt b{font-weight:600;line-height:1.4}
+.svl-txt small{font-size:.8125rem;line-height:1.4;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.svl-quick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.svl-q{display:flex;align-items:center;gap:10px;padding:10px 12px;min-height:56px;text-align:left;background:var(--card);border:1px solid var(--hair);border-radius:var(--r-md);box-shadow:var(--sh-1);color:var(--ink)}
+.svl-q b{font-weight:600;font-size:.875rem;line-height:1.35}
+.svl-soon{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px;font-size:.8125rem;color:var(--ink2)}
+.svl-soon>span:first-child{font-weight:600;margin-right:2px}
+.svl-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:99px;border:1px dashed var(--line);color:var(--ink2)}
+.svl-q b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}

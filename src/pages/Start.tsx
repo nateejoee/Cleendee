@@ -167,27 +167,21 @@ export function Home() {
           <span style={{ flex: 1 }}><b className="disp">{t('urgent_t')}</b><span className="small" style={{ display: 'block', color: 'var(--brick)' }}>{t('urgent_d')}</span></span><Icon n="next" /></button></div>
         <section className="pad" aria-labelledby="home-services">
           <h2 id="home-services" className="sec-title">{t('services')}</h2>
-          {!services ? <Loading /> : <div className="svc">
-            {bookable.map(s =>
-              <button key={s.code} className="sv" onClick={() => open(s.code, '/service/' + s.code)}>
-                <span className="ic"><Icon n={s.icon} size={22} /></span>
-                <span className="sv-name">{svcName(s, lang)}</span>
-              </button>
-            )}
-            {extra.map(s =>
-              <button key={s.to} className="sv" onClick={() => open(s.svc, s.to)}>
-                <span className="ic"><Icon n={s.icon} size={22} /></span>
-                <span className="sv-name">{s.label}</span>
-              </button>
-            )}
-            {services.filter(s => !s.active && s.coming_soon).map(s =>
-              <div key={s.code} className="sv dim">
-                <span className="ic"><Icon n={s.icon} size={22} /></span>
-                <span className="sv-name">{svcName(s, lang)}</span>
-                <span className="soon">{t('soon')}</span>
-              </div>
-            )}
-          </div>}
+          {!services ? <Loading /> : <>
+            <div className="svc-list">{bookable.map(s =>
+              <button key={s.code} className="svl-row" onClick={() => open(s.code, '/service/' + s.code)}>
+                <span className="svl-ic"><Icon n={s.icon} size={22} /></span>
+                <span className="svl-txt"><b>{svcName(s, lang)}</b>{(th ? s.desc_th : s.desc_en) && <small>{th ? s.desc_th : s.desc_en}</small>}</span>
+                <Icon n="next" size={18} />
+              </button>)}
+            </div>
+            <div className="svl-quick">{extra.map(s =>
+              <button key={s.to} className="svl-q" onClick={() => open(s.svc, s.to)}><span className="svl-ic sm"><Icon n={s.icon} size={18} /></span><b>{s.label}</b></button>)}
+            </div>
+            {services.some(s => !s.active && s.coming_soon) && <div className="svl-soon"><span>{t('soon')}</span>
+              {services.filter(s => !s.active && s.coming_soon).map(s => <span key={s.code} className="svl-chip"><Icon n={s.icon} size={15} />{svcName(s, lang)}</span>)}
+            </div>}
+          </>}
         </section>
         <section className="pad" aria-labelledby="home-maids">
           <div className="between"><h2 id="home-maids" className="sec-title">{t('top_maids')}</h2><Link to="/book" className="link">{t('see_all')}</Link></div>
