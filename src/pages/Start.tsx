@@ -94,15 +94,21 @@ export function Login() {
   </div>
 }
 
-// เข้าสู่ระบบของแอดมิน (ลิงก์แยก /admin/login) ใช้อีเมลและรหัสผ่าน บัญชีที่ไม่ใช่แอดมินจะถูกออกจากระบบทันที
+// เข้าสู่ระบบของแอดมิน (ลิงก์แยก /admin/login) ใช้ไอดีและรหัสผ่าน บัญชีที่ไม่ใช่แอดมินจะถูกออกจากระบบทันที
+// ไอดี (เช่น Admintee) จับคู่กับอีเมลภายใน <ไอดีตัวพิมพ์เล็ก>@cleendee.test ที่ใช้ในระบบเข้าสู่ระบบ
+const ADMIN_DOMAIN = '@cleendee.test'
 export function AdminLogin() {
   const { t, lang } = useI18n(); const nav = useNavigate(); const { refresh } = useAuth(); const th = lang === 'th'
-  const [email, setEmail] = useState(''); const [pw, setPw] = useState('')
+  const [id, setId] = useState(''); const [pw, setPw] = useState('')
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
   const submit = async (e: React.FormEvent) => {
-    e.preventDefault(); setErr(''); setBusy(true)
+    e.preventDefault(); setErr('')
+    const user = id.trim().toLowerCase()
+    if (!/^[a-z0-9._-]+$/.test(user)) { setErr(th ? 'ไอดีหรือรหัสผ่านไม่ถูกต้อง' : 'Wrong ID or password'); return }
+    setBusy(true)
     try {
-      const { data, error } = await sb.auth.signInWithPassword({ email: email.trim(), password: pw }); if (error) throw error
+      const { data, error } = await sb.auth.signInWithPassword({ email: user + ADMIN_DOMAIN, password: pw })
+      if (error) { setErr(th ? 'ไอดีหรือรหัสผ่านไม่ถูกต้อง' : 'Wrong ID or password'); return }
       const { data: p } = await sb.from('profiles').select('role').eq('id', data.user.id).maybeSingle()
       if (p?.role !== 'admin') { await sb.auth.signOut(); setErr(th ? 'บัญชีนี้ไม่ใช่บัญชีแอดมิน' : 'This is not an admin account'); return }
       await refresh(); nav('/admin', { replace: true })
@@ -114,7 +120,7 @@ export function AdminLogin() {
       <div style={{ textAlign: 'center', margin: '10px 0 8px' }}><img src="/brand/CleenDee_logo_stacked.svg" alt="CleenDee" style={{ height: 96 }} /></div>
       <p className="muted" style={{ textAlign: 'center' }}>{th ? 'สำหรับผู้ดูแลระบบเท่านั้น' : 'For administrators only'}</p>
       <form className="stack" onSubmit={submit}>
-        <div className="field"><label>{t('email')}</label><input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="username" /></div>
+        <div className="field"><label>{th ? 'ไอดี' : 'ID'}</label><input className="input" type="text" value={id} onChange={e => setId(e.target.value)} required autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} /></div>
         <div className="field"><label>{t('password')}</label><input className="input" type="password" value={pw} onChange={e => setPw(e.target.value)} required autoComplete="current-password" /></div>
         {err && <div className="err" role="alert">{err}</div>}
         <button className="btn b-ocean" disabled={busy}>{t('login')}</button></form>
