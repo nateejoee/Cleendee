@@ -878,3 +878,21 @@ button.memcard:focus-visible{outline:2px solid var(--foil2);outline-offset:3px}
 .mcal-d:disabled { border-color: transparent; background: transparent; color: var(--ink3); opacity: .45; cursor: default; }
 .mcal-d.today::after { content: ""; position: absolute; left: 50%; bottom: 5px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--booking-accent, var(--sun)); }
 .mcal-d.on { color: var(--ink); background: var(--booking-tint, var(--soft)); border-color: var(--booking-accent, var(--sun)); border-width: 2px; }
+
+/* แท็บแจ้งเตือนในหน้าข้อความ: ตัวเลขยังไม่อ่าน + ภาพกระดิ่งหลับตอนยังไม่มีการแจ้งเตือน */
+.seg button{position:relative}
+.seg-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;margin-left:6px;border-radius:99px;background:var(--brick);color:#fff;font-size:11px;font-weight:700;vertical-align:1px}
+.ntf-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:28px 20px 34px}
+.ntf-empty b{font-size:16px;margin-top:4px}
+.ntf-empty small{font-size:13px;color:var(--ink2);max-width:260px}
+.zbell{width:230px;height:auto}
+@media (prefers-reduced-motion:no-preference){
+ .zbell-body{transform-origin:105px 44px;animation:zb-sway 3.6s ease-in-out infinite}
+ .zbell-z text{animation:zb-z 3s ease-in-out infinite}
+ .zbell-z text:nth-child(2){animation-delay:.5s}.zbell-z text:nth-child(3){animation-delay:1s}
+ .zbell-bub{animation:zb-bub 4s ease-in-out infinite}
+ .zbell-bub.b{animation-delay:-1.3s}.zbell-bub.c{animation-delay:-2.6s}
+}
+@keyframes zb-sway{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+@keyframes zb-z{0%,100%{opacity:.2;transform:translateY(4px)}50%{opacity:.8;transform:none}}
+@keyframes zb-bub{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}

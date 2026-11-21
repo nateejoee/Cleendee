@@ -1,6 +1,6 @@
 import { Arrival } from '../components/Arrival'
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { MapContainer, TileLayer, CircleMarker } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { sb, friendly, type Booking, type Maid, type Service } from '../lib/supabase'
@@ -15,6 +15,8 @@ import { useTheme } from '../lib/theme'
 import { RatingForm } from '../components/Rating'
 import { RewardsCard } from '../components/Rewards'
 import { Orb } from './Support'
+import { NotificationFeed } from './Notifications'
+import { useUnread } from '../lib/notify'
 
 function ThemePicker() {
   const { lang } = useI18n()
@@ -363,9 +365,16 @@ function AssistantCard() {
 
 export function Messages() {
   const { t, lang } = useI18n(); const { profile } = useAuth(); const { list } = useMyBookings(); const maids = useMaids(); const helpers = useBookingHelpers()
-  const th = lang === 'th'
+  const th = lang === 'th'; const unread = useUnread()
   const rows = (list || []).filter(b => b.maid_id && ['confirmed', 'on_the_way', 'working', 'completed'].includes(b.status)).reverse()
-  return <div className="page"><div className="hero"><h1>{t('tab_msgs')}</h1></div>
+  // แท็บ ข้อความ / แจ้งเตือน (แบบ bTaskee) จำแท็บไว้ใน ?tab= ให้กดย้อนกลับแล้วอยู่แท็บเดิม
+  const [sp, setSp] = useSearchParams(); const tab = sp.get('tab') === 'notif' ? 'notif' : 'chat'
+  return <div className="page"><div className="hero"><h1>{t('tab_msgs')}</h1>
+      <div className="seg mt12" role="tablist">
+        <button role="tab" aria-selected={tab === 'chat'} className={tab === 'chat' ? 'on' : ''} onClick={() => setSp({}, { replace: true })}>{th ? 'ข้อความ' : 'Messages'}</button>
+        <button role="tab" aria-selected={tab === 'notif'} className={tab === 'notif' ? 'on' : ''} onClick={() => setSp({ tab: 'notif' }, { replace: true })}>{th ? 'แจ้งเตือน' : 'Notifications'}{unread > 0 && tab !== 'notif' && <span className="seg-badge">{unread > 99 ? '99+' : unread}</span>}</button>
+      </div></div>
+    {tab === 'notif' ? <div className="pad msx-sec"><NotificationFeed /></div> : <>
     {profile?.role === 'customer' && <div className="pad msx-sec"><div className="msx-label">{th ? 'ช่วยเหลือ' : 'Help'}</div><AssistantCard /></div>}
     <div className="pad msx-sec"><div className="msx-label">{th ? 'แชทกับแม่บ้าน' : 'Chats with helpers'}{rows.length > 0 && <span>{rows.length}</span>}</div>
       {rows.length === 0
@@ -373,7 +382,7 @@ export function Messages() {
         : <div className="msx-list">{rows.map(b => { const m = helpers.find(x => x.id === b.maid_id) ?? maids?.find(x => x.id === b.maid_id)
           return <Link key={b.id} to={'/bookings/' + b.id} className="msx-row">{m && <Avatar name={m.nickname} seed={m.id} size={46} />}
             <span className="msx-row-main"><b>{m?.nickname}</b><small>{fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}</small></span><StatusPill s={b.status} /></Link> })}</div>}
-    </div>
+    </div></>}
     <CustomerTabs /></div>
 }
 
