@@ -6,7 +6,7 @@ import { useI18n, money, fmtDate, fmtTime, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { bkkToday } from '../lib/draft'
 import maidPortrait from '../assets/ill/safety.webp'
-import { Avatar, DistrictOptions, Icon, LangToggle, Loading, MaidTabs, StatusPill, TopBar, useToast } from '../components/ui'
+import { Avatar, DistrictOptions, Icon, Bell, LangToggle, Loading, MaidTabs, StatusPill, TopBar, useToast } from '../components/ui'
 import { Chat, JobProof } from './MyBookings'
 import { useServices, useAddons, svcName, svcUnit } from '../lib/services'
 import { useDistricts, useServiceAreas } from '../lib/areas'
@@ -68,7 +68,7 @@ export function MaidHome() {
   const dn = (id: number) => { const d = districts.find(x => x.id === id); return d ? (lang === 'th' ? 'อ.' + d.name_th : d.name_en) : '' }
   const act = async (fn: string, args: object) => { const { error } = await sb.rpc(fn, args); if (error) toast.show(friendly(error, lang)); reload() }
   return <div className="page">
-    <div className="hero tall"><div className="between"><span className="sub">{t('hello')}</span><LangToggle /></div><div className="between"><h1>{nick || profile?.full_name}</h1>{profile?.role === 'maid' && <MaidPhoto id={profile.id} name={nick || profile.full_name || 'C'} />}</div></div>
+    <div className="hero tall"><div className="between"><span className="sub">{t('hello')}</span><span className="hdr-tools"><Bell /><LangToggle /></span></div><div className="between"><h1>{nick || profile?.full_name}</h1>{profile?.role === 'maid' && <MaidPhoto id={profile.id} name={nick || profile.full_name || 'C'} />}</div></div>
     <div className="pad" style={{ marginTop: -50, position: 'relative', zIndex: 2 }}><div className="earn"><div><span>{t('m_month')}</span><b>{money(earned)} ฿</b></div><div style={{ background: 'var(--sun)' }}><span style={{ color: 'var(--ink)' }}>{t('m_pending')}</span><b>{money(pending)} ฿</b></div></div></div>
     <div className="pad mt16 stack">
       <div className="desk-nav"><a href="#maid-offers">{lang === 'th' ? 'รอตอบรับ' : 'Offers'} <b>{req.length + open.length}</b></a><a href="#maid-active">{t('m_my_jobs')} <b>{jobs.length}</b></a></div>

@@ -5,6 +5,7 @@ import { Onboarding, Login, AdminLogin, Home, Service } from './pages/Start'
 import { BookingLocation, BookMaid, MaidProfile, BookTime, BookDetails, BookConfirm, Pay } from './pages/Book'
 import { Support, AdminSupport } from './pages/Support'
 import { AdminAuditLog } from './pages/AuditLog'
+import { Notifications } from './pages/Notifications'
 import { Bookings, BookingDetail, Receipt, Claim, Messages, Account, Addresses, Favorites } from './pages/MyBookings'
 import { MaidHome, MaidJob, MaidAvailability, MaidIncome, MaidApply } from './pages/Maid'
 import { AdminHome, AdminMoney, AdminMaids, AdminSettings, AdminPublicPages } from './pages/Admin'
@@ -75,6 +76,7 @@ export default function App() {
       <Route path="/claim/:id" element={<Member title="claim" text="lw_page"><Claim /></Member>} />
       <Route path="/messages" element={<Member tab title="tab_msgs" text="lw_msgs" img={imgChat}><Messages /></Member>} />
       <Route path="/support" element={<Support />} />
+      <Route path="/notifications" element={<Notifications />} />
       <Route path="/account" element={<Account />} />
       <Route path="/account/addresses" element={<Member title="my_addresses" text="lw_page"><Addresses /></Member>} />
       <Route path="/account/favorites" element={<Member title="favorites" text="lw_page"><Favorites /></Member>} />

@@ -6,7 +6,7 @@ import { sb, friendly, type Booking, type Service, type Addon } from '../lib/sup
 import { useServices, svcName, svcUnit } from '../lib/services'
 import { useI18n, money, fmtDate, fmtTime, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
-import { AdminTabs, Avatar, Icon, LangToggle, Loading, StatusPill, useToast } from '../components/ui'
+import { AdminTabs, Avatar, Icon, Bell, LangToggle, Loading, StatusPill, useToast } from '../components/ui'
 
 import { PublicPageEditor } from './PublicPageEditor'
 import { useDistricts, useProvinces, reloadAreas } from '../lib/areas'
@@ -102,7 +102,7 @@ export function AdminHome() {
   const open = todo.reduce((a, q) => a + q[0], 0)
   const refundAll = async (b: Booking) => { const { error } = await sb.rpc('admin_refund_unmatched', { p_booking_id: b.id }); toast.show(error ? friendly(error, lang) : t('saved')); reload() }
   return <div className="page admin-overview">
-    <div className="hero tall"><div className="between"><span className="sub">{fmtDate(new Date().toISOString(), lang, { weekday: 'long', day: 'numeric', month: 'short' })}</span><LangToggle /></div><h1>{t('a_title')}</h1></div>
+    <div className="hero tall"><div className="between"><span className="sub">{fmtDate(new Date().toISOString(), lang, { weekday: 'long', day: 'numeric', month: 'short' })}</span><span className="hdr-tools"><Bell /><LangToggle /></span></div><h1>{t('a_title')}</h1></div>
     <div className="pad" style={{ marginTop: -54, position: 'relative', zIndex: 2 }}><div className="kpi"><div className="small">{t('a_income')}</div><div className="v">{money(income)} ฿</div>
       <div className="row small mt8"><span><b>{d.month.length}</b> {t('a_jobs')}</span><span><b>{d.maidsTotal}</b> {t('a_maids')}</span></div></div></div>
     <div className="pad"><div className="sec-title">{t('a_todo')} <span className={'admin-count' + (open ? ' on' : '')}>{open}</span></div>

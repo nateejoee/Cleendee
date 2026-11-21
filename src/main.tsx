@@ -4,5 +4,8 @@ import '@fontsource-variable/noto-sans-thai'
 import '@fontsource/cormorant-garamond/600.css'
 import './styles.css'
 import App from './App'
+import { registerServiceWorker } from './lib/notify'
+
+registerServiceWorker()
 
 createRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>)

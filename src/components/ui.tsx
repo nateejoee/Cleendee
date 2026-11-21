@@ -3,11 +3,14 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useI18n, type Key } from '../lib/i18n'
 import type { BookingStatus, District } from '../lib/supabase'
 import type { AreaGroup } from '../lib/areas'
+import { useAuth } from '../lib/auth'
+import { useUnread } from '../lib/notify'
 
 const P: Record<string, ReactNode> = {
   home: <path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
   cal: <><rect x="3" y="5" width="18" height="16" rx="3" /><path d="M3 10h18M8 3v4M16 3v4" /></>,
   chat: <path d="M4 5h16v11H9l-5 4z" />,
+  bell: <><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z" /><path d="M10 20a2 2 0 0 0 4 0" /></>,
   user: <><circle cx="12" cy="8" r="4" /><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6" /></>,
   pin: <><path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z" /><circle cx="12" cy="9" r="2.5" /></>,
   back: <path d="M15 5l-7 7 7 7" />,
@@ -48,6 +51,14 @@ export function Avatar({ name, url, size = 48, seed = '' }: { name: string; url?
     {url ? <img src={url} alt="" /> : name.slice(0, 1)}</div>
 }
 
+// กระดิ่งแจ้งเตือน: แสดงเฉพาะเมื่อเข้าสู่ระบบ มีจุดตัวเลขเมื่อมีรายการยังไม่อ่าน
+export function Bell() {
+  const { session } = useAuth(); const n = useUnread(); const { lang } = useI18n()
+  if (!session) return null
+  return <Link to="/notifications" className="bell" aria-label={(lang === 'th' ? 'การแจ้งเตือน' : 'Notifications') + (n ? ` (${n})` : '')}>
+    <Icon n="bell" size={19} />{n > 0 && <span className="bell-n">{n > 99 ? '99+' : n}</span>}</Link>
+}
+
 export function LangToggle() {
   const { lang, setLang } = useI18n()
   return <button className="lang" onClick={() => setLang(lang === 'th' ? 'en' : 'th')} aria-label="Switch language">
@@ -58,7 +69,7 @@ export function TopBar({ title, back = true, right }: { title: string; back?: bo
   const nav = useNavigate()
   return <div className="topbar">
     {back && <button className="back" onClick={() => (typeof back === 'string' ? nav(back) : nav(-1))} aria-label="Back"><Icon n="back" /></button>}
-    <h2>{title}</h2>{right ?? <LangToggle />}
+    <h2>{title}</h2>{right ?? <span className="hdr-tools"><Bell /><LangToggle /></span>}
   </div>
 }
 

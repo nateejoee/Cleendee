@@ -749,3 +749,25 @@ li{text-wrap:pretty}
 .audit-detail{margin:-2px 0 8px 40px;padding:10px 12px;background:var(--foam);border-radius:12px;display:flex;flex-direction:column;gap:6px;font-size:12.5px}
 .audit-kv{display:flex;flex-direction:column;gap:2px;overflow-wrap:anywhere}
 .audit-kv code{align-self:flex-start;background:var(--card)}
+
+/* notifications */
+.hdr-tools{display:inline-flex;align-items:center;gap:8px;flex:none}
+.topbar .hdr-tools{margin-left:auto}
+.bell{position:relative;width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.16);color:inherit}
+.topbar .bell{background:var(--foam);color:var(--ink)}
+.bell-n{position:absolute;top:-3px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:var(--brick);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;box-shadow:0 0 0 2px var(--card)}
+.ntf-push{display:flex;align-items:center;gap:12px;padding:14px;border-radius:18px;background:var(--card);border:1px solid var(--line)}
+.ntf-push.on{background:var(--leaf-l);border-color:color-mix(in srgb,var(--leaf) 30%,transparent)}
+.ntf-push-ic{flex:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--sun-l);color:#8A6200}
+.ntf-push.on .ntf-push-ic{background:var(--leaf);color:#fff}
+.ntf-push-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ntf-push-t small{font-size:12.5px;color:var(--ink2)}
+.ntf-list{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.ntf-item{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;padding:13px 14px;color:var(--ink)}
+.ntf-item+.ntf-item{border-top:1px solid var(--rule)}
+.ntf-item.new{background:color-mix(in srgb,var(--sun) 9%,var(--card))}
+.ntf-ic{flex:none;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--foam);color:var(--ink2)}
+.ntf-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ntf-main small{font-size:13px;color:var(--ink2)}
+.ntf-main time{font-size:11.5px;color:var(--ink3)}
+.ntf-dot{flex:none;width:9px;height:9px;border-radius:50%;background:var(--brick);margin-top:6px}

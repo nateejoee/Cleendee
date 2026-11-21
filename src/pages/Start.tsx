@@ -7,7 +7,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { sb, friendly, type District } from '../lib/supabase'
 import { useI18n, localStorageSet, money, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
-import { Avatar, Icon, LangToggle, Logo, CustomerTabs, TopBar, Loading, SiteFooter } from '../components/ui'
+import { Avatar, Icon, Bell, LangToggle, Logo, CustomerTabs, TopBar, Loading, SiteFooter } from '../components/ui'
 import { setDraft, emptyDraft } from '../lib/draft'
 import { useServices, useServicesLoad, svcName, svcUnit } from '../lib/services'
 import { CountUp, greetKey } from '../lib/fx'
@@ -148,7 +148,7 @@ export function Home() {
   return <div className="page home">
     {/* ภาพใหญ่หัวหน้า: ภาพถ่ายวิลล่า + ไล่สีกรมท่า ทับด้วยคำทักทายและปุ่มจอง */}
     <div className="lux-hero" style={{ backgroundImage: `url(${imgHero})` }}>
-      <div className="between"><span className="mob-only"><Logo white h={30} /></span><span className="lh-loc"><Icon n="pin" size={15} /><span className="lh-loc-t">{placeText(live, provinces, districts, d, lang, t)}</span></span><LangToggle /></div>
+      <div className="between"><span className="mob-only"><Logo white h={30} /></span><span className="lh-loc"><Icon n="pin" size={15} /><span className="lh-loc-t">{placeText(live, provinces, districts, d, lang, t)}</span></span><span className="hdr-tools"><Bell /><LangToggle /></span></div>
       <div className="lh-body">
         <div className="lh-greet">{t(greetKey())}{profile?.full_name ? ', ' + profile.full_name : ''}</div>
         <h1>{t('tagline')}</h1>
