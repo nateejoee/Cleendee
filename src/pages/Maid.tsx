@@ -6,10 +6,10 @@ import { useI18n, money, fmtDate, fmtTime, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { bkkToday } from '../lib/draft'
 import maidPortrait from '../assets/ill/safety.webp'
-import { Avatar, Icon, LangToggle, Loading, MaidTabs, StatusPill, TopBar, useToast } from '../components/ui'
+import { Avatar, DistrictOptions, Icon, LangToggle, Loading, MaidTabs, StatusPill, TopBar, useToast } from '../components/ui'
 import { Chat, JobProof } from './MyBookings'
 import { useServices, useAddons, svcName, svcUnit } from '../lib/services'
-import { useDistricts } from './Start'
+import { useDistricts, useServiceAreas } from '../lib/areas'
 import { RatingForm } from '../components/Rating'
 
 function useMaidData() {
@@ -276,7 +276,7 @@ function FileField({ label, hint, cta, file, onFile, accept, required }: { label
 }
 
 export function MaidApply() {
-  const { t, lang } = useI18n(); const { session } = useAuth(); const nav = useNavigate(); const districts = useDistricts(); const services = useServices(); const th = lang === 'th'
+  const { t, lang } = useI18n(); const { session } = useAuth(); const nav = useNavigate(); const { groups } = useServiceAreas(); const services = useServices(); const th = lang === 'th'
   const [f, setF] = useState({ nickname: '', full_name: '', phone: '', line_id: '', birth_date: '', bio: '', experience_years: '', experience_note: '', district_id: 1, bank_name: '', bank_account: '', referee_name: '', referee_phone: '' })
   const [svc, setSvc] = useState<string[]>([]); const [days, setDays] = useState<string[]>([]); const [times, setTimes] = useState<string[]>([]); const [areas, setAreas] = useState<number[]>([])
   const [photo, setPhoto] = useState<File | null>(null); const [idCard, setIdCard] = useState<File | null>(null); const [selfie, setSelfie] = useState<File | null>(null); const [cert, setCert] = useState<File | null>(null)
@@ -352,9 +352,10 @@ export function MaidApply() {
               <div className="chips days">{DAYS.map(([k, a, b]) => <button type="button" key={k} className={'chip' + (days.includes(k) ? ' on' : '')} onClick={() => setDays(toggle(days, k))}>{th ? a : b}</button>)}</div></div>
             <div className="field"><label>{th ? 'ช่วงเวลาที่สะดวก' : 'Times available'}</label>
               <div className="chips times">{TIMES.map(([k, a, b, r]) => <button type="button" key={k} className={'chip time' + (times.includes(k) ? ' on' : '')} onClick={() => setTimes(toggle(times, k))}><b>{th ? a : b}</b><small>{th ? r : r.replace(/\./g, ':').replace(' น:', '')}</small></button>)}</div></div></div>
-          <div className="field span2"><label>{th ? 'อำเภอหลักที่รับงาน' : 'Main district'}{star}</label><select className="input" value={f.district_id} onChange={e => setF({ ...f, district_id: Number(e.target.value) })}>{districts.map(d => <option key={d.id} value={d.id}>{th ? d.name_th : d.name_en}</option>)}</select></div>
+          <div className="field span2"><label>{th ? 'อำเภอหลักที่รับงาน' : 'Main district'}{star}</label><select className="input" value={f.district_id} onChange={e => setF({ ...f, district_id: Number(e.target.value) })}><DistrictOptions groups={groups} /></select></div>
           <div className="field span2"><label>{th ? 'อำเภออื่นที่ไปทำงานได้ด้วย (ถ้ามี)' : 'Other districts you can travel to (optional)'}</label>
-            <div className="chips eq">{districts.filter(d => d.id !== f.district_id).map(d => <button type="button" key={d.id} className={'chip' + (areas.includes(d.id) ? ' on' : '')} onClick={() => setAreas(areas.includes(d.id) ? areas.filter(x => x !== d.id) : [...areas, d.id])}>{th ? d.name_th : d.name_en}</button>)}</div></div>
+            {groups.map(g => <div key={g.province.code}>{groups.length > 1 && <div className="small muted mt8">{th ? 'จ.' + g.province.name_th : g.province.name_en}</div>}
+              <div className="chips eq">{g.districts.filter(d => d.id !== f.district_id).map(d => <button type="button" key={d.id} className={'chip' + (areas.includes(d.id) ? ' on' : '')} onClick={() => setAreas(areas.includes(d.id) ? areas.filter(x => x !== d.id) : [...areas, d.id])}>{th ? d.name_th : d.name_en}</button>)}</div></div>)}</div>
         </div></section>
 
         <section className="card apply-sec"><h3>{th ? '4. เอกสารยืนยันตัวตน' : '4. Identity documents'}</h3>

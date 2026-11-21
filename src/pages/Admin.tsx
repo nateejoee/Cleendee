@@ -9,7 +9,7 @@ import { useAuth } from '../lib/auth'
 import { AdminTabs, Avatar, Icon, LangToggle, Loading, StatusPill, useToast } from '../components/ui'
 
 import { PublicPageEditor } from './PublicPageEditor'
-import { useDistricts } from './Start'
+import { useDistricts, useProvinces, reloadAreas } from '../lib/areas'
 import { usePrices } from './Book'
 
 // ผลตรวจสลิปอัตโนมัติ (รหัสจากเซิร์ฟเวอร์) เป็นข้อความที่อ่านเข้าใจ ไม่รู้จักรหัสก็แสดงรหัสเดิม
@@ -252,11 +252,12 @@ export function AdminSettings() {
   return <div className="page"><div className="hero"><div className="between"><h1>{t('tab_settings')}</h1><LangToggle /></div></div>
     <div className="pad mt16 stack">
       <Link to="/admin/settings/pages" className="btn b-line"><Icon n="grid" size={18} />{lang === 'th' ? 'จัดการการันตีและนโยบายความเป็นส่วนตัว' : 'Manage guarantee and privacy pages'}</Link>
-      <div className="chips admin-jump">{([['s-pay', th ? 'รับเงิน' : 'Payment'], ['s-shop', t('a_shop')], ['s-prices', t('a_prices')], ['s-addons', t('addons')], ['s-promo', t('promo_code')]] as [string, string][]).map(([k, label]) => <button key={k} className="chip" onClick={() => jump(k)}>{label}</button>)}</div>
+      <div className="chips admin-jump">{([['s-pay', th ? 'รับเงิน' : 'Payment'], ['s-areas', th ? 'พื้นที่ให้บริการ' : 'Service areas'], ['s-shop', t('a_shop')], ['s-prices', t('a_prices')], ['s-addons', t('addons')], ['s-promo', t('promo_code')]] as [string, string][]).map(([k, label]) => <button key={k} className="chip" onClick={() => jump(k)}>{label}</button>)}</div>
       <section id="s-pay" className="admin-sec card stack"><div className="sec-title" style={{ margin: 0 }}>{th ? 'บัญชีรับเงิน (พร้อมเพย์)' : 'Payment account (PromptPay)'}</div>
       <div className="field"><label>{t('a_pp')}</label><input className="input" inputMode="numeric" value={id} onChange={e => setId(e.target.value)} placeholder="08xxxxxxxx / 13 หลัก" /></div>
       <div className="field"><label>{t('a_pp_name')}</label><input className="input" value={name} onChange={e => setName(e.target.value)} /></div>
       <button className="btn b-sun" onClick={save}>{t('save')}</button></section>
+      <section id="s-areas" className="admin-sec"><ServiceAreas toast={toast.show} /></section>
       <section id="s-shop" className="admin-sec card stack"><ShopSettings toast={toast.show} /></section>
       <section id="s-prices" className="admin-sec"><ServicePrices toast={toast.show} /></section>
       <section id="s-addons" className="admin-sec"><AddonEditor toast={toast.show} /></section>
@@ -279,6 +280,30 @@ export function AdminPublicPages() {
     </div>
     <AdminTabs />
   </div>
+}
+
+// พื้นที่ให้บริการ: เปิด/ปิดจังหวัด และอำเภอในแต่ละจังหวัด
+function ServiceAreas({ toast }: { toast: (m: string) => void }) {
+  const { t, lang } = useI18n(); const th = lang === 'th'
+  const provinces = useProvinces(); const districts = useDistricts(); const [busy, setBusy] = useState(false)
+  const run = async (calls: { p_province: string | null; p_district: number | null; p_active: boolean }[]) => {
+    if (busy) return
+    setBusy(true)
+    let error: unknown = null
+    for (const c of calls) { const r = await sb.rpc('admin_set_area', c); if (r.error) { error = r.error; break } }
+    setBusy(false); reloadAreas(); toast(error ? friendly(error, lang) : t('saved'))
+  }
+  if (!provinces) return <Loading />
+  return <><div className="sec-title">{th ? 'พื้นที่ให้บริการ' : 'Service areas'}</div>
+    <p className="admin-hint">{th ? 'ลูกค้าจองได้เฉพาะอำเภอที่เปิด ในจังหวัดที่เปิด' : 'Customers can book only in open districts of open provinces.'}</p>
+    <div className="stack cols">{provinces.map(p => { const ds = districts.filter(d => d.province_code === p.code); const closed = ds.filter(d => !d.active)
+      return <div key={p.code} className="card stack">
+        <div className="between"><b className="disp">{th ? 'จ.' + p.name_th : p.name_en}</b>
+          <button className={'chip' + (p.active ? ' on' : '')} disabled={busy} aria-pressed={p.active} onClick={() => run([{ p_province: p.code, p_district: null, p_active: !p.active }])}>{p.active ? t('a_open') : t('a_closed')}</button></div>
+        <div className="small muted">{th ? `เปิด ${ds.length - closed.length} จาก ${ds.length} อำเภอ` : `${ds.length - closed.length} of ${ds.length} districts open`}</div>
+        <div className="chips">{ds.map(d => <button key={d.id} className={'chip' + (d.active ? ' on' : '')} disabled={busy} aria-pressed={d.active} onClick={() => run([{ p_province: null, p_district: d.id, p_active: !d.active }])}>{th ? d.name_th : d.name_en}</button>)}</div>
+        {closed.length > 0 && <button className="btn sm b-line" disabled={busy} onClick={() => run(closed.map(d => ({ p_province: null, p_district: d.id, p_active: true })))}>{th ? 'เปิดทุกอำเภอ' : 'Open all districts'}</button>}
+      </div> })}</div></>
 }
 
 // ช่องตัวเลขสั้นๆ ใช้ซ้ำในหน้าตั้งค่า

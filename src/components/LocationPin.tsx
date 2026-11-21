@@ -2,13 +2,34 @@ import { useEffect, useRef, useState } from 'react'
 import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useI18n } from '../lib/i18n'
+import { useProvinces } from '../lib/areas'
+import { provinceShapes } from '../lib/geo'
 
 // bTaskee-style pin: the pin stays in the middle of the map and the customer moves the map under it.
 // "Current location" jumps there at once from a quick fix, then sharpens while GPS settles.
 export type MapPin = { point: [number, number]; accuracy: number | null }
 
-const CHUMPHON: [number, number] = [10.4930, 99.1800]
-const BBOX = '98.55,9.55,99.65,11.25' // minLon,minLat,maxLon,maxLat around Chumphon
+const FALLBACK: [number, number] = [10.4930, 99.1800] // Chumphon town, until the open provinces are known
+const THAILAND = '97.3,5.6,105.7,20.5' // minLon,minLat,maxLon,maxLat
+
+// Centre of the (first) open province and a search box around all open provinces
+function useOpenArea() {
+  const provinces = useProvinces()
+  const [area, setArea] = useState<{ center: [number, number]; bbox: string } | null>(null)
+  const codes = (provinces || []).filter(p => p.active).map(p => p.dopa_code).join(',')
+  useEffect(() => {
+    if (!codes) return
+    let alive = true
+    provinceShapes(codes.split(',')).then(shapes => {
+      if (!alive || !shapes.length) return
+      const first = shapes.find(s => s.code === codes.split(',')[0]) ?? shapes[0]
+      const b = shapes.map(s => s.bbox).reduce((a, c) => [Math.min(a[0], c[0]), Math.min(a[1], c[1]), Math.max(a[2], c[2]), Math.max(a[3], c[3])])
+      setArea({ center: first.center, bbox: b.join(',') })
+    })
+    return () => { alive = false }
+  }, [codes])
+  return area
+}
 type Hit = { point: [number, number]; title: string; sub: string }
 
 function Watch({ onDrag, onMove }: { onDrag: () => void; onMove: (c: [number, number]) => void }) {
@@ -23,6 +44,7 @@ function Fly({ to }: { to: { c: [number, number]; z: number; n: number } | null 
 
 export function LocationPin({ start, onPin, disabled }: { start?: [number, number] | null; onPin: (pin: MapPin | null) => void; disabled: boolean }) {
   const th = useI18n().lang === 'th'
+  const area = useOpenArea()
   const [fly, setFly] = useState<{ c: [number, number]; z: number; n: number } | null>(null)
   const [placed, setPlaced] = useState(!!start)
   const [moving, setMoving] = useState(false)
@@ -60,19 +82,22 @@ export function LocationPin({ start, onPin, disabled }: { start?: [number, numbe
     return () => stopWatch.current?.()
   }, [])
 
+  // show the open province until the customer or GPS places the pin
+  useEffect(() => { if (area && !start && !placedRef.current) setFly(f => ({ c: area.center, z: 12, n: (f?.n || 0) + 1 })) }, [area, start])
+
   const onDrag = () => { stopWatch.current?.(); gps.current = null; setMoving(true); setHits([]); if (!placedRef.current) { placedRef.current = true; setPlaced(true) } }
   const onMove = (c: [number, number]) => {
     setMoving(false)
     if (placedRef.current) onPin({ point: c, accuracy: gps.current })
   }
 
-  // place search (Photon / OpenStreetMap), limited to Chumphon
+  // place search (Photon / OpenStreetMap), limited to the open provinces
   useEffect(() => {
     const text = q.trim()
     if (text.length < 2) { setHits([]); return }
     const ctrl = new AbortController()
     const id = setTimeout(() => {
-      fetch('https://photon.komoot.io/api/?' + new URLSearchParams({ q: text, limit: '6', bbox: BBOX }), { signal: ctrl.signal, referrerPolicy: 'no-referrer', credentials: 'omit' })
+      fetch('https://photon.komoot.io/api/?' + new URLSearchParams({ q: text, limit: '6', bbox: area?.bbox ?? THAILAND }), { signal: ctrl.signal, referrerPolicy: 'no-referrer', credentials: 'omit' })
         .then(r => r.json()).then((d: { features?: { geometry: { coordinates: [number, number] }; properties: Record<string, string> }[] }) => {
           setHits((d.features || []).map(f => {
             const p = f.properties
@@ -82,7 +107,7 @@ export function LocationPin({ start, onPin, disabled }: { start?: [number, numbe
         }).catch(() => {})
     }, 400)
     return () => { clearTimeout(id); ctrl.abort() }
-  }, [q])
+  }, [q, area?.bbox])
 
   const help = denied ? (th ? 'เบราว์เซอร์ไม่ให้ใช้ตำแหน่ง ค้นหาหรือเลื่อนแผนที่ให้หมุดตรงบ้านได้เลย' : 'Location is blocked. Search or move the map so the pin sits on your home.')
     : !placed ? (th ? 'เลื่อนแผนที่ให้หมุดตรงทางเข้าบ้าน หรือกดปุ่มตำแหน่งปัจจุบัน' : 'Move the map so the pin sits on your entrance, or tap the location button.')
@@ -96,7 +121,7 @@ export function LocationPin({ start, onPin, disabled }: { start?: [number, numbe
         <b>{h.title}</b>{h.sub && <small>{h.sub}</small>}</button>)}</div>}
     </div>
     <div className="lp-map">
-      <MapContainer center={start || CHUMPHON} zoom={start ? 18 : 13} zoomControl={false} style={{ height: 280, zIndex: 0 }}>
+      <MapContainer center={start || area?.center || FALLBACK} zoom={start ? 18 : 13} zoomControl={false} style={{ height: 280, zIndex: 0 }}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" maxZoom={19} />
         <Watch onDrag={onDrag} onMove={onMove} />
         <Fly to={fly} />

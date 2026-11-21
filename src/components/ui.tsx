@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useI18n, type Key } from '../lib/i18n'
-import type { BookingStatus } from '../lib/supabase'
+import type { BookingStatus, District } from '../lib/supabase'
+import type { AreaGroup } from '../lib/areas'
 
 const P: Record<string, ReactNode> = {
   home: <path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -140,4 +141,14 @@ export function LoginWall({ title, text, img, tabs = true }: { title: string; te
       <button onClick={go} className="link">{t('signup')}</button></div>
     {tabs && <CustomerTabs />}
   </div>
+}
+
+// <option>s for a district <select>: open districts, grouped by province when more than one province is open.
+// `keep` is the current value; it is still listed if it is no longer open so the select shows it.
+export function DistrictOptions({ groups, keep }: { groups: AreaGroup[]; keep?: District }) {
+  const th = useI18n().lang === 'th'
+  const opt = (d: District) => <option key={d.id} value={d.id}>{th ? d.name_th : d.name_en}</option>
+  const extra = keep && !groups.some(g => g.districts.some(d => d.id === keep.id)) ? opt(keep) : null
+  if (groups.length < 2) return <>{extra}{groups[0]?.districts.map(opt)}</>
+  return <>{extra}{groups.map(g => <optgroup key={g.province.code} label={th ? 'จ.' + g.province.name_th : g.province.name_en}>{g.districts.map(opt)}</optgroup>)}</>
 }

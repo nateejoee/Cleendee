@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 export type Lang = 'th' | 'en'
 const D = {
   th: {
-    tagline: 'บ้านสะอาด สบายใจ', choose_area: 'บ้านคุณอยู่อำเภอไหน?', choose_area_sub: 'ตอนนี้ให้บริการในจังหวัดชุมพร',
+    tagline: 'บ้านสะอาด สบายใจ', choose_area: 'บ้านคุณอยู่อำเภอไหน?', choose_area_sub: 'ตอนนี้ให้บริการใน {provinces}',
     onb1_t: 'เลือกวันและเวลา', onb1_d: 'เลือกจำนวนชั่วโมงและเวลาเริ่มได้เอง',
     onb2_t: 'แม่บ้านคนในพื้นที่', onb2_d: 'ตรวจประวัติทุกคน เลือกเองหรือให้เราหาให้',
     onb3_t: 'ปลอดภัย มีการันตีงาน', onb3_d: 'ของเสียหาย CleenDee ชดเชยสูงสุด 10,000 บาท',
@@ -88,7 +88,7 @@ const D = {
     a_default: 'ค่าเริ่มต้น', a_min_per_unit: 'นาทีต่อหน่วย', a_new_addon: 'เพิ่มงานเสริม', a_code: 'รหัส (ภาษาอังกฤษ)', a_name_th: 'ชื่อภาษาไทย', a_name_en: 'ชื่อภาษาอังกฤษ', a_to_maid: 'ให้แม่บ้าน',
     a_kind: 'แบบ', a_value: 'ลด', a_max_disc: 'ลดสูงสุด', a_min_total: 'ยอดขั้นต่ำ', a_max_uses: 'ใช้ได้กี่ครั้ง', a_ends: 'หมดอายุ (ไม่ใส่ = ไม่หมด)', a_add_promo: 'สร้างโค้ด', a_used: 'ใช้แล้ว', a_until: 'ถึง',
     // หน้าบังคับเข้าสู่ระบบ / ธีม / ลูกเล่น / หน้าแรกบนคอม (เพิ่ม 20/11/69)
-    loc_outside: 'อยู่นอกพื้นที่บริการชุมพร', lw_account: 'เข้าสู่ระบบเพื่อดูบัญชีของคุณ',
+    loc_outside: 'อยู่นอกพื้นที่ให้บริการ', loc_not_open: 'ยังไม่เปิดให้บริการใน {place}', lw_account: 'เข้าสู่ระบบเพื่อดูบัญชีของคุณ',
     chk_amount_mismatch: 'ยอดเงินในสลิปไม่ตรงกับยอดที่ต้องชำระ', chk_duplicate_slip: 'สลิปนี้เคยใช้แล้ว', chk_wrong_receiver: 'บัญชีผู้รับเงินไม่ใช่บัญชีร้าน',
     chk_unreadable: 'รูปนี้ไม่ใช่สลิปที่อ่านได้', chk_bank_delay: 'ธนาคารยังไม่ส่งข้อมูล ลองตรวจอีกครั้งภายหลัง', chk_bank_down: 'ระบบธนาคารขัดข้อง',
     chk_not_found_yet: 'ยังไม่พบรายการโอนนี้', chk_no_trans_ref: 'ไม่พบเลขอ้างอิงรายการในสลิป', chk_old_slip: 'สลิปลงวันที่ก่อนการจอง',
@@ -103,7 +103,7 @@ const D = {
     nothing: 'ไม่มีรายการ', saved: 'บันทึกแล้ว', error: 'เกิดข้อผิดพลาด', loading: 'กำลังโหลด…', need_login: 'กรุณาเข้าสู่ระบบก่อนจอง',
   },
   en: {
-    tagline: 'Clean home, peace of mind', choose_area: 'Which district is your home in?', choose_area_sub: 'We currently serve Chumphon province',
+    tagline: 'Clean home, peace of mind', choose_area: 'Which district is your home in?', choose_area_sub: 'We currently serve {provinces}',
     onb1_t: 'Pick a day and time', onb1_d: 'Choose how many hours and when to start',
     onb2_t: 'Local housekeepers', onb2_d: 'Background-checked. Choose one or let us match you',
     onb3_t: 'Safe, with our guarantee', onb3_d: 'CleenDee compensates damage up to 10,000 THB',
@@ -187,7 +187,7 @@ const D = {
     a_open_h: 'Open for booking', a_soon_h: 'Coming soon',
     a_default: 'Default', a_min_per_unit: 'Minutes per unit', a_new_addon: 'New add-on', a_code: 'Code (English)', a_name_th: 'Thai name', a_name_en: 'English name', a_to_maid: 'To helper',
     a_kind: 'Type', a_value: 'Discount', a_max_disc: 'Max discount', a_min_total: 'Minimum total', a_max_uses: 'Max uses', a_ends: 'Expires (blank = never)', a_add_promo: 'Create code', a_used: 'used', a_until: 'until',
-    loc_outside: 'Outside Chumphon service area', lw_account: 'Log in to see your account',
+    loc_outside: 'Outside our service area', loc_not_open: 'Not available in {place} yet', lw_account: 'Log in to see your account',
     chk_amount_mismatch: 'Slip amount does not match the amount due', chk_duplicate_slip: 'This slip was already used', chk_wrong_receiver: 'Paid to an account that is not the shop',
     chk_unreadable: 'Not a readable slip', chk_bank_delay: 'Bank has not sent the data yet, check again later', chk_bank_down: 'Bank system is down',
     chk_not_found_yet: 'Transfer not found yet', chk_no_trans_ref: 'No transaction reference on the slip', chk_old_slip: 'Slip dated before the booking',

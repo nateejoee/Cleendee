@@ -11,9 +11,9 @@ import { useServices, useAddons, svcName, svcUnit, jobHours } from '../lib/servi
 import { useI18n, money, fmtDate, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { getDraft, setDraft, clearDraft, startIso, bkkToday, getAutoPicked, setAutoPicked, type Draft } from '../lib/draft'
-import { Avatar, Icon, Loading, useToast } from '../components/ui'
+import { Avatar, DistrictOptions, Icon, Loading, useToast } from '../components/ui'
 import { BookingLayout } from './BookingLayout'
-import { useDistricts } from './Start'
+import { useServiceAreas } from '../lib/areas'
 import { confetti } from '../lib/fx'
 
 export function useMaidsLoad() {
@@ -342,7 +342,7 @@ function hasPrecisePin(address: Addr) {
   return address.lat != null && address.lng != null
 }
 export function AddressForm({ onSaved, existing, onDeleted }: { onSaved: (id: number) => void; existing?: Addr; onDeleted?: () => void }) {
-  const { t, lang } = useI18n(); const { session } = useAuth(); const districts = useDistricts()
+  const { t, lang } = useI18n(); const { session } = useAuth(); const { districts, provinces, groups, open } = useServiceAreas()
   const th = lang === 'th'
   const [label, setLabel] = useState(existing?.label ?? (th ? 'บ้าน' : 'Home'))
   const [addr, setAddr] = useState(existing?.address ?? '')
@@ -350,7 +350,7 @@ export function AddressForm({ onSaved, existing, onDeleted }: { onSaved: (id: nu
   const startPoint: [number, number] | null = existing?.lat != null && existing?.lng != null ? [existing.lat, existing.lng] : null
   const [fix, setFix] = useState<MapPin | null>(startPoint ? { point: startPoint, accuracy: existing?.gps_accuracy_m ?? null } : null)
   const [lookup, setLookup] = useState<'idle' | 'loading' | 'done' | 'missing'>(startPoint ? 'done' : 'idle')
-  const [districtName,setDistrictName] = useState<string>()
+  const [found,setFound] = useState<{district?: string; province?: string}>({})
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false); const [confirmDelete, setConfirmDelete] = useState(false)
   const typed = useRef(!!existing?.address) // the customer wrote the address; don't overwrite it from the map
   const place = (next: MapPin | null) => { setFix(next); setErr('') }
@@ -363,15 +363,20 @@ export function AddressForm({ onSaved, existing, onDeleted }: { onSaved: (id: nu
       const timer = setTimeout(() => controller.abort(), 6000)
       addressForPin(fix.point, controller.signal).then(result => {
         if (!current || typed.current) return
-        setAddr(result.text); setDistrictName(result.district); setLookup(result.text ? 'done' : 'missing')
+        setAddr(result.text); setFound({district: result.district, province: result.province}); setLookup(result.text ? 'done' : 'missing')
       }).catch(() => { if (current) setLookup('missing') }).finally(() => clearTimeout(timer))
     }, 500)
     return () => { current = false; clearTimeout(wait); controller.abort() }
   }, [fix])
   useEffect(() => {
-    const match = districts.find(d => d.name_th === districtName)
+    // the pin's province (DOPA code) -> provinces.code, then the district by its Thai name
+    const prov = provinces?.find(p => p.dopa_code === found.province)
+    const match = prov && districts.find(d => d.province_code === prov.code && d.name_th === found.district)
     if (match) setDist(match.id)
-  }, [districts,districtName])
+  }, [districts,provinces,found])
+  const current = districts.find(d => d.id === dist)
+  const currentProv = current && provinces?.find(p => p.code === current.province_code)
+  const closed = !!current && !!provinces && !open.some(d => d.id === dist)
   const save = async () => {
     if (!session || !fix || busy || lookup === 'loading' || !addr.trim()) return
     setBusy(true); setErr('')
@@ -394,7 +399,8 @@ export function AddressForm({ onSaved, existing, onDeleted }: { onSaved: (id: nu
     <LocationPin start={startPoint} onPin={place} disabled={busy} />
     {fix && <small role="status">{lookup === 'loading' ? (th ? 'กำลังเติมที่อยู่จากหมุด…' : 'Looking up the address…') : lookup === 'missing' ? (th ? 'ค้นที่อยู่ไม่พบ กรุณากรอกที่อยู่สำหรับหมุดนี้' : 'No address found. Enter the address for this pin.') : (th ? 'ตรวจที่อยู่และเติมบ้านเลขที่หรือซอย หากแผนที่หาไม่พบ' : 'Review the address and add a missing house number or lane.')}</small>}
     <label className="field">{t('address')}<textarea disabled={!fix || lookup === 'loading' || busy} className="input" value={addr} onChange={e => { typed.current = true; setLookup('done'); setAddr(e.target.value) }} placeholder={t('addr_ph')} /></label>
-    <label className="field">{t('district')}<select className="input" value={dist} onChange={e => setDist(Number(e.target.value))}>{districts.map(d => <option key={d.id} value={d.id}>{th ? d.name_th : d.name_en}</option>)}</select></label>
+    <label className="field">{t('district')}<select className="input" value={dist} onChange={e => setDist(Number(e.target.value))}><DistrictOptions groups={groups} keep={current} /></select></label>
+    {closed && <div className="infonote small" role="status"><Icon n="pin" />{t('loc_not_open').replace('{place}', currentProv && !currentProv.active ? (th ? 'จ.' + currentProv.name_th : currentProv.name_en) : (th ? 'อ.' + current.name_th : current.name_en))}</div>}
     <small><a href="/geo/NOTICE.txt" target="_blank" rel="noreferrer">GeoThai · OCHA COD-AB · Royal Thai Survey Department</a> · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap</a></small>
     {err && <div className="err" role="alert">{err}</div>}
     <button className="btn b-ocean" disabled={busy || lookup === 'loading' || !fix || !label.trim() || addr.trim().length < 5} onClick={save}>{t('save')}</button>

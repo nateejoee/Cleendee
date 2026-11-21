@@ -1,4 +1,5 @@
-import { useLiveArea, DISTRICT_EN } from '../lib/liveArea'
+import { useLiveArea, type LiveArea } from '../lib/liveArea'
+import { useDistricts, useProvinces, useServiceAreas, openProvinceNames, type Province } from '../lib/areas'
 import { ServiceFAQ, HoursGuide } from '../components/ServiceGuide'
 import { bookingStep } from '../lib/bookingMetrics'
 import { useEffect, useState } from 'react'
@@ -17,14 +18,29 @@ import imgSched from '../assets/ill/schedule.webp'
 import imgSafe from '../assets/ill/safety.webp'
 import imgHome from '../assets/ill/chumphon.webp'
 
-export function useDistricts() {
-  const [d, setD] = useState<District[]>([])
-  useEffect(() => { sb.from('districts').select('*').order('id').then(({ data }) => setD((data as District[]) || [])) }, [])
-  return d
+// Text for the location pill on the home page
+function placeText(live: LiveArea, provinces: Province[] | null, districts: District[], saved: District | undefined, lang: 'th' | 'en', t: (k: Key) => string) {
+  const th = lang === 'th'
+  const notOpen = (place: string) => t('loc_not_open').replace('{place}', place)
+  if (live?.state === 'outside') return t('loc_outside')
+  if (live?.state === 'in' && provinces) {
+    const p = live.province, prov = provinces.find(x => x.dopa_code === p.code)
+    if (!prov?.active) return notOpen(th ? 'จ.' + p.name_th : p.name_en)
+    const sub = live.sub
+    if (sub) {
+      const dist = districts.find(x => x.province_code === prov.code && x.name_th === sub.district)
+      if (districts.length && !dist?.active) return notOpen(th ? 'อ.' + sub.district : sub.district_en)
+      return th ? 'ต.' + sub.subdistrict + ' อ.' + (sub.district === 'เมือง' + p.name_th ? 'เมือง' : sub.district) : sub.district_en + ', ' + p.name_en
+    }
+    return th ? 'จ.' + p.name_th : p.name_en
+  }
+  const sp = saved && provinces?.find(x => x.code === saved.province_code)
+  if (saved) return th ? 'อ.' + saved.name_th + (sp ? ' ' + sp.name_th : '') : saved.name_en + (sp ? ', ' + sp.name_en : '')
+  return openProvinceNames(provinces, lang)
 }
 
 export function Onboarding() {
-  const { t, lang } = useI18n(); const nav = useNavigate(); const districts = useDistricts()
+  const { t, lang } = useI18n(); const nav = useNavigate(); const { groups, provinces } = useServiceAreas()
   const [step, setStep] = useState(0); const [dist, setDist] = useState<number | null>(1)
   const slides = [{ img: imgSched, t: t('onb1_t'), d: t('onb1_d') }, { img: imgClean, t: t('onb2_t'), d: t('onb2_d') }, { img: imgSafe, t: t('onb3_t'), d: t('onb3_d') }]
   const finish = () => { localStorageSet('cd_onboarded', '1'); if (dist) localStorageSet('cd_district', String(dist)); nav('/', { replace: true }) }
@@ -36,8 +52,9 @@ export function Onboarding() {
     <SiteFooter dark />
   </div>
   if (step === 1) return <div className="page nobar">
-    <div className="pad" style={{ paddingTop: 30, textAlign: 'center' }}><h2 style={{ fontSize: 26, color: 'var(--ocean)' }}>{t('choose_area')}</h2><p className="muted mt8">{t('choose_area_sub')}</p></div>
-    <div className="dist pad mt20">{districts.map(d => <button key={d.id} className={'di' + (dist === d.id ? ' on' : '')} onClick={() => setDist(d.id)}>{lang === 'th' ? d.name_th : d.name_en}</button>)}</div>
+    <div className="pad" style={{ paddingTop: 30, textAlign: 'center' }}><h2 style={{ fontSize: 26, color: 'var(--ocean)' }}>{t('choose_area')}</h2>{openProvinceNames(provinces, lang) && <p className="muted mt8">{t('choose_area_sub').replace('{provinces}', openProvinceNames(provinces, lang))}</p>}</div>
+    {groups.map(g => <div key={g.province.code}>{groups.length > 1 && <div className="pad sec-title">{lang === 'th' ? 'จ.' + g.province.name_th : g.province.name_en}</div>}
+      <div className={'dist pad' + (groups.length > 1 ? '' : ' mt20')}>{g.districts.map(d => <button key={d.id} className={'di' + (dist === d.id ? ' on' : '')} onClick={() => setDist(d.id)}>{lang === 'th' ? d.name_th : d.name_en}</button>)}</div></div>)}
     <div style={{ display: 'flex', justifyContent: 'center', padding: 30 }}><button className="next" onClick={() => setStep(2)} aria-label={t('next')}><Icon n="next" size={28} /></button></div>
   </div>
   const s = slides[step - 2]
@@ -88,7 +105,7 @@ export function Login() {
 }
 
 export function Home() {
-  const { t, lang } = useI18n(); const { profile } = useAuth(); const nav = useNavigate(); const districts = useDistricts(); const services = useServices(); const { maids: allMaids, failed: maidsFailed } = useMaidsLoad(); const blocked = useBlockedMaids(); const maids = allMaids?.filter(m => !blocked.includes(m.id))
+  const { t, lang } = useI18n(); const { profile } = useAuth(); const nav = useNavigate(); const districts = useDistricts(); const provinces = useProvinces(); const services = useServices(); const { maids: allMaids, failed: maidsFailed } = useMaidsLoad(); const blocked = useBlockedMaids(); const maids = allMaids?.filter(m => !blocked.includes(m.id))
   const distId = profile?.district_id ?? Number(localStorage.getItem('cd_district') || 1)
   const d = districts.find(x => x.id === distId)
   const live = useLiveArea() // ตำแหน่งปัจจุบันของผู้ใช้ อัปเดตเมื่อเคลื่อนที่
@@ -107,10 +124,7 @@ export function Home() {
   return <div className="page home">
     {/* ภาพใหญ่หัวหน้า: ภาพถ่ายวิลล่า + ไล่สีกรมท่า ทับด้วยคำทักทายและปุ่มจอง */}
     <div className="lux-hero" style={{ backgroundImage: `url(${imgHero})` }}>
-      <div className="between"><span className="mob-only"><Logo white h={30} /></span><span className="lh-loc"><Icon n="pin" size={15} /><span className="lh-loc-t">{live?.state === 'in'
-        ? (lang === 'th' ? 'ต.' + live.subdistrict + ' อ.' + live.district.replace(/^เมืองชุมพร$/, 'เมือง') : (districts.find(x => x.name_th === live.district)?.name_en ?? DISTRICT_EN[live.district] ?? live.district) + ', Chumphon')
-        : live?.state === 'outside' ? t('loc_outside')
-        : d ? (lang === 'th' ? 'อ.' + d.name_th + ' ชุมพร' : d.name_en + ', Chumphon') : 'Chumphon'}</span></span><LangToggle /></div>
+      <div className="between"><span className="mob-only"><Logo white h={30} /></span><span className="lh-loc"><Icon n="pin" size={15} /><span className="lh-loc-t">{placeText(live, provinces, districts, d, lang, t)}</span></span><LangToggle /></div>
       <div className="lh-body">
         <div className="lh-greet">{t(greetKey())}{profile?.full_name ? ', ' + profile.full_name : ''}</div>
         <h1>{t('tagline')}</h1>

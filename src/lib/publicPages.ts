@@ -29,7 +29,7 @@ const defaultCopies: Record<PolicyKey, Record<Lang, PolicyCopy>> = {
       note: "",
       imageAlt: "บ้านริมทะเลในชุมพร",
       sections: [
-        { title: "ผู้ให้บริการและช่องทางติดต่อ", body: "CleenDee (คลีนดี) ให้บริการจองแม่บ้านทำความสะอาดในจังหวัดชุมพร สามารถติดต่อเกี่ยวกับนโยบายฉบับนี้ได้ที่หมายเลข {phones}" },
+        { title: "ผู้ให้บริการและช่องทางติดต่อ", body: "CleenDee (คลีนดี) ให้บริการจองแม่บ้านทำความสะอาดในประเทศไทย สามารถติดต่อเกี่ยวกับนโยบายฉบับนี้ได้ที่หมายเลข {phones}" },
         { title: "ข้อมูลส่วนบุคคลที่เก็บรวบรวม", body: "ข้อมูลลูกค้า ได้แก่ ชื่อ อีเมล และรูปโปรไฟล์จาก Google หรือ LINE ที่ใช้เข้าสู่ระบบ เบอร์โทรศัพท์ ที่อยู่และตำแหน่งบนแผนที่ ข้อมูลการจอง การชำระเงิน และสลิปโอนเงิน รวมถึงข้อความที่ติดต่อกับแม่บ้าน รีวิว และภาพที่แนบเพื่อแจ้งความเสียหาย\n\nข้อมูลแม่บ้าน ได้แก่ ข้อมูลการยืนยันตัวตน ตารางวันว่าง ตำแหน่งระหว่างการเดินทางไปปฏิบัติงาน และข้อมูลบัญชีธนาคารสำหรับโอนค่าจ้าง" },
         { title: "วัตถุประสงค์ในการใช้ข้อมูล", body: "CleenDee ใช้ข้อมูลเพื่อยืนยันตัวตนเมื่อเข้าสู่ระบบ จัดหาแม่บ้าน นัดหมายและติดต่อเกี่ยวกับงาน ตรวจสอบการชำระเงินและการคืนเงิน พิจารณาคำร้องเกี่ยวกับความเสียหาย และดูแลความปลอดภัยของลูกค้าและแม่บ้าน" },
         { title: "การเปิดเผยและจัดเก็บข้อมูล", body: "แม่บ้านที่รับงานจะเห็นเฉพาะชื่อ ที่อยู่ และรายละเอียดงานที่จำเป็นต่อการให้บริการ CleenDee ไม่ขายข้อมูลส่วนบุคคล และจัดเก็บข้อมูลบนบริการคลาวด์ Supabase ที่ใช้ดำเนินระบบ\n\nเมื่อผู้ใช้กดอ่านตำแหน่ง GPS เพื่อกรอกที่อยู่ เบราว์เซอร์จะส่งพิกัดไปยัง Photon เพื่อค้นหาที่อยู่ และโหลดแผนที่จาก OpenStreetMap" },
@@ -42,7 +42,7 @@ const defaultCopies: Record<PolicyKey, Record<Lang, PolicyCopy>> = {
       note: "",
       imageAlt: "A coastal home in Chumphon",
       sections: [
-        { title: "Service provider and contact", body: "CleenDee operates a home cleaning booking service in Chumphon, Thailand. For questions about this policy, call {phones}." },
+        { title: "Service provider and contact", body: "CleenDee operates a home cleaning booking service in Thailand. For questions about this policy, call {phones}." },
         { title: "Personal data we collect", body: "Customer data includes your name, email and profile image from Google or LINE when you sign in, phone number, service address and map location, booking and payment details, transfer slips, messages with your helper, reviews and photos submitted with damage claims.\n\nHelper data includes identity verification information, availability, location while travelling to a job and bank account details for payouts." },
         { title: "Purposes of use", body: "CleenDee uses this information to verify sign-ins, find and schedule helpers, communicate about bookings, verify payments and refunds, assess damage claims and support the safety of customers and helpers." },
         { title: "Data sharing and storage", body: "The helper assigned to your booking sees only the name, address and job details needed to provide the service. CleenDee does not sell personal data. Information is stored on Supabase, the cloud service we use to run the app.\n\nWhen you request a GPS fix to fill in your address, your browser sends the coordinates to Photon for address lookup and loads map tiles from OpenStreetMap." },
