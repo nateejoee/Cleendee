@@ -812,3 +812,12 @@ li{text-wrap:pretty}
 .tier-chip{font-size:12px;font-weight:700;background:rgba(255,255,255,.25);border-radius:99px;padding:3px 10px;white-space:nowrap}
 .tier-bar{height:7px;border-radius:99px;background:rgba(255,255,255,.3);overflow:hidden}
 .tier-bar i{display:block;height:100%;background:currentColor;border-radius:99px}
+
+/* account: delete account, helper bank, admin change requests */
+.danger-row b{color:var(--brick)}
+.danger-row .rico{background:var(--brick-l);color:var(--brick)}
+.delete-card{border-color:color-mix(in srgb,var(--brick) 35%,var(--line))}
+.delete-card ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;color:var(--ink2)}
+.bank-card b{font-size:15px}
+.change-cmp{gap:14px;align-items:center}
+.change-cmp>span{display:flex;flex-direction:column;align-items:center;gap:4px}

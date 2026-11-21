@@ -10,7 +10,7 @@ import { useAuth } from '../lib/auth'
 import { Avatar, Icon, Bell, LangToggle, Logo, CustomerTabs, TopBar, Loading, SiteFooter } from '../components/ui'
 import { setDraft, emptyDraft } from '../lib/draft'
 import { useServices, useServicesLoad, svcName, svcUnit } from '../lib/services'
-import { CountUp, greetKey } from '../lib/fx'
+import { greetKey } from '../lib/fx'
 import { useMaidsLoad, useBlockedMaids } from './Book'
 import imgHero from '../assets/ill/hero.webp'
 import { PromoArt } from '../components/BrandArt'
@@ -193,8 +193,8 @@ export function Home() {
         <div className="pad feats">{why.map(([i, b, x]) => <div key={b} className="feat"><span className="rico"><Icon n={i} /></span><b className="disp">{b}</b><span className="small muted">{x}</span></div>)}</div>
       </div>
       <aside className="hg-side">
-        {profile ? <div className="pad"><div className="sec-title">{t('my_points')}</div>
-          {profile.role === 'customer' ? <RewardsCard points={profile.points} onClick={() => nav('/account')} /> : <button className="kpi lux-kpi" onClick={() => nav('/account')}><div className="small">{t('my_points')}</div><div className="v"><CountUp value={profile.points} /> {t('points')}</div><div className="small mt8">{t('points_rule')}</div></button>}</div>
+        {profile?.role === 'customer' ? <div className="pad"><div className="sec-title">{t('my_points')}</div>
+          <RewardsCard points={profile.points} onClick={() => nav('/account')} /></div>
           : <div className="pad mt20"><div className="card guestcard col"><b className="disp">{t('lw_book')}</b><Link to="/login" className="btn b-ocean">{t('login')} / {t('signup')}</Link></div></div>}
         <div className="pad"><div className="between"><div className="sec-title">{t('top_maids')}</div><Link to="/book" className="link">{t('see_all')}</Link></div>
           <div className="stack">{(maids || []).slice(0, 3).map(m => <Link key={m.id} to={'/maid-profile/' + m.id} className="mcard" style={{ color: 'var(--ink)' }}>
