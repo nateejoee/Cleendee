@@ -244,6 +244,7 @@ export function BookTime() {
   const pkgBlocked = isPkg && !d.maidId
   const ok = !!picked && !pkgBlocked
   const price = d.plan === 'weekly' || d.plan === 'biweekly' ? (prices.pkg?.[d.plan] ?? null) : (q?.total ?? null)
+  const discounted = !(d.plan === 'weekly' || d.plan === 'biweekly') && !!q && q.promo_discount > 0
   const unit = svcUnit(s, lang)
   const selectedDate = fmtDate(date + 'T12:00:00+07:00', lang, { weekday: 'long', month: 'long', day: 'numeric' })
   const quantityLabel = isPkg ? t(d.plan) : qty + ' ' + unit
@@ -252,6 +253,8 @@ export function BookTime() {
   return <BookingLayout title={t('pick_date')} service={svcName(s, lang)} step={1}
     action={{ label: t('next'), disabled: !ok, onClick: () => { setDraft({ qty }); nav('/book/details') } }}
     price={(price !== null ? money(price) : '…') + ' ' + t('baht')} priceLabel={t('booking_estimate')}
+    was={discounted && q ? money(q.total + q.promo_discount) + ' ' + t('baht') : undefined}
+    saving={discounted && q ? (q.promo_code ? t('promo_code') + ' ' + q.promo_code : t('first_promo')) + ' −' + money(q.promo_discount) + ' ' + t('baht') : undefined}
     meta={[quantityLabel, chosen.length ? chosen.length + ' ' + t('addons') : null, timeLabel].filter(Boolean).join(' · ')}>
     <div className="booking-stack">
       {(s.code === 'general_cleaning' || !isPkg) && <section className="booking-panel">

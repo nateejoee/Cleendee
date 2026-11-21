@@ -347,3 +347,8 @@
 @media (min-width: 1050px) {
   .booking-option-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* ราคาก่อนลด + เหตุผลที่ลดราคา (แบบแอปช้อปปิ้ง) */
+.booking-saving{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:.8125rem;line-height:1.4}
+.booking-saving s{color:var(--ink2);text-decoration-thickness:1.5px}
+.booking-saving em{font-style:normal;font-weight:650;color:var(--brick);background:var(--brick-l);border-radius:8px;padding:1px 8px}

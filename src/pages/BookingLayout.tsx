@@ -16,9 +16,11 @@ type BookingLayoutProps = {
   price?: string
   priceLabel?: string
   meta?: string
+  was?: string
+  saving?: string
 }
 
-export function BookingLayout({ title, step, service, back, children, action, price, priceLabel, meta }: BookingLayoutProps) {
+export function BookingLayout({ title, step, service, back, children, action, price, priceLabel, meta, was, saving }: BookingLayoutProps) {
   const { t } = useI18n()
   const navigate = useNavigate()
 
@@ -50,6 +52,7 @@ export function BookingLayout({ title, step, service, back, children, action, pr
           {price !== undefined && <div className="booking-amount" aria-live="polite">
             {priceLabel && <small>{priceLabel}</small>}
             <strong>{price}</strong>
+            {was && saving && <span className="booking-saving"><s>{was}</s><em>{saving}</em></span>}
             {meta && <span className="booking-amount-meta">{meta}</span>}
           </div>}
           <button type="button" className="btn booking-primary" onClick={action.onClick} disabled={action.disabled}>
