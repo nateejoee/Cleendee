@@ -12,7 +12,8 @@ import { setDraft, emptyDraft } from '../lib/draft'
 import { useServices, useServicesLoad, svcName, svcUnit } from '../lib/services'
 import { CountUp, greetKey } from '../lib/fx'
 import { useMaidsLoad, useBlockedMaids } from './Book'
-import { HeroArt, PromoArt } from '../components/BrandArt'
+import imgHero from '../assets/ill/hero.webp'
+import { PromoArt } from '../components/BrandArt'
 import imgClean from '../assets/ill/cleaning.webp'
 import imgSched from '../assets/ill/schedule.webp'
 import imgSafe from '../assets/ill/safety.webp'
@@ -122,8 +123,8 @@ export function Home() {
     ['home_step_payment', 'home_step_payment_d'],
   ]
   return <div className="page home">
-    {/* ภาพใหญ่หัวหน้า: ภาพวาดแบรนด์ (บ้านเส้นทอง + หยดน้ำทอง) บนพื้นกรมท่า ทับด้วยคำทักทายและปุ่มจอง */}
-    <div className="lux-hero art"><HeroArt />
+    {/* ภาพใหญ่หัวหน้า: ภาพถ่ายวิลล่า + ไล่สีกรมท่า ทับด้วยคำทักทายและปุ่มจอง */}
+    <div className="lux-hero" style={{ backgroundImage: `url(${imgHero})` }}>
       <div className="between"><span className="mob-only"><Logo white h={30} /></span><span className="lh-loc"><Icon n="pin" size={15} /><span className="lh-loc-t">{placeText(live, provinces, districts, d, lang, t)}</span></span><LangToggle /></div>
       <div className="lh-body">
         <div className="lh-greet">{t(greetKey())}{profile?.full_name ? ', ' + profile.full_name : ''}</div>
