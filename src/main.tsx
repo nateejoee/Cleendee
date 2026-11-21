@@ -6,6 +6,7 @@ import '@fontsource-variable/noto-serif-thai'
 import './styles.css'
 import './premium.css'
 import './desktop.css'
+import './desktop-shell.css'
 import App from './App'
 import { registerServiceWorker } from './lib/notify'
 

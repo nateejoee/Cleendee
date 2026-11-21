@@ -1,0 +1,82 @@
+/* โครงหน้าจอคอม (≥1024px) — โหลดหลัง desktop.css
+   ลูกค้า/ผู้เยี่ยมชม: เมนูด้านบนสีขาว (DeskNav) + ท้ายหน้าสีกรมท่า (DeskFooter) แบบเว็บไซต์องค์กร
+   แม่บ้าน/แอดมิน: ยังใช้เมนูข้างเหมือนเดิม · ต่ำกว่า 1024px ไม่มีอะไรเปลี่ยน
+   .dk-nav / .dk-foot แสดงเฉพาะบนจอคอมอยู่แล้ว (React ไม่เรนเดอร์บนจอเล็ก) */
+
+@media (min-width:1024px){
+ .dk-container{width:100%;max-width:1200px;margin-inline:auto;padding-inline:32px}
+
+ /* เมื่อมีเมนูด้านบน: แถบหัวเรื่องที่ติดด้านบนของหน้าย่อยเลื่อนลงมาใต้เมนู, ลิงก์ # หยุดใต้เมนู */
+ .app:has(.dk-nav) .topbar{top:72px}
+ .app:has(.dk-nav) [id]{scroll-margin-top:96px}
+ /* หน้าแรก: กระดิ่ง/สลับภาษาอยู่บนเมนูด้านบนแล้ว ไม่ต้องซ้ำในภาพ */
+ .app:has(.dk-nav) .lux-hero .hdr-tools{display:none}
+ /* ท้ายหน้าเต็มแทนบรรทัดลิขสิทธิ์เล็ก */
+ .app:has(.dk-foot) .site-foot{display:none}
+}
+
+/* ===== เมนูด้านบน ===== */
+.dk-nav{position:sticky;top:0;z-index:30;height:72px;flex:none;background:var(--card);border-bottom:1px solid var(--line);transition:box-shadow .25s ease,border-color .25s ease}
+.dk-nav.scrolled{box-shadow:0 1px 0 color-mix(in srgb,var(--ocean) 4%,transparent),0 8px 24px -16px color-mix(in srgb,var(--ocean) 40%,transparent);border-bottom-color:var(--hair)}
+[data-dark="1"] .dk-nav.scrolled{box-shadow:0 10px 28px -18px rgba(0,0,0,.8)}
+.dk-nav-in{height:100%;display:flex;align-items:center;gap:28px}
+.dk-logo{display:flex;align-items:center;flex:none;border-radius:8px}
+.dk-logo img{display:block}
+[data-dark="1"] .dk-logo img{content:url('/brand/CleenDee_logo_white.svg')}
+
+.dk-links{display:flex;align-items:stretch;gap:4px;height:100%;margin-inline:auto}
+.dk-nav a.dk-link{position:relative;display:flex;align-items:center;padding:0 14px;font-size:.9375rem;font-weight:500;color:var(--ink2);white-space:nowrap;transition:color .2s}
+.dk-nav a.dk-link::after{content:"";position:absolute;left:14px;right:14px;bottom:-1px;height:2px;border-radius:2px;background:var(--sun);transform:scaleX(0);transition:transform .25s ease}
+.dk-nav a.dk-link:hover{color:var(--ink)}
+.dk-nav a.dk-link.on{color:var(--ink);font-weight:600}
+.dk-nav a.dk-link.on::after{transform:scaleX(1)}
+.dk-nav a.dk-link:focus-visible{outline-offset:-6px;border-radius:10px}
+[data-dark="1"] .dk-nav a.dk-link{color:var(--ink2)!important}
+[data-dark="1"] .dk-nav a.dk-link:hover,[data-dark="1"] .dk-nav a.dk-link.on{color:var(--ink)!important}
+
+.dk-tools{display:flex;align-items:center;gap:12px;flex:none}
+.dk-tools .lang{background:transparent;border:1px solid var(--line);color:var(--ink);padding:6px 12px}
+.dk-tools .lang:hover{border-color:var(--hair)}
+.dk-tools .bell{background:transparent;border:1px solid var(--line);color:var(--ink)!important}
+.dk-tools .bell:hover{border-color:var(--hair)}
+.dk-tools .bell-n{box-shadow:0 0 0 2px var(--card)}
+.dk-nav a.dk-cta{display:inline-flex;align-items:center;min-height:42px;padding:0 22px;border-radius:999px;background:var(--sun);color:var(--on-sun)!important;font-weight:650;font-size:.9375rem;white-space:nowrap;
+ box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 6px 16px -10px color-mix(in srgb,var(--sun) 80%,transparent);transition:filter .2s,transform .2s}
+.dk-nav a.dk-cta:hover{filter:brightness(1.05);transform:translateY(-1px)}
+.dk-nav a.dk-login{display:inline-flex;align-items:center;min-height:42px;padding:0 18px;border-radius:999px;border:1px solid var(--ocean);color:var(--ocean)!important;font-weight:600;font-size:.9375rem;white-space:nowrap;transition:background .2s,color .2s}
+.dk-nav a.dk-login:hover{background:var(--ocean);color:#fff!important}
+[data-dark="1"] .dk-nav a.dk-login{border-color:var(--hair);color:var(--ink)!important}
+[data-dark="1"] .dk-nav a.dk-login:hover{background:var(--foam)}
+
+/* เมนูผู้ใช้ */
+.dk-user{position:relative}
+.dk-user-btn{display:flex;align-items:center;gap:8px;padding:3px 10px 3px 3px;border-radius:999px;border:1px solid var(--line);color:var(--ink);transition:border-color .2s}
+.dk-user-btn:hover,.dk-user-btn[aria-expanded="true"]{border-color:var(--hair)}
+.dk-user-name{font-size:.9375rem;font-weight:600;max-width:9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dk-caret{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;color:var(--ink3);transition:transform .2s}
+.dk-user-btn[aria-expanded="true"] .dk-caret{transform:rotate(180deg)}
+.dk-menu{position:absolute;right:0;top:calc(100% + 10px);min-width:220px;padding:6px;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--sh-2);display:flex;flex-direction:column;animation:dkMenu .16s ease-out}
+.dk-menu a,.dk-menu button{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:.9375rem;color:var(--ink)!important;text-align:left;width:100%}
+.dk-menu a:hover,.dk-menu button:hover,.dk-menu a:focus-visible,.dk-menu button:focus-visible{background:var(--foam)}
+.dk-menu :focus-visible{outline:2px solid var(--sun);outline-offset:-2px}
+.dk-menu .ico{color:var(--ink3)}
+.dk-menu hr{border:0;border-top:1px solid var(--line);margin:6px 4px}
+@keyframes dkMenu{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+/* ===== ท้ายหน้า ===== */
+.dk-foot{flex:none;margin-top:56px;background:var(--ocean-d);color:rgba(255,255,255,.72);padding:64px 0 28px;border-top:1px solid color-mix(in srgb,var(--sun) 40%,transparent)}
+[data-dark="1"] .dk-foot{background:#08111C;border-top-color:var(--hair)}
+.dk-foot-grid{display:grid;grid-template-columns:minmax(0,1.6fr) repeat(3,minmax(0,1fr));gap:48px}
+.dk-foot-brand p{margin-top:18px;max-width:26rem;font-size:.9375rem;line-height:1.7}
+.dk-foot-brand a{display:inline-flex;border-radius:8px}
+.dk-foot-area{display:flex;gap:8px;align-items:flex-start}
+.dk-foot-area .ico{flex:none;margin-top:4px;color:var(--sun)}
+.dk-foot-area b{color:#fff;font-weight:600}
+.dk-foot-col h2{font-family:var(--font-display);font-size:1.125rem;font-weight:600;color:#fff;letter-spacing:.01em;margin-bottom:16px}
+.dk-foot-col ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+.dk-foot a{color:rgba(255,255,255,.72)!important;font-size:.9375rem;transition:color .2s}
+.dk-foot a:hover{color:var(--sun)!important}
+.dk-foot-base{display:flex;justify-content:space-between;gap:16px;margin-top:56px;padding-top:22px;border-top:1px solid rgba(255,255,255,.12);font-size:.8125rem;color:rgba(255,255,255,.55)}
+.dk-foot-base a{font-size:.8125rem}
+
+@media (prefers-reduced-motion:reduce){.dk-nav,.dk-link::after,.dk-cta,.dk-menu{transition:none;animation:none}}

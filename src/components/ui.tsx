@@ -5,6 +5,7 @@ import type { BookingStatus, District } from '../lib/supabase'
 import type { AreaGroup } from '../lib/areas'
 import { useAuth } from '../lib/auth'
 import { useUnread } from '../lib/notify'
+import { useCustomerShell } from '../lib/useDesktop'
 
 const P: Record<string, ReactNode> = {
   home: <path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -100,7 +101,12 @@ export function TabBar({ tabs }: { tabs: Tab[] }) {
     return <Link key={tb.to} to={tb.to} className={'tab' + (on ? ' on' : '')}><Icon n={tb.icon} />{t(tb.label)}</Link>
   })}</nav>
 }
-export const CustomerTabs = () => <TabBar tabs={[
+// จอคอม (≥1024px): ลูกค้าใช้เมนูด้านบน (DeskNav) แทนเมนูข้าง — มือถือ/แท็บเล็ตเหมือนเดิม
+export function CustomerTabs() {
+  const desk = useCustomerShell()
+  return desk ? null : <CustomerTabBar />
+}
+const CustomerTabBar = () => <TabBar tabs={[
   { to: '/', icon: 'home', label: 'tab_home' }, { to: '/bookings', icon: 'cal', label: 'tab_bookings' },
   { to: '/book', icon: 'plus', label: 'tab_book', center: true }, { to: '/messages', icon: 'chat', label: 'tab_msgs' }, { to: '/account', icon: 'user', label: 'tab_account' }]} />
 export const MaidTabs = () => <TabBar tabs={[
@@ -132,7 +138,7 @@ export function useToast() {
 // ท้ายหน้า: ชื่อแอปเป็นตัวหนังสือ + ลิงก์นโยบายความเป็นส่วนตัว (กูเกิลใช้ตรวจชื่อแอปบนหน้าแรก)
 export function SiteFooter({ dark = false }: { dark?: boolean }) {
   const { lang } = useI18n()
-  return <div className="tiny" style={{ textAlign: 'center', padding: '14px 20px', color: dark ? '#CFE3F2' : 'var(--ink3)' }}>
+  return <div className="tiny site-foot" style={{ textAlign: 'center', padding: '14px 20px', color: dark ? '#CFE3F2' : 'var(--ink3)' }}>
     © CleenDee คลีนดี · <Link to="/privacy" style={{ color: 'inherit', textDecoration: 'underline' }}>{lang === 'th' ? 'นโยบายความเป็นส่วนตัว' : 'Privacy Policy'}</Link></div>
 }
 

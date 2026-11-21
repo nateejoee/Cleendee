@@ -113,6 +113,7 @@ const D = {
     a_change_reqs: 'คำขอแก้ไขข้อมูลแม่บ้าน', a_change_reqs_d: 'รูปโปรไฟล์และบัญชีรับเงินที่แม่บ้านขอเปลี่ยน', a_kind_photo: 'รูปโปรไฟล์', a_kind_bank: 'บัญชีรับเงิน', a_cur: 'ข้อมูลเดิม', a_req: 'ขอเปลี่ยนเป็น', a_note_ph: 'เหตุผลที่ไม่อนุมัติ (ถ้ามี)',
     e_up_sub: 'จองแม่บ้านได้ในไม่ถึงนาที เลือกวันล่วงหน้าได้ 60 วัน', e_hist: 'ยังไม่มีประวัติการจอง', e_hist_sub: 'งานที่เสร็จหรือยกเลิกแล้วจะเก็บไว้ที่นี่', e_fav_sub: 'แม่บ้านที่เคยมาทำงานให้จะอยู่ที่นี่ จองคนเดิมได้ง่าย ๆ',
     nothing: 'ไม่มีรายการ', saved: 'บันทึกแล้ว', error: 'เกิดข้อผิดพลาด', loading: 'กำลังโหลด…', need_login: 'กรุณาเข้าสู่ระบบก่อนจอง',
+    dk_nav: 'เมนูหลัก', dk_services: 'บริการ', dk_guarantee: 'การรับประกัน', dk_book: 'จองเลย', dk_menu: 'เมนูบัญชี', dk_tagline: 'แม่บ้านคนในพื้นที่ ยืนยันตัวตนและตรวจประวัติทุกคน จองง่าย ราคาชัดเจน มีการันตีงาน', dk_col_svc: 'บริการ', dk_col_about: 'เกี่ยวกับเรา', dk_col_help: 'ช่วยเหลือ', dk_become: 'สมัครเป็นแม่บ้าน', dk_privacy: 'นโยบายความเป็นส่วนตัว', dk_support: 'ติดต่อทีมงาน', dk_area: 'พื้นที่ให้บริการ', dk_rights: 'สงวนลิขสิทธิ์',
   },
   en: {
     tagline: 'Clean home, peace of mind', choose_area: 'Which district is your home in?', choose_area_sub: 'We currently serve {provinces}',
@@ -223,6 +224,7 @@ const D = {
     a_change_reqs: 'Helper change requests', a_change_reqs_d: 'Profile photos and bank accounts helpers asked to change', a_kind_photo: 'Profile photo', a_kind_bank: 'Bank account', a_cur: 'Current', a_req: 'Requested', a_note_ph: 'Reason for rejecting (optional)',
     e_up_sub: 'Book a helper in under a minute, up to 60 days ahead', e_hist: 'No past bookings yet', e_hist_sub: 'Finished and cancelled jobs are kept here', e_fav_sub: 'Helpers who cleaned for you appear here so you can rebook them easily',
     nothing: 'Nothing here', saved: 'Saved', error: 'Something went wrong', loading: 'Loading…', need_login: 'Please log in to book',
+    dk_nav: 'Main', dk_services: 'Services', dk_guarantee: 'Guarantee', dk_book: 'Book now', dk_menu: 'Account menu', dk_tagline: 'Local helpers, ID-verified and background-checked. Easy booking, clear prices, guaranteed work.', dk_col_svc: 'Services', dk_col_about: 'About us', dk_col_help: 'Help', dk_become: 'Become a helper', dk_privacy: 'Privacy policy', dk_support: 'Contact support', dk_area: 'Service area', dk_rights: 'All rights reserved',
   },
 } as const
 export type Key = keyof typeof D.th
