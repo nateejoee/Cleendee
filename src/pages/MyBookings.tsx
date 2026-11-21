@@ -328,6 +328,7 @@ export function Account() {
     <ThemePicker />
     <div className="pad"><div className="sec-title">{t('help')}</div></div>
     <Link to="/service" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico"><Icon n="broom" /></span><b style={{ flex: 1 }}>{t('svc_title')}</b><Icon n="next" /></Link>
+    <Link to="/support" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico"><Icon n="chat" /></span><b style={{ flex: 1 }}>{lang === 'th' ? 'แชทช่วยเหลือ' : 'Help chat'}</b><Icon n="next" /></Link>
     <Link to="/privacy" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico"><Icon n="shield" /></span><b style={{ flex: 1 }}>Privacy</b><Icon n="next" /></Link>
     <CustomerTabs /></div>
   return <div className="page">
@@ -343,6 +344,7 @@ export function Account() {
         ? <Link to="/bookings" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--leaf-l)' }}><Icon n="cal" /></span><span style={{ flex: 1 }}><b>{t('monthly_pkg')}</b><span className="small muted">{t('pkg_active')} · {activePkg === 'weekly' || activePkg === 'biweekly' ? t(activePkg) : activePkg}</span></span><Icon n="next" /></Link>
         : <Link to="/book/time?plan=weekly" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--leaf-l)' }}><Icon n="cal" /></span><span style={{ flex: 1 }}><b>{t('monthly_pkg')}</b><span className="small muted">{t('pkg_none')}</span></span><Icon n="next" /></Link>}
       </>}
+      {isCustomer && <Link to="/support" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico"><Icon n="chat" /></span><b style={{ flex: 1 }}>{lang === 'th' ? 'แชทช่วยเหลือ' : 'Help chat'}</b><Icon n="next" /></Link>}
       {profile?.role === 'customer' && <Link to="/maid/apply" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico"><Icon n="team" /></span><span style={{ flex: 1 }}><b>{t('become_maid')}</b>{maidApp?.status === 'pending' && <span className="small muted">{t('m_wait')}</span>}</span><Icon n="next" /></Link>}
       <button className="listrow" onClick={() => setLang(lang === 'th' ? 'en' : 'th')}><span className="rico"><Icon n="chat" /></span><b style={{ flex: 1 }}>{t('language')}: {lang === 'th' ? 'ไทย' : 'English'}</b></button>
       <ThemePicker />

@@ -3,6 +3,7 @@ import { I18nProvider, localStorageGet } from './lib/i18n'
 import { AuthProvider, useAuth } from './lib/auth'
 import { Onboarding, Login, Home, Service } from './pages/Start'
 import { BookingLocation, BookMaid, MaidProfile, BookTime, BookDetails, BookConfirm, Pay } from './pages/Book'
+import { Support, AdminSupport } from './pages/Support'
 import { Bookings, BookingDetail, Receipt, Claim, Messages, Account, Addresses, Favorites } from './pages/MyBookings'
 import { MaidHome, MaidJob, MaidAvailability, MaidIncome, MaidApply } from './pages/Maid'
 import { AdminHome, AdminMoney, AdminMaids, AdminSettings, AdminPublicPages } from './pages/Admin'
@@ -63,6 +64,7 @@ export default function App() {
       <Route path="/bookings/:id" element={<Member title="details" text="lw_page"><BookingDetail /></Member>} />
       <Route path="/claim/:id" element={<Member title="claim" text="lw_page"><Claim /></Member>} />
       <Route path="/messages" element={<Member tab title="tab_msgs" text="lw_msgs" img={imgChat}><Messages /></Member>} />
+      <Route path="/support" element={<Support />} />
       <Route path="/account" element={<Account />} />
       <Route path="/account/addresses" element={<Member title="my_addresses" text="lw_page"><Addresses /></Member>} />
       <Route path="/account/favorites" element={<Member title="favorites" text="lw_page"><Favorites /></Member>} />
@@ -72,6 +74,7 @@ export default function App() {
       <Route path="/maid/income" element={<Member title="tab_income" text="lw_page"><MaidIncome /></Member>} />
       <Route path="/maid/apply" element={<Member title="become_maid" text="lw_page"><MaidApply /></Member>} />
       <Route path="/admin" element={<Member title="a_title" text="lw_page"><AdminHome /></Member>} />
+      <Route path="/admin/support" element={<Member title="a_title" text="lw_page"><AdminSupport /></Member>} />
       <Route path="/admin/money" element={<Member title="tab_money" text="lw_page"><AdminMoney /></Member>} />
       <Route path="/admin/maids" element={<Member title="tab_maids" text="lw_page"><AdminMaids /></Member>} />
       <Route path="/admin/settings" element={<Member title="tab_settings" text="lw_page"><AdminSettings /></Member>} />

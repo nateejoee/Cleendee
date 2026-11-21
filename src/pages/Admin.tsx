@@ -81,6 +81,8 @@ function LowRatings({ rows, reload }: { rows: Low[]; reload: () => void }) {
 export function AdminHome() {
   const { t, lang } = useI18n(); const { d, reload } = useAdminData(); const toast = useToast(); const low = useLowRatings()
   const { hash, key } = useLocation()
+  const [chatWaiting, setChatWaiting] = useState(0)
+  useEffect(() => { sb.from('support_threads').select('id', { count: 'exact', head: true }).eq('status', 'waiting_staff').then(({ count }) => setChatWaiting(count || 0)) }, [])
   useEffect(() => { if (d && hash) document.getElementById(hash.slice(1))?.scrollIntoView() }, [hash, key, d, low.rows.length])
   if (useAdminGuard()) return <Navigate to="/" />
   if (!d) return <Loading />
@@ -94,6 +96,7 @@ export function AdminHome() {
     [d.refunds.length, t('a_refunds'), money(d.refunds.reduce((a, p) => a + p.amount, 0)) + ' ' + t('baht'), 'var(--brick-l)', 'var(--brick)', '/admin/money#refunds'],
     [d.claims.length, t('a_claims'), '', 'var(--brick-l)', 'var(--brick)', '/admin/money#claims'],
     [d.maidsPending, t('a_newmaids'), '', 'var(--leaf-l)', 'var(--leaf)', '/admin/maids'],
+    [chatWaiting, lang === 'th' ? 'แชทรอตอบ' : 'Chats waiting', lang === 'th' ? 'ลูกค้าขอคุยกับเจ้าหน้าที่' : 'Customers asking for staff', 'var(--sun-l)', '#8A6200', '/admin/support'],
     [low.rows.filter(r => !r.admin_seen).length, t('a_low'), t('a_low_d'), 'var(--brick-l)', 'var(--brick)', '#low-ratings'],
   ].sort((a, b) => Number(Number(b[0]) > 0) - Number(Number(a[0]) > 0)) as [number, string, string, string, string, string][]
   const open = todo.reduce((a, q) => a + q[0], 0)

@@ -44,6 +44,8 @@ export function errMsg(e: unknown): string {
 }
 
 const ERR: Record<string, [string, string]> = {
+  too_many_messages: ['ส่งข้อความมากเกินไปในวันนี้ กรุณาลองใหม่พรุ่งนี้', 'Too many messages today. Please try again tomorrow'],
+  invalid_message: ['ข้อความว่างหรือยาวเกินไป', 'The message is empty or too long'],
   maid_busy: ['แม่บ้านไม่ว่างเวลานี้ ลองเลือกเวลาอื่น', 'This helper is busy then. Try another time'],
   start_too_soon: ['ต้องจองล่วงหน้าอย่างน้อย 2 ชั่วโมง', 'Please book at least 2 hours ahead'],
   address_not_found: ['กรุณาเลือกที่อยู่', 'Please choose an address'],
