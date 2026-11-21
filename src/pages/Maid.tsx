@@ -7,6 +7,7 @@ import { useAuth } from '../lib/auth'
 import { bkkToday } from '../lib/draft'
 import maidPortrait from '../assets/ill/safety.webp'
 import { Avatar, DistrictOptions, Icon, Bell, LangToggle, Loading, MaidTabs, StatusPill, TopBar, useToast } from '../components/ui'
+import { Empty } from '../components/EmptyArt'
 import { Chat, JobProof } from './MyBookings'
 import { useServices, useAddons, svcName, svcUnit } from '../lib/services'
 import { useDistricts, useServiceAreas } from '../lib/areas'
@@ -76,7 +77,7 @@ export function MaidHome() {
         <JobInfo b={b} dark />
         <div className="row mt12"><button className="btn b-sun" style={{ flex: 2 }} onClick={() => act('maid_respond', { p_booking_id: b.id, p_accept: true })}>{t('m_accept')}</button>
           <button className="btn b-dark2" style={{ flex: 1 }} onClick={() => act('maid_respond', { p_booking_id: b.id, p_accept: false })}>{t('m_reject')}</button></div></div>)}
-      {open.length === 0 && req.length === 0 && <div className="empty muted">{t('m_no_jobs')}</div>}
+      {open.length === 0 && req.length === 0 && <Empty art="jobs" title={t('m_no_jobs')} />}
       <h2 id="maid-active" className="desk-heading">{t('m_my_jobs')}</h2>
       {!mine ? <Loading /> : jobs.length === 0 ? <div className="muted">{t('nothing')}</div> : jobs.map(b => <Link key={b.id} to={'/maid/job/' + b.id} className="card row" style={{ color: 'var(--ink)' }}>
         <div style={{ width: 56, textAlign: 'center', background: 'var(--foam)', borderRadius: 14, padding: '6px 0' }}><div className="tiny muted">{fmtDate(b.start_at, lang, { weekday: 'short' })}</div><b className="disp" style={{ fontSize: 21 }}>{fmtDate(b.start_at, lang, { day: 'numeric' })}</b></div>
@@ -242,7 +243,7 @@ export function MaidIncome() {
   const { t, lang } = useI18n(); const { payouts } = useMaidData(); const [bank, setBank] = useState<{ bank_name: string; bank_account: string } | null>(null)
   useEffect(() => { sb.rpc('my_bank').then(({ data }) => setBank((data as { bank_name: string; bank_account: string }[])?.[0] ?? null)) }, [])
   return <div className="page"><div className="hero"><h1>{t('m_income')}</h1>{bank && <p>{t('m_bank')}: {bank.bank_name} {bank.bank_account}</p>}<Link to="/maid/profile" className="link" style={{ color: 'var(--sun)' }}>{lang === 'th' ? 'ขอเปลี่ยนบัญชีรับเงิน' : 'Change bank account'}</Link></div>
-    <div className="mt12">{payouts.length === 0 ? <div className="pad"><div className="empty muted">{t('nothing')}</div></div> : [...payouts].reverse().map((p, i) => <div key={i} className="listrow">
+    <div className="mt12">{payouts.length === 0 ? <div className="pad"><Empty art="wallet" title={t('nothing')} /></div> : [...payouts].reverse().map((p, i) => <div key={i} className="listrow">
       <span style={{ flex: 1 }}><b>#{p.booking_id}</b><span className="small muted">{p.transferred_at ? fmtDate(p.transferred_at, lang) : ''}</span></span>
       <b className="disp">{money(p.amount)} ฿</b><span className={'pill ' + (p.status === 'done' ? 'p-ocean' : 'p-sun')}>{p.status === 'done' ? t('paid_out') : t('waiting')}</span></div>)}</div>
     <MaidTabs /></div>

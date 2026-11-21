@@ -904,3 +904,9 @@ button.memcard:focus-visible{outline:2px solid var(--foil2);outline-offset:3px}
  .zchat-dots circle:nth-child(2){animation-delay:.2s}.zchat-dots circle:nth-child(3){animation-delay:.4s}
 }
 @keyframes zc-dot{0%,100%{opacity:.25}40%{opacity:1}}
+/* กล่อง "ยังไม่มีข้อมูล" ทั้งเว็บ (components/EmptyArt.tsx) */
+.empty.ntf-empty{padding:22px 18px 26px}
+.empty.ntf-empty .btn{width:auto;min-width:200px}
+.empty.ntf-empty.sm{padding:14px 14px 18px}
+.zbell.sm{width:150px}
+@media (prefers-reduced-motion:no-preference){.zart-body{animation:zb-bub 4s ease-in-out infinite}}

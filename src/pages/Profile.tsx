@@ -7,6 +7,7 @@ import { useAuth } from '../lib/auth'
 import { clearDraft } from '../lib/draft'
 import { useServiceAreas } from '../lib/areas'
 import { Avatar, DistrictOptions, Icon, Loading, TopBar, useToast } from '../components/ui'
+import { Empty } from '../components/EmptyArt'
 import { BANKS, BIRTH_MIN, digits, emailOk, phoneOk, photoFileOk, uploadAvatar, yearsAgo } from '../lib/profile'
 
 const PROVIDERS: Record<string, string> = { email: 'Email', google: 'Google', apple: 'Apple', facebook: 'Facebook', line: 'LINE', phone: 'Phone' }
@@ -159,7 +160,7 @@ export function MaidEditProfile() {
     loadBank(); loadReq()
   }, [uid, loadReq])
   if (!uid || me === undefined) return <Loading />
-  if (me === null) return <div className="page nobar"><TopBar title={t('mp_title')} /><div className="pad mt20 stack"><div className="empty muted">{t('nothing')}</div><button className="btn b-sun" onClick={() => nav('/maid/apply')}>{t('become_maid')}</button></div></div>
+  if (me === null) return <div className="page nobar"><TopBar title={t('mp_title')} /><div className="pad mt20 stack"><Empty art="search" title={t('nothing')} /><button className="btn b-sun" onClick={() => nav('/maid/apply')}>{t('become_maid')}</button></div></div>
   const nick = f.nickname.trim()
   const errs: Partial<Record<'nickname' | 'phone', string>> = {}
   if (!nick || nick.length > 40) errs.nickname = t('mp_err_nick')

@@ -12,6 +12,7 @@ import { useI18n, money, fmtDate, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { getDraft, setDraft, clearDraft, startIso, bkkToday, getAutoPicked, setAutoPicked, type Draft } from '../lib/draft'
 import { Avatar, DistrictOptions, Icon, Loading, MonthCalendar, useToast } from '../components/ui'
+import { Empty } from '../components/EmptyArt'
 import { BookingLayout } from './BookingLayout'
 import { useServiceAreas } from '../lib/areas'
 import { confetti } from '../lib/fx'
@@ -153,9 +154,9 @@ export function BookMaid() {
           <h2 id="manual-helper-title">{t('or_pick')}</h2>
           {d.plan === 'once' && <span>+{prices.chooseFee ?? '…'} {t('baht')}{team ? (th ? ' / คน' : ' each') : ''}</span>}
         </div>
-        {failed ? <div className="empty stack" role="status"><p className="muted">{t('load_failed')}</p>
-          <button className="btn b-line" type="button" onClick={retry}>{t('try_again')}</button></div>
-          : !list ? <Loading /> : list.length === 0 ? <div className="empty muted">{t('no_maid_for_service')}</div> :
+        {failed ? <Empty art="error" title={t('load_failed')}>
+          <button className="btn b-line mt12" type="button" onClick={retry}>{t('try_again')}</button></Empty>
+          : !list ? <Loading /> : list.length === 0 ? <Empty art="search" title={t('no_maid_for_service')} /> :
           <div className="booking-option-list">{list.map(m => {
             const selected = d.maidId === m.id || (team && d.maid2Id === m.id)
             const order = team && selected ? (d.maidId === m.id ? 1 : 2) : null
@@ -311,7 +312,7 @@ export function BookTime() {
       .then(({ data }) => setQ(data as Quote2))
   }, [s?.code, qty, d.addons.join(), d.maidId, maid2, team, picked?.h, date, isPkg])
   if (!services) return <Loading />
-  if (!s) return <BookingLayout title={t('pick_date')} step={1}><div className="empty muted">{t('service_closed')}</div></BookingLayout>
+  if (!s) return <BookingLayout title={t('pick_date')} step={1}><Empty art="closed" title={t('service_closed')} /></BookingLayout>
   const pkgBlocked = isPkg && !d.maidId
   const ok = !!picked && !pkgBlocked
   const price = d.plan === 'weekly' || d.plan === 'biweekly' ? (prices.pkg?.[d.plan] ?? null) : (q?.total ?? null)

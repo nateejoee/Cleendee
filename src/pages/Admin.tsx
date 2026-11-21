@@ -7,6 +7,7 @@ import { useServices, svcName, svcUnit } from '../lib/services'
 import { useI18n, money, fmtDate, fmtTime, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { AdminTabs, Avatar, Icon, Bell, LangToggle, Loading, StatusPill, useToast } from '../components/ui'
+import { Empty } from '../components/EmptyArt'
 
 import { PublicPageEditor } from './PublicPageEditor'
 import { useDistricts, useProvinces, reloadAreas } from '../lib/areas'
@@ -259,7 +260,7 @@ export function AdminMaids() {
     <div className="pad"><MaidChangeRequests /></div>
     {rows && <div className="pad mt12"><div className="chips">{([['pending', count('pending')], ['approved', count('approved')], ['suspended', count('suspended')], ['all', rows.length]] as [string, number][]).map(([k, n]) =>
       <button key={k} className={'chip' + (cur === k ? ' on' : '')} onClick={() => setFilter(k)}>{k === 'all' ? (th ? 'ทั้งหมด' : 'All') : MAID_STATUS[k][th ? 0 : 1]} ({n})</button>)}</div></div>}
-    <div className="pad mt12 stack cols">{!rows ? <Loading /> : shown.length === 0 ? <div className="empty">{t('nothing')}</div> : shown.map(m => <div key={m.id} className="card stack">
+    <div className="pad mt12 stack cols">{!rows ? <Loading /> : shown.length === 0 ? <Empty art="search" title={t('nothing')} /> : shown.map(m => <div key={m.id} className="card stack">
       <div className="row"><Avatar name={m.nickname} seed={m.id} size={44} /><span style={{ flex: 1 }}><b className="disp">{m.nickname}</b><span className="small muted" style={{ display: 'block' }}>{m.bio}</span>{avg[m.id] && <span className="small" style={{ display: 'block', color: avg[m.id].avg_rating < 4.5 ? 'var(--brick)' : undefined, fontWeight: avg[m.id].avg_rating < 4.5 ? 700 : undefined }}>★ {avg[m.id].avg_rating} ({avg[m.id].review_count} {t('reviews')}){avg[m.id].avg_rating < 4.5 && ' · ' + t('a_low_avg')}</span>}</span>
         <span className="stack" style={{ gap: 4, alignItems: 'flex-end' }}><span className={'pill ' + (m.status === 'approved' ? 'p-leaf' : m.status === 'pending' ? 'p-sun' : 'p-brick')}>{MAID_STATUS[m.status]?.[th ? 0 : 1] ?? m.status}</span>
           {m.status === 'approved' && m.trial && <span className="pill p-sun">{th ? 'ทดลองงาน' : 'On trial'}</span>}</span></div>

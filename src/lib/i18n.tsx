@@ -111,6 +111,7 @@ const D = {
     mp_pending: 'รอแอดมินอนุมัติ', mp_send: 'ส่งคำขอเปลี่ยน', mp_sent: 'ส่งคำขอแล้ว รอแอดมินอนุมัติ', mp_current: 'ปัจจุบัน', mp_requested: 'ขอเปลี่ยนเป็น', mp_new_photo: 'เลือกรูปใหม่',
     mp_err_nick: 'กรุณาใส่ชื่อเล่น', mp_err_acc: 'เลขบัญชีต้องเป็นตัวเลข 10-15 หลัก', mp_err_bank: 'กรุณาเลือกธนาคาร', mp_bank_none: 'ยังไม่มีบัญชีรับเงิน', mp_other_bank: 'ธนาคารอื่น',
     a_change_reqs: 'คำขอแก้ไขข้อมูลแม่บ้าน', a_change_reqs_d: 'รูปโปรไฟล์และบัญชีรับเงินที่แม่บ้านขอเปลี่ยน', a_kind_photo: 'รูปโปรไฟล์', a_kind_bank: 'บัญชีรับเงิน', a_cur: 'ข้อมูลเดิม', a_req: 'ขอเปลี่ยนเป็น', a_note_ph: 'เหตุผลที่ไม่อนุมัติ (ถ้ามี)',
+    e_up_sub: 'จองแม่บ้านได้ในไม่ถึงนาที เลือกวันล่วงหน้าได้ 60 วัน', e_hist: 'ยังไม่มีประวัติการจอง', e_hist_sub: 'งานที่เสร็จหรือยกเลิกแล้วจะเก็บไว้ที่นี่', e_fav_sub: 'แม่บ้านที่เคยมาทำงานให้จะอยู่ที่นี่ จองคนเดิมได้ง่าย ๆ',
     nothing: 'ไม่มีรายการ', saved: 'บันทึกแล้ว', error: 'เกิดข้อผิดพลาด', loading: 'กำลังโหลด…', need_login: 'กรุณาเข้าสู่ระบบก่อนจอง',
   },
   en: {
@@ -220,6 +221,7 @@ const D = {
     mp_pending: 'Waiting for approval', mp_send: 'Request change', mp_sent: 'Request sent. Waiting for admin approval', mp_current: 'Current', mp_requested: 'Requested', mp_new_photo: 'Choose a new photo',
     mp_err_nick: 'Please enter a nickname', mp_err_acc: 'Account number must be 10–15 digits', mp_err_bank: 'Please choose a bank', mp_bank_none: 'No bank account yet', mp_other_bank: 'Other bank',
     a_change_reqs: 'Helper change requests', a_change_reqs_d: 'Profile photos and bank accounts helpers asked to change', a_kind_photo: 'Profile photo', a_kind_bank: 'Bank account', a_cur: 'Current', a_req: 'Requested', a_note_ph: 'Reason for rejecting (optional)',
+    e_up_sub: 'Book a helper in under a minute, up to 60 days ahead', e_hist: 'No past bookings yet', e_hist_sub: 'Finished and cancelled jobs are kept here', e_fav_sub: 'Helpers who cleaned for you appear here so you can rebook them easily',
     nothing: 'Nothing here', saved: 'Saved', error: 'Something went wrong', loading: 'Loading…', need_login: 'Please log in to book',
   },
 } as const

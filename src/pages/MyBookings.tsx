@@ -9,6 +9,7 @@ import { useAuth } from '../lib/auth'
 import { clearDraft, setDraft, emptyDraft, bkkToday, startIso, setAutoPicked } from '../lib/draft'
 import { useServices, useAddons, svcName, svcUnit } from '../lib/services'
 import { AdminTabs, Avatar, CustomerTabs, Icon, Loading, MaidTabs, MonthCalendar, StatusPill, TopBar, useToast } from '../components/ui'
+import { Empty } from '../components/EmptyArt'
 import { useMaids, useBlockedMaids, AddressForm, useAddresses } from './Book'
 import { confetti, relTime, useMinuteTick } from '../lib/fx'
 import { useTheme } from '../lib/theme'
@@ -64,7 +65,9 @@ export function Bookings() {
     <div className="hero"><h1>{t('my_bookings')}</h1>
       <div className="seg mt12"><button className={tab === 'up' ? 'on' : ''} onClick={() => setTab('up')}>{t('upcoming')}</button><button className={tab === 'hist' ? 'on' : ''} onClick={() => setTab('hist')}>{t('history')}</button></div></div>
     <div className="pad mt16 stack cols">
-      {!list ? <Loading /> : rows.length === 0 ? <div className="empty"><div className="muted">{t('no_bookings')}</div><button className="btn b-sun mt12" onClick={() => nav('/book')}>{t('book_now')}</button></div> :
+      {!list ? <Loading /> : rows.length === 0 ? (tab === 'up'
+        ? <Empty art="cal" title={t('no_bookings')} sub={t('e_up_sub')}><button className="btn b-sun mt12" onClick={() => nav('/book')}>{t('book_now')}</button></Empty>
+        : <Empty art="history" title={t('e_hist')} sub={t('e_hist_sub')} />) :
         rows.map((b, i) => { const svc = services?.find(x => x.id === b.service_type_id)
           const team = b.team_id ? teamOf(b) : [b]
           const names = team.map(r => { const h: Helper | undefined = helpers.find(x => x.id === r.maid_id) ?? maids?.find(x => x.id === r.maid_id); return h ? h.nickname : t('auto_pick') })
@@ -440,7 +443,7 @@ export function Addresses() {
   const address = list?.find(a => a.id === editing)
   return <div className="page nobar"><TopBar title={t('my_addresses')} />
     <div className="pad mt16 stack">
-      {list?.length === 0 && !adding && <div className="empty"><Icon n="pin" size={40} style={{ color: '#C9DDEC' }} /><div className="disp mt8" style={{ fontWeight: 600 }}>{t('no_address')}</div></div>}
+      {list?.length === 0 && !adding && <Empty art="pin" title={t('no_address')} />}
       {list?.map(a => <div key={a.id} className="choice"><Icon n="pin" style={{ color: 'var(--ocean)' }} /><span><b>{a.label}</b><span className="small muted">{a.address}</span></span><button className="link" onClick={() => { setEditing(a.id); setAdding(false) }}>{lang === 'th' ? 'ปรับหมุด' : 'Adjust pin'}</button></div>)}
       {adding || address ? <AddressForm key={address?.id ?? 'new'} existing={address} onSaved={() => { setAdding(false); setEditing(null); reload() }} onDeleted={() => { setEditing(null); reload() }} /> : <button className="btn b-ocean" onClick={() => setAdding(true)}>{t('add_address')}</button>}
       <div className="infonote"><Icon n="lock" />{t('addr_private')}</div>
@@ -452,7 +455,7 @@ export function Favorites() {
   const blocked = useBlockedMaids()
   const ids = [...new Set((list || []).filter(b => b.status === 'completed' && b.maid_id && !blocked.includes(b.maid_id)).map(b => b.maid_id!))]
   return <div className="page nobar"><TopBar title={t('favorites')} />
-    <div className="mt12">{ids.length === 0 ? <div className="pad"><div className="empty muted">{t('nothing')}</div></div> : ids.map(id => { const m = maids?.find(x => x.id === id); if (!m) return null
+    <div className="mt12">{ids.length === 0 ? <div className="pad"><Empty art="heart" title={t('nothing')} sub={t('e_fav_sub')} /></div> : ids.map(id => { const m = maids?.find(x => x.id === id); if (!m) return null
       return <div key={id} className="listrow"><Avatar name={m.nickname} seed={m.id} size={44} /><b style={{ flex: 1 }}>{m.nickname}</b>
         <button className="btn b-ghost sm" onClick={() => { setDraft({ maidId:null, plan:'once', hour:null }); setAutoPicked(null); nav('/book?helper=' + encodeURIComponent(id)) }}>{t('s_rebook').replace('\n', ' ')}</button></div> })}</div></div>
 }

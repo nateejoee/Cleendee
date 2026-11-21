@@ -8,6 +8,7 @@ import { sb, friendly, type District, type Service as Svc } from '../lib/supabas
 import { useI18n, localStorageSet, money, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { Avatar, Icon, Bell, LangToggle, Logo, CustomerTabs, TopBar, Loading, SiteFooter } from '../components/ui'
+import { Empty } from '../components/EmptyArt'
 import { setDraft, emptyDraft } from '../lib/draft'
 import { useServices, useServicesLoad, svcName, svcUnit } from '../lib/services'
 import { greetKey } from '../lib/fx'
@@ -193,7 +194,7 @@ export function Home() {
         </section>
         <section className="pad" aria-labelledby="home-maids">
           <div className="between"><h2 id="home-maids" className="sec-title">{t('top_maids')}</h2><Link to="/book" className="link">{t('see_all')}</Link></div>
-          {maids && maids.length === 0 ? <div className="empty muted">{maidsFailed ? t('load_failed') : t('nothing')}</div> :
+          {maids && maids.length === 0 ? <Empty small art={maidsFailed ? 'error' : 'search'} title={maidsFailed ? t('load_failed') : t('nothing')} /> :
             <div className="maid-rail">{(maids || []).slice(0, 8).map(m => <Link key={m.id} to={'/maid-profile/' + m.id} className="maid-tile">
               <Avatar name={m.nickname} url={m.photo_url} seed={m.id} size={64} />
               <b>{m.nickname}</b>
@@ -264,10 +265,10 @@ export function Service() {
   useEffect(() => { if (s?.active) void bookingStep(s.code, 'view') }, [s?.active, s?.code])
   const [estimate, setEstimate] = useState<number | null>(null)
   const book = (qty: number | null = s?.code === 'general_cleaning' ? estimate : null) => { setDraft({ ...emptyDraft, service: code, qty }); nav('/book') }
-  if (failed) return <div className="page nobar"><TopBar title={t('services')} /><div className="pad mt20 stack" role="status"><div className="empty muted">{t('load_failed')}</div>
+  if (failed) return <div className="page nobar"><TopBar title={t('services')} /><div className="pad mt20 stack" role="status"><Empty art="error" title={t('load_failed')} />
     <button className="btn b-line" type="button" onClick={retry}>{t('try_again')}</button></div></div>
   if (!services) return <Loading />
-  if (!s || !s.active) return <div className="page nobar"><TopBar title={t('services')} /><div className="pad mt20"><div className="empty muted">{t('service_closed')}</div></div></div>
+  if (!s || !s.active) return <div className="page nobar"><TopBar title={t('services')} /><div className="pad mt20"><Empty art="closed" title={t('service_closed')} /></div></div>
   const inc = lang === 'th' ? s.included_th : s.included_en, exc = lang === 'th' ? s.excluded_th : s.excluded_en
   const ben = [['clock', t('ben1'), t('ben1d')], ['wallet', t('ben2'), t('ben2d')], ['check', t('ben3'), t('ben3d')], ['shield', t('ben4'), t('ben4d')]]
   return <div className="page nobar">
