@@ -11,7 +11,7 @@ export type Role = 'customer' | 'maid' | 'admin'
 export type Gender = 'female' | 'male' | 'other' | 'unspecified'
 export type Profile = {
   id: string; role: Role; full_name: string | null; phone: string | null; lang: 'th' | 'en'; district_id: number | null; points: number
-  avatar_url?: string | null; contact_email?: string | null; birth_date?: string | null; gender?: Gender | null
+  avatar_url?: string | null; contact_email?: string | null; birth_date?: string | null; gender?: Gender | null; created_at?: string
 }
 // คำขอแก้ไขข้อมูลแม่บ้าน (รูปโปรไฟล์ / บัญชีรับเงิน) ที่ต้องให้แอดมินอนุมัติ
 export type MaidChangeRequest = {

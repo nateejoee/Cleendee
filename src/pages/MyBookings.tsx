@@ -401,7 +401,7 @@ export function Account() {
   return <div className="page">
     <div className={'hero' + (isCustomer ? ' tall' : '')}><Link to="/account/profile" className="acc-head" aria-label={t('edit_profile')}><Avatar name={profile?.full_name || 'C'} url={profile?.avatar_url} size={58} seed={session.user.id} />
       <div style={{ minWidth: 0 }}><h1 style={{ fontSize: 21 }}>{profile?.full_name}</h1><div className="sub">{session.user.email}</div><span className="acc-edit">{t('edit_profile')} <Icon n="next" size={14} /></span></div></Link></div>
-    {isCustomer && <div className="pad" style={{ marginTop: -54, position: 'relative', zIndex: 2 }}><RewardsCard points={profile?.points ?? 0} /></div>}
+    {isCustomer && <div className="pad" style={{ marginTop: -54, position: 'relative', zIndex: 2 }}><RewardsCard points={profile?.points ?? 0} name={profile?.full_name} since={profile?.created_at} /></div>}
     <div className="mt16">
       {profile?.role === 'admin' && <Link to="/admin" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--sun-l)' }}><Icon n="grid" /></span><b style={{ flex: 1 }}>Admin</b><Icon n="next" /></Link>}
       {profile?.role === 'maid' && <Link to="/maid" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--sun-l)' }}><Icon n="grid" /></span><b style={{ flex: 1 }}>{t('tab_jobs')}</b><Icon n="next" /></Link>}
