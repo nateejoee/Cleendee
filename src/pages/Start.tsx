@@ -235,7 +235,7 @@ function QuickBook({ services, onPick }: { services: Svc[]; onPick: (code: strin
     sb.rpc('quote_booking_v2', { p_service_code: s.code, p_qty: s.min_qty, p_addons: [], p_chose_maid: false, p_start_at: null, p_use_points: false, p_promo: null })
       .then(({ data }) => { if (on && data) setFrom({ code: s.code, total: Number((data as { total: number }).total) }) })
     return () => { on = false }
-  }, [s?.code])
+  }, [s])
   if (!s) return null
   const price = from?.code === s.code ? from.total : s.min_qty * s.price_per_unit
   return <section className="quick-book" aria-labelledby="qb-title">
