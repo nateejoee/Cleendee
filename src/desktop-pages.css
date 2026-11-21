@@ -1,1 +1,108 @@
-/* Desktop layouts for customer pages (>=1024px only). */
+/* Desktop layouts for customer pages (>=1024px only).
+   หน้าลูกค้า (ยกเว้นหน้าแรก) บนจอคอม: เนื้อหากว้างเท่าเมนูด้านบน (1200px), แบ่ง 2 คอลัมน์ที่ช่วยให้อ่านง่าย
+   ทุกอย่างอยู่ใน @media (min-width:1024px) — มือถือ/แท็บเล็ตไม่เปลี่ยน
+   ไม่แตะหน้าจอง (/book, /pay) หน้าแม่บ้าน และหน้าแอดมิน */
+
+@media (min-width:1024px){
+
+ /* ===== หน้าในเมนูหลัก (การจอง / ข้อความ / บัญชี): กว้างเท่าแถบเมนู แถบหัวกรมท่าตรงขอบเดียวกัน ===== */
+ .app:has(.dk-nav) .page:has(> .hero){max-width:1200px;padding-bottom:16px}
+ .app:has(.dk-nav) .page:has(> .hero) > .hero{padding:40px 40px 36px;border-radius:0 0 28px 28px}
+ .app:has(.dk-nav) .page:has(> .hero) > .hero h1{font-size:2.5rem;line-height:1.15}
+ .app:has(.dk-nav) .page:has(> .hero) > .hero .seg{max-width:440px;margin-top:20px}
+ .app:has(.dk-nav) .page:has(> .hero) > .pad{padding-inline:32px}
+
+ /* การจองของฉัน: การ์ด 3 คอลัมน์สูงเท่ากันในแถว */
+ .app:has(.dk-nav) .page > .pad.cols{margin-top:28px;gap:18px;align-items:stretch}
+ .app:has(.dk-nav) .page > .pad.cols > :is(.card,.ticket){padding:20px 22px;min-height:112px}
+
+ /* ข้อความ: ซ้าย = ผู้ช่วยคลีนดี (ติดอยู่ขณะเลื่อน) · ขวา = แชทกับแม่บ้าน */
+ .app:has(.dk-nav) .page:has(> .msx-sec .msx-ai){display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);align-items:start}
+ .app:has(.dk-nav) .page:has(> .msx-sec .msx-ai) > *{grid-column:1/-1}
+ .app:has(.dk-nav) .page:has(> .msx-sec .msx-ai) > .msx-sec{margin-top:32px}
+ .app:has(.dk-nav) .page:has(> .msx-sec .msx-ai) > .msx-sec:has(.msx-ai){grid-column:1;padding-right:14px;position:sticky;top:96px}
+ .app:has(.dk-nav) .page:has(> .msx-sec .msx-ai) > .msx-sec:not(:has(.msx-ai)){grid-column:2;padding-left:14px}
+ .app:has(.dk-nav) .msx-ai{padding:24px 22px;align-items:flex-start;min-height:150px}
+ .app:has(.dk-nav) .msx-ai-prev{white-space:normal;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+ .app:has(.dk-nav) .msx-row{padding:16px 20px}
+ .app:has(.dk-nav) .msx-sec .ntf-empty{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:40px 24px}
+ /* แท็บแจ้งเตือนในหน้าข้อความ: คอลัมน์เดียวกว้างพออ่าน */
+ .app:has(.dk-nav) .page:has(> .hero .seg[role=tablist]):not(:has(.msx-ai)) > .msx-sec{max-width:880px;margin:32px auto 0;width:100%}
+
+ /* บัญชี: ซ้าย = โปรไฟล์ + บัตรสมาชิก · ขวา = เมนูการตั้งค่าในการ์ดเดียว */
+ .app:has(.dk-nav) .page:has(> .hero .acc-head){display:grid;grid-template-columns:380px minmax(0,1fr);grid-template-rows:auto auto 1fr;column-gap:32px;padding:32px 32px 16px;align-items:start}
+ .app:has(.dk-nav) .page:has(> .hero .acc-head) > *{grid-column:1/-1}
+ .app:has(.dk-nav) .page:has(> .hero .acc-head) > .hero{grid-column:1;grid-row:1;border-radius:24px;padding:28px 24px 28px}
+ .app:has(.dk-nav) .page:has(> .hero .acc-head) > .hero:not(.tall){padding-bottom:28px}
+ .app:has(.dk-nav) .page:has(> .hero .acc-head) > .hero h1{font-size:1.5rem!important}
+ .app:has(.dk-nav) .page:has(> .hero .acc-head) > .pad{grid-column:1;grid-row:2;padding:0;margin-top:16px!important}
+ .app:has(.dk-nav) .page:has(> .hero .acc-head) > .mt16{grid-column:2;grid-row:1/span 3;margin-top:0;background:var(--card);border:1px solid var(--line);border-radius:22px;overflow:hidden;box-shadow:var(--sh-1)}
+ .app:has(.dk-nav) .page:has(> .hero .acc-head) > .mt16 > .listrow{padding:18px 24px;min-height:72px}
+ .app:has(.dk-nav) .page:has(> .hero .acc-head) > .mt16 > .listrow:last-child{border-bottom:0}
+ .app:has(.dk-nav) .page:has(> .hero .acc-head) > .mt16 > a.listrow:hover{background:var(--foam)}
+
+ /* ===== หน้าย่อย (มีปุ่มย้อนกลับ): แถบหัวเต็มความกว้างจอ เนื้อหากว้างขึ้นตามชนิดหน้า ===== */
+ .page.nobar:is(.dp-sub,.sx){padding-bottom:64px}
+ .page.nobar:is(.dp-sub,.sx) .topbar{padding:16px 32px;border-bottom:0;background:var(--card);
+  box-shadow:0 0 0 100vmax var(--card),0 1px 0 100vmax var(--line);clip-path:inset(0 -100vmax -1px)}
+ .page.nobar:is(.dp-sub,.sx) .topbar h2{font-family:var(--font-display);font-size:1.75rem;font-weight:600;letter-spacing:-.005em}
+ .page.nobar.dp-sub > .pad{padding-inline:32px}
+ .page.nobar.dp-sub > .pad.mt16,.page.nobar.dp-sub > .mt12{margin-top:28px}
+
+ /* รายละเอียดการจอง: ซ้าย = สถานะ แชท รูปงาน · ขวา = ยอดเงินและปุ่มจัดการ */
+ .page.nobar.dp-detail{max-width:1200px}
+ .bd-grid{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:28px;align-items:start}
+ .bd-grid > .stack{gap:14px;min-width:0}
+ .bd-main > :is(.card,.ticket,.cd-help){margin-block:0}
+ .bd-main > .ticket{order:-1;padding:26px 28px}
+ .bd-main > .ticket .when{font-size:1.75rem}
+ .bd-side > .card.recv{padding:20px 22px}
+ .bd-side > .row{flex-wrap:wrap}
+ .bd-side > .row > .btn{min-width:0}
+ @media (min-height:820px){.bd-side{position:sticky;top:96px}}
+ /* โหมดมืด: ปุ่มลิงก์แบบขอบ (ใบเสร็จ, Google Calendar, แจ้งความเสียหาย) ใช้สีลิงก์กรมท่าซึ่งอ่านไม่ออกบนพื้นมืด */
+ [data-dark="1"] .page.dp-sub a.btn.b-line{color:var(--ink)}
+
+ /* แก้ไขโปรไฟล์: ซ้าย = รูป + บัญชีที่ใช้เข้าสู่ระบบ · ขวา = ฟอร์ม 2 คอลัมน์ */
+ .page.nobar.dp-profile{max-width:1100px}
+ .dp-profile .pf{display:grid;grid-template-columns:360px minmax(0,1fr);grid-template-rows:auto auto auto auto 1fr;gap:20px 28px;align-items:start}
+ .dp-profile .pf > *{grid-column:2}
+ .dp-profile .pf > .pf-photo-wrap{grid-column:1;grid-row:1;background:var(--card);border:1px solid var(--hair);border-radius:var(--r-md,20px);box-shadow:var(--sh-1);padding:32px 20px 24px}
+ .dp-profile .pf > .card:not(:has(.field)){grid-column:1;grid-row:2;padding:18px 20px}
+ .dp-profile .pf > .card:has(.field){grid-row:1/span 2;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 22px;padding:26px 28px;align-items:start}
+ .dp-profile .pf > .card:has(.field) > .field:last-child{grid-column:1/-1}
+ .dp-profile .pf > .err{grid-row:3}
+ .dp-profile .pf > .btn{grid-row:4;justify-self:end;width:auto;min-width:240px}
+ .dp-profile .pf > .pf-danger{grid-column:1;grid-row:4;align-self:center;margin-top:0}
+
+ /* ที่อยู่ของฉัน: การ์ดที่อยู่ 2 คอลัมน์ ฟอร์มและหมายเหตุเต็มแถว */
+ .page.nobar.dp-addr{max-width:1000px}
+ .dp-addr > .pad.stack{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+ .dp-addr > .pad.stack > :not(.choice){grid-column:1/-1}
+ .dp-addr > .pad.stack > .choice{height:100%;padding:18px 20px}
+ .dp-addr > .pad.stack > .btn{justify-self:start;width:auto;min-width:260px;padding-inline:28px}
+
+ /* แม่บ้านคนโปรด: การ์ด 3 คอลัมน์ */
+ .page.nobar.dp-favs{max-width:1100px}
+ .dp-favs > .mt12{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding-inline:32px}
+ .dp-favs > .mt12 > .pad{grid-column:1/-1;padding:0}
+ .dp-favs > .mt12 > .listrow{border:1px solid var(--line);border-radius:18px;padding:18px 20px;box-shadow:var(--sh-1)}
+
+ /* แจ้งความเสียหาย: ช่องกรอก 2 คอลัมน์ ปุ่มส่งอยู่ท้ายฟอร์ม (ไม่ลอยติดขอบล่าง) */
+ .page.nobar.dp-claim{max-width:960px}
+ .dp-claim > .pad.stack{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 22px;align-items:start;
+  background:var(--card);border:1px solid var(--hair);border-radius:var(--r-md,20px);box-shadow:var(--sh-1);margin:28px 32px 0;padding:28px}
+ .dp-claim > .pad.stack > *{grid-column:1/-1}
+ .dp-claim > .pad.stack > .field:nth-child(2){grid-column:1;grid-row:2}
+ .dp-claim > .pad.stack > .row{grid-column:2;grid-row:2}
+ .dp-claim > .bottom-bar{position:static;transform:none;max-width:none;width:auto;margin:20px 32px 0;padding:0;background:none;border:0;border-radius:0;box-shadow:none;justify-content:flex-end}
+ .dp-claim > .bottom-bar > .btn{flex:none;width:auto;min-width:240px}
+
+ /* ใบเสร็จ / การแจ้งเตือน / แชทช่วยเหลือ: คอลัมน์เดียวกว้างพออ่าน */
+ .page.nobar.dp-receipt{max-width:800px}
+ .dp-receipt .receipt{padding:32px 36px}
+ .dp-receipt > .pad > .btn{width:auto;min-width:240px;margin-inline:auto;display:flex}
+ .page.nobar.dp-notifs{max-width:880px}
+ .page.nobar.sx{max-width:960px}
+ .page.nobar.sx .topbar{padding-inline:16px}
+}

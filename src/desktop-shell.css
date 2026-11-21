@@ -80,3 +80,12 @@
 .dk-foot-base a{font-size:.8125rem}
 
 @media (prefers-reduced-motion:reduce){.dk-nav,.dk-link::after,.dk-cta,.dk-menu{transition:none;animation:none}}
+
+/* 1024–1279px: tighter nav so EN + logged-in user fits without sideways scroll */
+@media (max-width:1279px){
+  .dk-nav-in{gap:16px}
+  .dk-nav a.dk-link{padding:0 10px}
+  .dk-nav a.dk-link::after{left:10px;right:10px}
+  .dk-tools{gap:8px}
+  .dk-user-name{display:none}
+}

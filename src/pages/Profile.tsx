@@ -70,7 +70,7 @@ function ProfileForm({ profile, session }: { profile: Profile; session: Session 
   const provider = providerName(session.user.app_metadata?.provider as string | undefined)
   const genders: [Gender, Key][] = [['female', 'gd_female'], ['male', 'gd_male'], ['other', 'gd_other'], ['unspecified', 'gd_unspecified']]
   const opt = <span className="muted" style={{ fontWeight: 400 }}> ({t('pf_optional')})</span>
-  return <div className="page nobar"><TopBar title={t('edit_profile')} back="/account" />
+  return <div className="page nobar dp-sub dp-profile"><TopBar title={t('edit_profile')} back="/account" />
     <div className="pad mt16 stack pf">
       <div className="pf-photo-wrap">
         <label className="pf-photo" aria-label={t('pf_change_photo')}>

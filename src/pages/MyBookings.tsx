@@ -13,6 +13,7 @@ import { Empty } from '../components/EmptyArt'
 import { useMaids, useBlockedMaids, AddressForm, useAddresses } from './Book'
 import { confetti, relTime, useMinuteTick } from '../lib/fx'
 import { useTheme } from '../lib/theme'
+import { useIsDesktop } from '../lib/useDesktop'
 import { RatingForm } from '../components/Rating'
 import { RewardsCard } from '../components/Rewards'
 import { Orb } from './Support'
@@ -133,6 +134,7 @@ function haversine(a: [number, number], b: [number, number]) {
 }
 
 export function BookingDetail() {
+  const desk = useIsDesktop()
   const { id } = useParams(); const { t, lang } = useI18n(); const nav = useNavigate(); const toast = useToast(); const maids = useMaids(); const helpers = useBookingHelpers(); const services = useServices(); const addons = useAddons()
   const [b, setB] = useState<Booking | null>(null); const [addr, setAddr] = useState<{ address: string; lat: number | null; lng: number | null } | null>(null)
   const [reviewed, setReviewed] = useState(false); const [err, setErr] = useState(''); const [team, setTeam] = useState<Booking[]>([])
@@ -165,26 +167,23 @@ export function BookingDetail() {
     const { data, error } = await sb.rpc('customer_cancel', { p_booking_id: b.id })
     if (error) setErr(friendly(error, lang)); else { toast.show(data?.refund_after_check ? t('cancelled_refund_after_check') : `${t('cancelled_res')} ${money(data.refund)} ${t('baht')}`); load() }
   }
-  return <div className="page nobar">
-    <TopBar title={t('details')} back="/bookings" />
-    <div className="pad mt16 stack">
-      {b.maid_id && ['confirmed','on_the_way'].includes(b.status) && <Arrival key={b.id} booking={b} helper={m} side="customer" reload={load} />}
-      {b.status === 'on_the_way' && <Track bookingId={b.id} home={addr?.lat && addr?.lng ? [addr.lat, addr.lng] : null} />}
-      <div className="ticket">
+  const elArrival = b.maid_id && ['confirmed','on_the_way'].includes(b.status) && <Arrival key={b.id} booking={b} helper={m} side="customer" reload={load} />
+  const elTrack = b.status === 'on_the_way' && <Track bookingId={b.id} home={addr?.lat && addr?.lng ? [addr.lat, addr.lng] : null} />
+  const elTicket = <div className="ticket">
         <div className="between"><StatusPill s={b.status} />{m && <Avatar name={m.nickname} seed={m.id} url={m.photo_url} size={40} />}</div>
         <div className="when mt8">{fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}–{fmtTime(b.end_at)}</div>
         <div>{m ? m.nickname : t('s_awaiting_maid')} · {svcName(svc, lang)} {b.qty ?? ''} {svcUnit(svc, lang)}</div>
         {step >= 0 && <><div className="prog mt12">{[0, 1, 2, 3].map(i => <span key={i} style={{ display: 'contents' }}>{i > 0 && <span className={'ln' + (i <= step ? '' : ' off')} />}<span className={'dot' + (i <= step ? '' : ' off')}>{i <= step && <Icon n="check" size={13} />}</span></span>)}</div>
           <div className="proglab"><span>{t('s_confirmed')}</span><span>{t('s_on_the_way')}</span><span>{t('s_working')}</span><span>{t('s_completed')}</span></div></>}
       </div>
-      {ts && <div className="card team-card"><div className="sec-title" style={{ margin: 0 }}>{th ? 'แม่บ้านในงานนี้ (2 คน)' : 'Helpers on this job (2)'}</div>
+  const elTeam = ts && <div className="card team-card"><div className="sec-title" style={{ margin: 0 }}>{th ? 'แม่บ้านในงานนี้ (2 คน)' : 'Helpers on this job (2)'}</div>
         {team.map((r, i) => { const h: Helper | undefined = helpers.find(x => x.id === r.maid_id) ?? maids?.find(x => x.id === r.maid_id)
           return <Link key={r.id} to={'/bookings/' + r.id} className={'team-row' + (r.id === b.id ? ' on' : '')} aria-current={r.id === b.id ? 'page' : undefined}>
             {h ? <Avatar name={h.nickname} seed={h.id} url={h.photo_url} size={36} /> : <span className="rico"><Icon n="team" /></span>}
             <span style={{ flex: 1, minWidth: 0 }}><b>{(th ? 'คนที่ ' : 'Helper ') + (i + 1)}: {h ? h.nickname : t('s_awaiting_maid')}</b>{r.id !== b.id && <span className="small muted">{th ? 'แตะเพื่อดูสถานะ แชท และการเดินทาง' : 'Tap for status, chat and arrival'}</span>}</span>
-            <StatusPill s={r.status} /></Link> })}</div>}
-      {(b.status === 'pending_payment' || b.status === 'payment_rejected') && <button className="btn b-sun" onClick={() => nav(b.package_id ? '/pay/package/' + b.package_id : '/pay/booking/' + (b.team_id ?? b.id))}>{t('pay_title')} {money(ts ? ts.total : b.total_price)} {t('baht')}</button>}
-      <div className="card recv">
+            <StatusPill s={r.status} /></Link> })}</div>
+  const elPay = (b.status === 'pending_payment' || b.status === 'payment_rejected') && <button className="btn b-sun" onClick={() => nav(b.package_id ? '/pay/package/' + b.package_id : '/pay/booking/' + (b.team_id ?? b.id))}>{t('pay_title')} {money(ts ? ts.total : b.total_price)} {t('baht')}</button>
+  const elRecv = <div className="card recv">
         <div><span className="muted">{svcName(svc, lang)} {b.qty ?? ''} {svcUnit(svc, lang)}{ts ? (th ? ' × 2 คน' : ' × 2 helpers') : ''}</span><span>{money(ts ? ts.base : b.base_price)}</span></div>
         {(ts ? ts.addons_price : b.addons_price) > 0 && <div><span className="muted">{t('addons')}: {((ts ? ts.addons : b.addons) || []).map(c => { const a = addons?.find(x => x.code === c); return a ? (lang === 'th' ? a.name_th : a.name_en) : c }).join(', ')}</span><span>{money(ts ? ts.addons_price : b.addons_price)}</span></div>}
         {(ts ? ts.choose : b.choose_maid_fee) > 0 && <div><span className="muted">{t('pick_fee')}</span><span>{money(ts ? ts.choose : b.choose_maid_fee)}</span></div>}
@@ -196,17 +195,23 @@ export function BookingDetail() {
         {b.tags.length > 0 && <div className="chips mt8">{b.tags.map(x => <span key={x} className="pill p-ocean">{t(x as Key)}</span>)}</div>}
         {b.note && <div className="small mt8" style={{ display: 'block' }}>{b.note}</div>}
       </div>
-      {ACTIVE.includes(b.status) && <AddToCalendar b={b} title={svcName(svc, lang)} address={addr?.address ?? ''} />}
-      {['pending_payment', 'payment_review', 'awaiting_maid', 'confirmed'].includes(b.status) && <Reschedule b={b} svc={svc?.code ?? 'general_cleaning'} onDone={() => { toast.show(t('saved')); load() }} />}
-      {(b.checklist?.length > 0 || ['working', 'completed'].includes(b.status)) && <JobProof b={b} />}
-      {b.maid_id && ['confirmed', 'on_the_way', 'working', 'completed'].includes(b.status) && <><div className="sec-title" style={{ margin: '6px 0 0' }}>{t('chat')}</div><Chat bookingId={b.id} /></>}
-      {['completed', 'cancelled_by_customer'].includes(b.status) && !b.package_id && !second && <button className="btn b-sun" onClick={rebook}><Icon n="redo" />{t('book_again')}</button>}
-      {!['pending_payment', 'payment_review', 'payment_rejected'].includes(b.status) && <Link to={'/receipt/' + (b.team_id ?? b.id)} className="btn b-line"><Icon n="print" />{t('receipt')}</Link>}
-      {b.status === 'completed' && !reviewed && b.maid_id && <div className="card"><RatingForm bookingId={b.id} side="customer" name={m?.nickname ?? ''} onDone={() => { setReviewed(true); confetti(); toast.show(t('thanks_review')) }} /></div>}
-      {b.status === 'completed' && <Link to={'/claim/' + b.id} className="btn b-line">{t('claim')}</Link>}
-      {['pending_payment', 'payment_review', 'awaiting_maid', 'confirmed', 'payment_rejected'].includes(b.status) && <><div className="small muted">{t('cancel_rules')}{ts ? (th ? ' · ยกเลิกแล้วจะยกเลิกทั้ง 2 คน' : ' · Cancelling cancels both helpers') : ''}</div><button className="btn b-red" onClick={cancel}>{t('cancel_booking')}</button></>}
-      {err && <div className="err">{err}</div>}
-    </div>{toast.node}
+  const elCal = ACTIVE.includes(b.status) && <AddToCalendar b={b} title={svcName(svc, lang)} address={addr?.address ?? ''} />
+  const elResched = ['pending_payment', 'payment_review', 'awaiting_maid', 'confirmed'].includes(b.status) && <Reschedule b={b} svc={svc?.code ?? 'general_cleaning'} onDone={() => { toast.show(t('saved')); load() }} />
+  const elProof = (b.checklist?.length > 0 || ['working', 'completed'].includes(b.status)) && <JobProof b={b} />
+  const elChat = b.maid_id && ['confirmed', 'on_the_way', 'working', 'completed'].includes(b.status) && <><div className="sec-title" style={{ margin: '6px 0 0' }}>{t('chat')}</div><Chat bookingId={b.id} /></>
+  const elRebook = ['completed', 'cancelled_by_customer'].includes(b.status) && !b.package_id && !second && <button className="btn b-sun" onClick={rebook}><Icon n="redo" />{t('book_again')}</button>
+  const elReceipt = !['pending_payment', 'payment_review', 'payment_rejected'].includes(b.status) && <Link to={'/receipt/' + (b.team_id ?? b.id)} className="btn b-line"><Icon n="print" />{t('receipt')}</Link>
+  const elRating = b.status === 'completed' && !reviewed && b.maid_id && <div className="card"><RatingForm bookingId={b.id} side="customer" name={m?.nickname ?? ''} onDone={() => { setReviewed(true); confetti(); toast.show(t('thanks_review')) }} /></div>
+  const elClaim = b.status === 'completed' && <Link to={'/claim/' + b.id} className="btn b-line">{t('claim')}</Link>
+  const elCancel = ['pending_payment', 'payment_review', 'awaiting_maid', 'confirmed', 'payment_rejected'].includes(b.status) && <><div className="small muted">{t('cancel_rules')}{ts ? (th ? ' · ยกเลิกแล้วจะยกเลิกทั้ง 2 คน' : ' · Cancelling cancels both helpers') : ''}</div><button className="btn b-red" onClick={cancel}>{t('cancel_booking')}</button></>
+  const elError = err && <div className="err">{err}</div>
+  // จอคอม: ซ้าย = สถานะ แชท รูปงาน · ขวา = ยอดเงินและปุ่มจัดการ (ติดอยู่ขณะเลื่อน) — มือถือ/แท็บเล็ตเรียงเหมือนเดิม
+  return <div className={'page nobar' + (desk ? ' dp-sub dp-detail' : '')}>
+    <TopBar title={t('details')} back="/bookings" />
+    {desk ? <div className="pad mt16 bd-grid">
+      <div className="stack bd-main">{elArrival}{elTrack}{elTicket}{elTeam}{elProof}{elChat}{elRating}</div>
+      <aside className="stack bd-side">{elPay}{elRecv}{elCal}{elResched}{elRebook}{elReceipt}{elClaim}{elCancel}{elError}</aside>
+    </div> : <div className="pad mt16 stack">{elArrival}{elTrack}{elTicket}{elTeam}{elPay}{elRecv}{elCal}{elResched}{elProof}{elChat}{elRebook}{elReceipt}{elRating}{elClaim}{elCancel}{elError}</div>}{toast.node}
   </div>
 }
 
@@ -296,7 +301,7 @@ export function Receipt() {
     ...(b.choose_maid_fee ? [[t('pick_fee'), b.choose_maid_fee] as [string, number]] : []), ...(b.urgent_fee ? [[t('urgent_tag'), b.urgent_fee] as [string, number]] : []),
     ...(b.promo_discount ? [[b.promo_code ? t('promo_code') + ' ' + b.promo_code : t('first_promo'), -b.promo_discount] as [string, number]] : []),
     ...(b.points_discount ? [[t('use_points') + ' ' + b.points_used, -b.points_discount] as [string, number]] : [])]
-  return <div className="page nobar"><div className="noprint"><TopBar title={t('receipt')} /></div>
+  return <div className="page nobar dp-sub dp-receipt"><div className="noprint"><TopBar title={t('receipt')} /></div>
     <div className="pad mt16"><div className="card receipt">
       <div className="between"><img src="/brand/CleenDee_logo_horizontal.svg" alt="CleenDee" style={{ height: 30 }} /><b className="disp">{t('receipt')}</b></div>
       <div className="small mt12"><b>{biz.business_name}</b><div className="muted">{biz.business_address}{biz.tax_id ? ` · ${t('tax_id')} ${biz.tax_id}` : ''}</div></div>
@@ -325,7 +330,7 @@ export function Claim() {
       if (error) throw error; setDone(true); toast.show(t('claim_sent')); setTimeout(() => nav('/bookings/' + id), 1200)
     } catch (e) { setErr(friendly(e, lang)) } finally { setBusy(false) }
   }
-  return <div className="page nobar"><TopBar title={t('claim')} />
+  return <div className="page nobar dp-sub dp-claim"><TopBar title={t('claim')} />
     <div className="pad mt16 stack">
       <div className="infonote"><Icon n="shield" />{t('claim_d')} · {t('a_cap')}</div>
       <div className="field"><label>{t('claim_item')}</label><input className="input" value={item} onChange={e => setItem(e.target.value)} /></div>
@@ -441,7 +446,7 @@ export function Addresses() {
   const { t,lang } = useI18n(); const { list, reload } = useAddresses(); const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<number | null>(null)
   const address = list?.find(a => a.id === editing)
-  return <div className="page nobar"><TopBar title={t('my_addresses')} />
+  return <div className="page nobar dp-sub dp-addr"><TopBar title={t('my_addresses')} />
     <div className="pad mt16 stack">
       {list?.length === 0 && !adding && <Empty art="pin" title={t('no_address')} />}
       {list?.map(a => <div key={a.id} className="choice"><Icon n="pin" style={{ color: 'var(--ocean)' }} /><span><b>{a.label}</b><span className="small muted">{a.address}</span></span><button className="link" onClick={() => { setEditing(a.id); setAdding(false) }}>{lang === 'th' ? 'ปรับหมุด' : 'Adjust pin'}</button></div>)}
@@ -454,7 +459,7 @@ export function Favorites() {
   const { t } = useI18n(); const nav = useNavigate(); const { list } = useMyBookings(); const maids = useMaids()
   const blocked = useBlockedMaids()
   const ids = [...new Set((list || []).filter(b => b.status === 'completed' && b.maid_id && !blocked.includes(b.maid_id)).map(b => b.maid_id!))]
-  return <div className="page nobar"><TopBar title={t('favorites')} />
+  return <div className="page nobar dp-sub dp-favs"><TopBar title={t('favorites')} />
     <div className="mt12">{ids.length === 0 ? <div className="pad"><Empty art="heart" title={t('nothing')} sub={t('e_fav_sub')} /></div> : ids.map(id => { const m = maids?.find(x => x.id === id); if (!m) return null
       return <div key={id} className="listrow"><Avatar name={m.nickname} seed={m.id} size={44} /><b style={{ flex: 1 }}>{m.nickname}</b>
         <button className="btn b-ghost sm" onClick={() => { setDraft({ maidId:null, plan:'once', hour:null }); setAutoPicked(null); nav('/book?helper=' + encodeURIComponent(id)) }}>{t('s_rebook').replace('\n', ' ')}</button></div> })}</div></div>

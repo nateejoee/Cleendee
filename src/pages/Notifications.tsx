@@ -115,6 +115,6 @@ export function NotificationFeed() {
 export function Notifications() {
   const { lang } = useI18n(); const { session, ready } = useAuth(); const th = lang === 'th'
   if (ready && !session) return <Navigate to="/login" replace />
-  return <div className="page nobar"><TopBar title={th ? 'การแจ้งเตือน' : 'Notifications'} right={<span />} />
+  return <div className="page nobar dp-sub dp-notifs"><TopBar title={th ? 'การแจ้งเตือน' : 'Notifications'} right={<span />} />
     <div className="pad mt16"><NotificationFeed /></div></div>
 }

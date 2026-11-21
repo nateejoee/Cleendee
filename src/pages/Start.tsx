@@ -22,6 +22,8 @@ import imgClean from '../assets/ill/cleaning.webp'
 import imgSched from '../assets/ill/schedule.webp'
 import imgSafe from '../assets/ill/safety.webp'
 import imgHome from '../assets/ill/chumphon.webp'
+import { useIsDesktop } from '../lib/useDesktop'
+import { HomeDesktop } from './HomeDesktop'
 
 // Text for the location pill on the home page
 function placeText(live: LiveArea, provinces: Province[] | null, districts: District[], saved: District | undefined, lang: 'th' | 'en', t: (k: Key) => string) {
@@ -137,6 +139,7 @@ export function Home() {
   const distId = profile?.district_id ?? Number(localStorage.getItem('cd_district') || 1)
   const d = districts.find(x => x.id === distId)
   const live = useLiveArea() // ตำแหน่งปัจจุบันของผู้ใช้ อัปเดตเมื่อเคลื่อนที่
+  const desk = useIsDesktop()
   const extra = [
     { to: '/book/time?plan=weekly', art: 'monthly', label: t('s_monthly'), svc: 'general_cleaning' },
     { to: '/account/favorites', art: 'rebook', label: t('s_rebook'), svc: '' },
@@ -153,6 +156,10 @@ export function Home() {
     ['home_step_payment', 'home_step_payment_d'],
   ]
   const bookable = (services || []).filter(s => s.active)
+  // จอคอม (≥1024px): หน้าแรกแบบเว็บไซต์ (ข้อมูลและการ์ดเริ่มจองชุดเดียวกัน) — มือถือ/แท็บเล็ตใช้ด้านล่างเหมือนเดิม
+  if (desk) return <HomeDesktop quickBook={<QuickBook services={bookable} onPick={code => open(code, '/book')} />} services={services} bookable={bookable}
+    maids={maids} maidsFailed={maidsFailed} extra={extra} short={short} open={open} place={placeText(live, provinces, districts, d, lang, t)}
+    greeting={t(greetKey()) + (profile?.full_name ? ', ' + profile.full_name : '')} />
   return <div className="page home">
     {/* หัวหน้า: ภาพจริง + คำทักทาย + พาดหัวตัวใหญ่ แล้วการ์ด "เริ่มจอง" ซ้อนขึ้นมาจากด้านล่าง */}
     <div className="lux-hero" style={{ backgroundImage: `url(${imgHero})` }}>
