@@ -95,3 +95,17 @@ h1,h2,h3{font-feature-settings:"kern"}
 .home .between:has(>.sec-title){align-items:baseline}
 @media (min-width:768px){.maid-rail{scroll-padding-inline:0}.home .quick-book{margin:-100px 0 0}}
 .qb-services{scroll-padding-inline:18px}
+
+/* บัตรสมาชิก: สัดส่วนบัตรจริง (85.6 × 54 มม.) ไม่สูงเกิน */
+.memcard{aspect-ratio:85.6/54;max-width:420px;margin-inline:auto;gap:0;justify-content:space-between;padding:16px 18px 14px;border-radius:18px}
+.memcard .mc-tier{font-size:22px}
+.memcard .mc-points{margin-top:0;gap:6px}
+.memcard .mc-num{font-size:36px}
+.memcard .mc-unit{font-size:14px}
+.memcard .mc-sub,.memcard .mc-next{font-size:12px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-wrap:nowrap}
+.memcard .mc-sub{margin-top:2px}
+.memcard .mc-path{gap:5px;margin-top:0;padding-top:0;border-top:0}
+.memcard .mc-steps i{height:2px}
+.memcard .mc-bar{height:4px}
+.memcard .mc-foot{margin-top:0;font-size:11px}
+.memcard .mc-name{font-size:13px}
