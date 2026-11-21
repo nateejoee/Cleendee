@@ -353,3 +353,117 @@
 .booking-saving s{color:var(--ink2);text-decoration-thickness:1.5px}
 .booking-saving em{font-style:normal;font-weight:650;color:var(--brick);background:var(--brick-l);border-radius:8px;padding:1px 8px}
 
+
+/* =====================================================================
+   หน้าการจองแบบพรีเมียม (21/11/69): แถบหัวกรมท่า + แสงทอง, ขั้นตอนแบบกระจก,
+   การ์ดลอยมีเงาหลายชั้น, ตัวเลือกที่เลือกแล้วขอบทองเรือง, แถบราคาแบบกระจกฝ้า + ปุ่มทองมีประกายวิ่ง
+   ===================================================================== */
+.booking-hero{
+  position:relative;isolation:isolate;overflow:hidden;color:#fff;
+  margin:0 calc(-1 * clamp(16px, 4vw, 38px));padding:0 clamp(16px, 4vw, 38px) 34px;
+  background:radial-gradient(120% 90% at 85% -10%, color-mix(in srgb,var(--sun) 28%,transparent), transparent 55%),
+             linear-gradient(160deg,var(--ocean) 0%,var(--ocean-d) 70%);
+  border-radius:0 0 34px 34px;
+}
+.booking-hero::after{content:"";position:absolute;left:8%;right:8%;bottom:0;height:1px;background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--sun) 80%,transparent),transparent)}
+.booking-hero-glow{position:absolute;z-index:-1;width:320px;height:320px;right:-110px;top:-140px;border-radius:50%;
+  background:radial-gradient(circle,color-mix(in srgb,var(--sun) 35%,transparent),transparent 65%);filter:blur(6px)}
+@media (prefers-reduced-motion:no-preference){.booking-hero-glow{animation:bk-glow 9s ease-in-out infinite}}
+@keyframes bk-glow{0%,100%{transform:translate(0,0)}50%{transform:translate(-40px,30px)}}
+.booking-hero .booking-header{border-bottom-color:rgba(255,255,255,.12)}
+.booking-hero .booking-back{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.22);color:#fff;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.booking-hero .booking-brand img:first-child{display:none}
+.booking-hero .booking-brand img + img{display:block}
+.booking-hero .lang{background:rgba(255,255,255,.12);color:#fff}
+
+/* ขั้นตอน: แถบกระจกบนพื้นกรมท่า เส้นทองเติมตามขั้นที่ถึง */
+.booking-hero .booking-progress{position:relative;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.booking-hero .booking-progress li{color:rgba(255,255,255,.62)}
+.booking-hero .booking-progress li:not(:last-child)::after{background:rgba(255,255,255,.18)}
+.booking-hero .booking-progress li.is-complete::after{background:linear-gradient(90deg,var(--sun),color-mix(in srgb,var(--sun) 70%,#fff))}
+.booking-hero .booking-progress-mark{background:transparent;border-color:rgba(255,255,255,.3);color:rgba(255,255,255,.8)}
+.booking-hero .booking-progress [aria-current="step"]{color:#fff}
+.booking-hero .booking-progress [aria-current="step"] .booking-progress-mark{
+  background:linear-gradient(135deg,color-mix(in srgb,var(--sun) 70%,#fff),var(--sun));border-color:transparent;color:var(--on-sun);
+  box-shadow:0 0 0 5px color-mix(in srgb,var(--sun) 22%,transparent),0 6px 18px color-mix(in srgb,var(--sun) 40%,transparent)}
+.booking-hero .booking-progress .is-complete .booking-progress-mark{background:color-mix(in srgb,var(--sun) 18%,transparent);border-color:var(--sun);color:var(--sun)}
+.booking-hero .booking-progress .is-complete{color:rgba(255,255,255,.85)}
+@media (prefers-reduced-motion:no-preference){
+  .booking-hero .booking-progress [aria-current="step"] .booking-progress-mark{animation:bk-pulse 2.4s ease-in-out infinite}
+}
+@keyframes bk-pulse{0%,100%{box-shadow:0 0 0 5px color-mix(in srgb,var(--sun) 22%,transparent),0 6px 18px color-mix(in srgb,var(--sun) 40%,transparent)}50%{box-shadow:0 0 0 9px color-mix(in srgb,var(--sun) 8%,transparent),0 6px 18px color-mix(in srgb,var(--sun) 40%,transparent)}}
+
+/* หัวข้อบนพื้นกรมท่า */
+.booking-hero .booking-heading{margin:24px 0 0;max-width:720px}
+.booking-hero .booking-heading p{color:var(--sun);font-size:.78rem;font-weight:650;letter-spacing:.14em;text-transform:uppercase}
+.booking-hero .booking-heading h1{color:#fff;text-shadow:0 2px 24px rgba(0,0,0,.18)}
+
+/* เนื้อหาลอยทับขอบล่างของแถบหัว */
+.booking-journey .booking-workspace{position:relative;margin-top:-16px}
+.booking-journey .booking-stack{gap:14px}
+
+/* การ์ด: เงาหลายชั้น มุมมนขึ้น หัวข้อมีขีดทองนำหน้า */
+.booking-journey .booking-panel{
+  border-radius:22px;border-color:color-mix(in srgb,var(--line) 80%,transparent);
+  box-shadow:0 1px 2px rgba(11,27,51,.04),0 8px 24px rgba(11,27,51,.06),0 24px 48px -24px rgba(11,27,51,.12)}
+.booking-journey .booking-panel > h2,.booking-journey .booking-section-heading h2,.booking-journey .booking-date-heading h2{display:flex;align-items:center;gap:10px}
+.booking-journey .booking-panel > h2::before,.booking-journey .booking-section-heading h2::before,.booking-journey .booking-date-heading h2::before{
+  content:"";width:4px;height:18px;border-radius:4px;background:linear-gradient(180deg,var(--sun),color-mix(in srgb,var(--sun) 55%,var(--ocean)))}
+.booking-journey .booking-address{border-radius:16px;padding:12px 14px;box-shadow:0 6px 18px rgba(11,27,51,.06);color:var(--ink)}
+.booking-journey .booking-address .ico{color:var(--sun)}
+
+/* ตัวเลือก: ชี้แล้วลอย เลือกแล้วขอบทองเรือง */
+.booking-journey .booking-option,.booking-journey .choice,.booking-journey .seg-card,.booking-journey .pz{transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease,background .2s ease}
+@media (hover:hover){
+  .booking-journey .booking-option:hover,.booking-journey .choice:hover,.booking-journey .seg-card:hover,.booking-journey .pz:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(11,27,51,.10)}
+}
+.booking-journey .booking-option.is-selected,.booking-journey .booking-panel .choice.on,.booking-journey .seg-card.on{
+  border-color:var(--sun);
+  background:linear-gradient(145deg,color-mix(in srgb,var(--sun) 13%,var(--card)),var(--card) 70%);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--sun) 22%,transparent),0 12px 28px -8px color-mix(in srgb,var(--sun) 35%,transparent)}
+.booking-journey .seg-card{border-radius:18px;padding:16px;border-width:1px}
+.booking-journey .seg-card.on .seg-ic{background:linear-gradient(135deg,var(--ocean),var(--ocean-d));color:var(--sun)}
+.booking-journey .seg-card b{font-family:var(--font-display);font-size:1.35rem}
+.booking-journey .booking-option-icon{background:linear-gradient(135deg,color-mix(in srgb,var(--sun) 30%,var(--card)),var(--sun-l));color:var(--ocean)}
+.booking-journey .is-selected .booking-option-radio,.booking-journey .choice.on .radio{border-color:var(--sun);background:var(--sun);box-shadow:inset 0 0 0 4px var(--card)}
+.booking-journey .is-selected .booking-option-radio::after{display:none}
+.booking-journey .booking-option-tail b,.booking-journey .choice b.disp{color:var(--ocean)}
+
+/* วัน / เวลา ที่เลือก: พื้นกรมท่า ตัวเลขทอง */
+.booking-journey .booking-panel .tc{border-radius:12px;font-variant-numeric:tabular-nums}
+.booking-journey .booking-panel .tc.on,.booking-journey .mcal-d.on{
+  background:linear-gradient(145deg,var(--ocean),var(--ocean-d));color:var(--sun);border-color:transparent;
+  box-shadow:0 8px 18px -6px color-mix(in srgb,var(--ocean) 70%,transparent)}
+.booking-journey .booking-panel .tc.on .booking-urgent{color:rgba(255,255,255,.75)}
+.booking-journey .mcal-d.today::after{background:var(--sun)}
+.booking-journey .ok-note{background:linear-gradient(135deg,var(--leaf-l),color-mix(in srgb,var(--leaf-l) 60%,var(--card)))}
+
+/* แถบราคา (มือถือ): กระจกฝ้า ราคาตัวใหญ่แบบหนังสือ */
+.booking-journey .booking-action{background:color-mix(in srgb,var(--card) 84%,transparent);-webkit-backdrop-filter:blur(18px) saturate(1.3);backdrop-filter:blur(18px) saturate(1.3);border-top-color:color-mix(in srgb,var(--sun) 30%,var(--line))}
+.booking-journey .booking-amount strong{font-family:var(--font-display);font-size:1.45rem;letter-spacing:-.01em;font-variant-numeric:lining-nums tabular-nums}
+
+/* ปุ่มหลัก: ทองไล่สี + ประกายวิ่งผ่าน */
+.booking-journey .booking-primary.btn{position:relative;overflow:hidden;border-radius:16px;min-height:52px;font-size:.95rem;font-weight:700;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--sun) 72%,#fff),var(--sun) 55%,color-mix(in srgb,var(--sun) 80%,#7a5a1e));color:var(--on-sun);
+  box-shadow:0 10px 24px -8px color-mix(in srgb,var(--sun) 70%,transparent),inset 0 1px 0 rgba(255,255,255,.5)}
+.booking-journey .booking-primary .ico{color:var(--on-sun)}
+.booking-shine{position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.55) 50%,transparent 65%);transform:translateX(-120%)}
+@media (prefers-reduced-motion:no-preference){.booking-primary:not(:disabled) .booking-shine{animation:bk-shine 3.2s ease-in-out infinite}}
+@keyframes bk-shine{0%,55%{transform:translateX(-120%)}85%,100%{transform:translateX(120%)}}
+.booking-journey .booking-primary:disabled{background:var(--foam);color:var(--ink3);box-shadow:none}
+.booking-journey .booking-primary:disabled .ico{color:inherit}
+.booking-journey .booking-primary:disabled .booking-shine{display:none}
+
+/* คอม: การ์ดราคาด้านขวาเป็นกรมท่า */
+@media (min-width:820px){
+  .booking-journey .booking-hero{padding-bottom:48px}
+  .booking-journey .booking-workspace{margin-top:-26px}
+  .booking-journey .booking-action{background:linear-gradient(165deg,var(--ocean),var(--ocean-d));border-color:color-mix(in srgb,var(--sun) 35%,transparent);color:#fff;
+    box-shadow:0 24px 48px -16px rgba(11,27,51,.45)}
+  .booking-journey .booking-action-cover{aspect-ratio:2.1;background:linear-gradient(0deg,var(--ocean-d) 0%,rgba(11,27,51,0) 60%),url('../assets/ill/chumphon.webp') center 53% / cover}
+  .booking-journey .booking-amount small,.booking-journey .booking-amount-meta{color:rgba(255,255,255,.7)}
+  .booking-journey .booking-amount strong{color:var(--sun);font-size:2.2rem}
+  .booking-journey .booking-saving s{color:rgba(255,255,255,.6)}
+  .booking-journey .booking-primary:disabled{background:rgba(255,255,255,.1);color:rgba(255,255,255,.5)}
+}
+[data-dark="1"] .booking-journey .booking-panel{box-shadow:0 1px 2px rgba(0,0,0,.3),0 16px 40px -16px rgba(0,0,0,.5)}
