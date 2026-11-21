@@ -1,0 +1,13 @@
+/* ปรับหน้าจอคอม/iPad (≥768px) — โหลดหลัง premium.css
+   premium.css ทำแถบเมนูเป็นกระจกฝ้าสีขาวซึ่งเหมาะกับแถบล่างบนมือถือ
+   แต่บนคอมเมนูอยู่ด้านข้างและตัวหนังสือเป็นสีขาว จึงต้องกลับเป็นพื้นกรมท่า */
+@media (min-width:768px){
+ .tabbar{background:linear-gradient(180deg,var(--ocean-d),var(--ocean));-webkit-backdrop-filter:none;backdrop-filter:none;border-top:0;box-shadow:none}
+
+ /* ภาพหน้าแรก: ผนังสีครีมด้านซ้ายของภาพทำให้เห็นขอบแข็ง → ไล่สีทึบยาวขึ้นแล้วค่อยจาง */
+ .home .lux-hero{background-position:right center}
+ .home .lux-hero:before{background:linear-gradient(90deg,rgba(8,20,40,.95) 0%,rgba(8,20,40,.93) 36%,rgba(8,20,40,.6) 53%,rgba(8,20,40,.15) 74%,rgba(8,20,40,0) 90%)}
+
+ /* การ์ดเริ่มจองให้ขอบตรงกับภาพและการ์ดด้านล่าง */
+ .home .quick-book{margin:-100px 32px 0}
+}
