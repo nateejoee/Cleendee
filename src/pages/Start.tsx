@@ -4,7 +4,7 @@ import { ServiceFAQ, HoursGuide } from '../components/ServiceGuide'
 import { bookingStep } from '../lib/bookingMetrics'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { sb, friendly, type District } from '../lib/supabase'
+import { sb, friendly, type District, type Service as Svc } from '../lib/supabase'
 import { useI18n, localStorageSet, money, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { Avatar, Icon, Bell, LangToggle, Logo, CustomerTabs, TopBar, Loading, SiteFooter } from '../components/ui'
@@ -146,27 +146,29 @@ export function Home() {
     ['home_step_details', 'home_step_details_d'],
     ['home_step_payment', 'home_step_payment_d'],
   ]
+  const th = lang === 'th'
+  const bookable = (services || []).filter(s => s.active)
   return <div className="page home">
-    {/* ภาพใหญ่หัวหน้า: ภาพถ่ายวิลล่า + ไล่สีกรมท่า ทับด้วยคำทักทายและปุ่มจอง */}
+    {/* หัวหน้า: ภาพจริง + คำทักทาย + พาดหัวตัวใหญ่ แล้วการ์ด "เริ่มจอง" ซ้อนขึ้นมาจากด้านล่าง */}
     <div className="lux-hero" style={{ backgroundImage: `url(${imgHero})` }}>
       <div className="between"><span className="mob-only"><Logo white h={30} /></span><span className="lh-loc"><Icon n="pin" size={15} /><span className="lh-loc-t">{placeText(live, provinces, districts, d, lang, t)}</span></span><span className="hdr-tools"><Bell /><LangToggle /></span></div>
       <div className="lh-body">
         <div className="lh-greet">{t(greetKey())}{profile?.full_name ? ', ' + profile.full_name : ''}</div>
         <h1>{t('tagline')}</h1>
         <p>{t('hero_d')}</p>
-        <div className="lh-cta"><Link to="/book" className="btn b-sun">{t('book_now')}</Link><Link to="/guarantee" className="btn b-glass">{t('g_title')}</Link></div>
       </div>
     </div>
     <div className="home-grid">
       <div className="hg-main">
-        <div className="promo lux art"><div><span className="eyebrow">CleenDee</span><h3>{t('promo_t')}</h3><div className="small mt8">{t('promo_d')}</div></div><PromoArt amount={100} /></div>
+        <QuickBook services={bookable} onPick={code => open(code, '/book')} />
+        <div className="promo lux art"><div><h3>{t('promo_t')}</h3><div className="small mt8">{t('promo_d')}</div></div><PromoArt amount={100} /></div>
         <div className="pad mt16"><button className="urgent" style={{ width: '100%', textAlign: 'left' }} onClick={() => open('general_cleaning', '/book/time?urgent=1')}>
           <span className="rico" style={{ background: 'var(--card)', color: 'var(--brick)' }}><Icon n="clock" /></span>
           <span style={{ flex: 1 }}><b className="disp">{t('urgent_t')}</b><span className="small" style={{ display: 'block', color: 'var(--brick)' }}>{t('urgent_d')}</span></span><Icon n="next" /></button></div>
         <section className="pad" aria-labelledby="home-services">
           <h2 id="home-services" className="sec-title">{t('services')}</h2>
           {!services ? <Loading /> : <div className="svc">
-            {services.filter(s => s.active).map(s =>
+            {bookable.map(s =>
               <button key={s.code} className="sv" onClick={() => open(s.code, '/service/' + s.code)}>
                 <span className="ic"><Icon n={s.icon} size={22} /></span>
                 <span className="sv-name">{svcName(s, lang)}</span>
@@ -187,20 +189,25 @@ export function Home() {
             )}
           </div>}
         </section>
-        <div className="pad mt12"><Link to="/guarantee" className="choice" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--leaf-l)', color: 'var(--leaf)' }}><Icon n="shield" /></span>
-          <span style={{ flex: 1 }}><b>{t('g_title')}</b><span className="small muted">{t('g_short')}</span></span><Icon n="next" /></Link></div>
-        <div className="pad"><div className="sec-title">{t('why_us')}</div></div>
-        <div className="pad feats">{why.map(([i, b, x]) => <div key={b} className="feat"><span className="rico"><Icon n={i} /></span><b className="disp">{b}</b><span className="small muted">{x}</span></div>)}</div>
+        <section className="pad" aria-labelledby="home-maids">
+          <div className="between"><h2 id="home-maids" className="sec-title">{t('top_maids')}</h2><Link to="/book" className="link">{t('see_all')}</Link></div>
+          {maids && maids.length === 0 ? <div className="empty muted">{maidsFailed ? t('load_failed') : t('nothing')}</div> :
+            <div className="maid-rail">{(maids || []).slice(0, 8).map(m => <Link key={m.id} to={'/maid-profile/' + m.id} className="maid-tile">
+              <Avatar name={m.nickname} url={m.photo_url} seed={m.id} size={64} />
+              <b>{m.nickname}</b>
+              <small>{m.review_count ? <><span className="star">★</span> {m.avg_rating ?? '–'} · {m.review_count} {t('reviews')}</> : t('no_reviews')}</small>
+            </Link>)}</div>}
+        </section>
+        <section className="pad" aria-labelledby="home-why">
+          <h2 id="home-why" className="sec-title">{t('why_us')}</h2>
+          <Link to="/guarantee" className="trust-card">{why.map(([i, b, x]) => <span key={b} className="trust-row"><span className="trust-ic"><Icon n={i} size={20} /></span><span><b>{b}</b><small>{x}</small></span></span>)}
+            <span className="trust-foot"><Icon n="shield" size={16} />{t('g_title')}: {t('g_short')}</span></Link>
+        </section>
       </div>
       <aside className="hg-side">
         {profile?.role === 'customer' ? <div className="pad"><div className="sec-title">{t('my_points')}</div>
           <RewardsCard points={profile.points} onClick={() => nav('/account')} /></div>
           : <div className="pad mt20"><div className="card guestcard col"><b className="disp">{t('lw_book')}</b><Link to="/login" className="btn b-ocean">{t('login')} / {t('signup')}</Link></div></div>}
-        <div className="pad"><div className="between"><div className="sec-title">{t('top_maids')}</div><Link to="/book" className="link">{t('see_all')}</Link></div>
-          <div className="stack">{(maids || []).slice(0, 3).map(m => <Link key={m.id} to={'/maid-profile/' + m.id} className="mcard" style={{ color: 'var(--ink)' }}>
-            <Avatar name={m.nickname} url={m.photo_url} seed={m.id} size={52} />
-            <span style={{ flex: 1 }}><b className="disp">{m.nickname}</b><span className="small muted" style={{ display: 'block' }}>{m.review_count ? <><span className="star">★</span> {m.avg_rating ?? '–'}</> : t('no_reviews')} · {m.jobs_done ?? 0} {t('homes_done')}</span></span><Icon n="next" /></Link>)}
-            {maids && maids.length === 0 && <div className="empty muted">{maidsFailed ? t('load_failed') : t('nothing')}</div>}</div></div>
         <section className="pad" aria-labelledby="home-booking-heading">
           <h2 id="home-booking-heading" className="sec-title">{t('how_it_works')}</h2>
           <ol className="home-booking-steps" role="list">
@@ -215,11 +222,37 @@ export function Home() {
             ))}
           </ol>
         </section>
-      </aside>
+              </aside>
     </div>
     <SiteFooter />
     <CustomerTabs />
   </div>
+}
+
+// การ์ดเริ่มจอง: เลือกบริการ เห็นราคาเริ่มต้น แล้วกดเริ่มจองได้ทันที
+function QuickBook({ services, onPick }: { services: Svc[]; onPick: (code: string) => void }) {
+  const { t, lang } = useI18n(); const th = lang === 'th'
+  const [code, setCode] = useState<string | null>(null)
+  const s = services.find(x => x.code === code) ?? services[0]
+  const [from, setFrom] = useState<{ code: string; total: number } | null>(null)
+  useEffect(() => {
+    if (!s) return
+    let on = true
+    sb.rpc('quote_booking_v2', { p_service_code: s.code, p_qty: s.min_qty, p_addons: [], p_chose_maid: false, p_start_at: null, p_use_points: false, p_promo: null })
+      .then(({ data }) => { if (on && data) setFrom({ code: s.code, total: Number((data as { total: number }).total) }) })
+    return () => { on = false }
+  }, [s?.code])
+  if (!s) return null
+  const price = from?.code === s.code ? from.total : s.min_qty * s.price_per_unit
+  return <section className="quick-book" aria-labelledby="qb-title">
+    <h2 id="qb-title">{th ? 'วันนี้ให้เราช่วยอะไรดี' : 'What can we help with?'}</h2>
+    <div className="qb-services" role="radiogroup" aria-label={t('services')}>{services.map(x => <button key={x.code} type="button" role="radio" aria-checked={x.code === s.code}
+      className={'qb-svc' + (x.code === s.code ? ' on' : '')} onClick={() => setCode(x.code)}><Icon n={x.icon} size={18} />{svcName(x, lang)}</button>)}</div>
+    <div className="qb-foot">
+      <span className="qb-price"><small>{th ? 'เริ่มต้นที่' : 'From'}</small><b>{money(price)} {t('baht')}</b><small>{s.min_qty} {svcUnit(s, lang)}{th ? ' ขึ้นไป' : ' minimum'}</small></span>
+      <button type="button" className="btn b-sun qb-go" onClick={() => onPick(s.code)}>{t('book_now')}<Icon n="next" size={18} /></button>
+    </div>
+  </section>
 }
 
 // หน้ารายละเอียดบริการ: ราคา + รวมอะไร / ไม่รวมอะไร

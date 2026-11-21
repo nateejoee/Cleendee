@@ -1,0 +1,97 @@
+/* ชั้นความพรีเมี่ยม — โหลดหลัง styles.css
+   หลักคิด: ตัวพาดหัวเป็นเซอริฟไทย, เงาซ้อนชั้นโทนกรมท่า, เส้นบางสีแชมเปญ,
+   มุมโค้งตามลำดับความสำคัญ (ใหญ่ = ภาชนะหลัก, เล็ก = ปุ่ม/ช่องกรอก) */
+:root{
+ --font-display:'Noto Serif Thai Variable','Noto Sans Thai Variable',Georgia,serif;
+ --hair:color-mix(in srgb,var(--sun) 28%,var(--line));
+ --sh-1:0 1px 2px color-mix(in srgb,var(--ocean) 8%,transparent),0 2px 8px -2px color-mix(in srgb,var(--ocean) 8%,transparent);
+ --sh-2:0 1px 2px color-mix(in srgb,var(--ocean) 6%,transparent),0 10px 28px -10px color-mix(in srgb,var(--ocean) 26%,transparent);
+ --sh-3:0 2px 4px color-mix(in srgb,var(--ocean) 6%,transparent),0 24px 48px -18px color-mix(in srgb,var(--ocean) 38%,transparent);
+ --r-lg:24px;--r-md:18px;--r-sm:14px;
+}
+:root:lang(en){--font-display:'Cormorant Garamond','Noto Serif Thai Variable',Georgia,serif}
+[data-dark="1"]{--sh-1:0 1px 0 rgba(255,255,255,.03) inset,0 2px 8px rgba(0,0,0,.35);--sh-2:0 1px 0 rgba(255,255,255,.04) inset,0 12px 28px -10px rgba(0,0,0,.6);--sh-3:0 1px 0 rgba(255,255,255,.05) inset,0 24px 48px -18px rgba(0,0,0,.75);--hair:color-mix(in srgb,var(--sun) 22%,var(--line))}
+
+/* ตัวหนังสือ: พาดหัวและตัวเลขราคาใช้เซอริฟ, เนื้อหายังเป็นซานส์ */
+.sec-title,.lux-hero h1,.promo h3,.quick-book h2,.page-title,.topbar h1,.income-big,.qb-price b,.price-big{font-family:var(--font-display);letter-spacing:-.005em}
+.sec-title{font-size:1.25rem;font-weight:600;margin:32px 0 14px}
+h1,h2,h3{font-feature-settings:"kern"}
+
+/* ภาชนะ */
+.card{border:1px solid var(--hair);box-shadow:var(--sh-1);border-radius:var(--r-md)}
+.card.sel{border-width:1.5px;box-shadow:var(--sh-2)}
+.input{border:1px solid var(--line);border-radius:var(--r-sm);transition:border-color .15s,box-shadow .15s}
+.input:focus{outline:none;border-color:var(--ocean);box-shadow:0 0 0 4px color-mix(in srgb,var(--ocean) 14%,transparent)}
+.chip{border:1px solid var(--line);transition:background .15s,border-color .15s}
+
+/* ปุ่ม: ไล่ระดับบางมาก + เงา ทำให้ดูมีเนื้อ */
+.btn{border-radius:var(--r-sm);letter-spacing:.005em;transition:transform .12s ease,box-shadow .2s ease,filter .2s}
+.btn:active{transform:translateY(1px) scale(.99)}
+.btn.b-ocean{background:linear-gradient(180deg,color-mix(in srgb,var(--ocean) 88%,#fff),var(--ocean) 60%);box-shadow:0 1px 0 rgba(255,255,255,.14) inset,var(--sh-2)}
+.btn.b-sun{background:linear-gradient(180deg,color-mix(in srgb,var(--sun) 80%,#fff),var(--sun) 65%);box-shadow:0 1px 0 rgba(255,255,255,.45) inset,0 10px 24px -12px color-mix(in srgb,var(--sun) 90%,#000)}
+:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
+
+/* แถบล่าง: กระจกฝ้า */
+.tabbar{background:color-mix(in srgb,var(--card) 82%,transparent);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);border-top:1px solid var(--hair);box-shadow:0 -10px 30px -20px color-mix(in srgb,var(--ocean) 40%,transparent)}
+.tab .mid{box-shadow:0 0 0 5px color-mix(in srgb,var(--card) 90%,transparent),0 10px 22px -8px color-mix(in srgb,var(--sun) 90%,#000)}
+
+/* ===== หน้าแรก ===== */
+.home .lux-hero{min-height:340px;padding-bottom:96px}
+.home .lux-hero h1{font-size:clamp(2rem,6.4vw,3.6rem);font-weight:600;line-height:1.18}
+.home .promo{margin:20px 20px 0;box-shadow:var(--sh-2)}
+
+/* การ์ดเริ่มจอง — ชิ้นเด่นชิ้นเดียวของหน้า ซ้อนขึ้นจากภาพ */
+.quick-book{position:relative;z-index:3;margin:-76px 16px 0;padding:20px 18px 18px;background:var(--card);border-radius:var(--r-lg);border:1px solid var(--hair);box-shadow:var(--sh-3)}
+.quick-book:before{content:"";position:absolute;left:24px;right:24px;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--sun),transparent)}
+.quick-book h2{font-size:1.3rem;font-weight:600;line-height:1.3;color:var(--ink)}
+.qb-services{display:flex;gap:8px;overflow-x:auto;margin:14px -18px 0;padding:2px 18px 4px;scrollbar-width:none;scroll-snap-type:x proximity}
+.qb-services::-webkit-scrollbar{display:none}
+.qb-svc{flex:none;scroll-snap-align:start;display:inline-flex;align-items:center;gap:7px;min-height:42px;padding:8px 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--ink2);font-weight:550;font-size:.875rem;white-space:nowrap;transition:background .18s,color .18s,border-color .18s}
+.qb-svc.on{background:var(--ocean);border-color:var(--ocean);color:#fff}
+[data-dark="1"] .qb-svc.on{background:color-mix(in srgb,var(--sun) 18%,var(--card));border-color:var(--sun);color:var(--ink)}
+.qb-foot{display:flex;align-items:flex-end;gap:14px;margin-top:16px;padding-top:16px;border-top:1px dashed var(--hair)}
+.qb-price{flex:1;display:flex;flex-direction:column;line-height:1.25;min-width:0}
+.qb-price small{color:var(--ink2);font-size:.8125rem}
+.qb-price b{font-size:1.75rem;font-weight:600;color:var(--ink);line-height:1.2;font-variant-numeric:lining-nums tabular-nums}
+.qb-go{width:auto;flex:none;padding:8px 20px;white-space:nowrap}
+
+/* บริการ: แผ่นเรียบ เงาบาง ไอคอนในวงแชมเปญ */
+.home .svc{gap:10px}
+.home .sv{border:1px solid var(--hair);border-radius:var(--r-md);padding:14px 6px 12px;box-shadow:var(--sh-1);transition:transform .15s,box-shadow .2s}
+.home .sv .ic{width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 30% 25%,color-mix(in srgb,var(--sun) 30%,var(--card)),color-mix(in srgb,var(--sun) 14%,var(--card)));box-shadow:0 0 0 1px color-mix(in srgb,var(--sun) 35%,transparent) inset}
+.home .sv.dim{box-shadow:none}
+@media (hover:hover){.home button.sv:hover{transform:translateY(-2px);box-shadow:var(--sh-2)}}
+.home .urgent{border:1px solid color-mix(in srgb,var(--brick) 22%,transparent)}
+
+/* แม่บ้านยอดนิยม: เลื่อนแนวนอน */
+.maid-rail{display:flex;gap:10px;overflow-x:auto;margin:0 -20px;padding:2px 20px 8px;scroll-snap-type:x mandatory;scrollbar-width:none}
+.maid-rail::-webkit-scrollbar{display:none}
+.maid-tile{flex:none;width:132px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 10px 14px;text-align:center;background:var(--card);border:1px solid var(--hair);border-radius:var(--r-md);box-shadow:var(--sh-1);color:var(--ink)}
+.maid-tile .avatar{box-shadow:0 0 0 2px var(--card),0 0 0 3.5px color-mix(in srgb,var(--sun) 70%,transparent)}
+.maid-tile b{font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.maid-tile small{color:var(--ink2);font-size:.75rem;line-height:1.35}
+.maid-tile .star{color:var(--sun)}
+
+/* ทำไมต้องเรา: การ์ดเดียว แบ่งด้วยเส้น */
+.trust-card{display:block;background:var(--card);border:1px solid var(--hair);border-radius:var(--r-lg);box-shadow:var(--sh-1);overflow:hidden;color:var(--ink)}
+.trust-row{display:flex;gap:14px;align-items:flex-start;padding:16px 18px;border-bottom:1px solid var(--rule)}
+.trust-row b{display:block;font-weight:600}
+.trust-row small{display:block;color:var(--ink2);font-size:.8125rem;line-height:1.45;margin-top:2px}
+.trust-ic{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--soft);color:var(--ocean)}
+[data-dark="1"] .trust-ic{color:var(--sun)}
+.trust-foot{display:flex;gap:8px;align-items:center;padding:13px 18px;background:color-mix(in srgb,var(--sun) 12%,var(--card));font-size:.8125rem;font-weight:550;color:var(--ink)}
+.trust-foot svg{color:color-mix(in srgb,var(--sun) 70%,var(--ink))}
+
+@media (min-width:768px){
+ .home .lux-hero{min-height:420px;padding-bottom:120px}
+ .quick-book{margin:-100px 20px 0;padding:24px 24px 20px}
+ .qb-services{margin:14px -24px 0;padding:2px 24px 4px;flex-wrap:wrap;overflow:visible}
+ .maid-rail{margin:0;padding:2px 0 8px}
+}
+@media (prefers-reduced-motion:reduce){.btn,.sv,.qb-svc{transition:none}}
+/* โหมดมืดทำให้ลิงก์ทั้งหมดเป็นสีทอง — การ์ดที่เป็นลิงก์ทั้งใบต้องกลับเป็นสีตัวหนังสือปกติ */
+[data-dark="1"] .trust-card,[data-dark="1"] .maid-tile{color:var(--ink)!important}
+.maid-rail{scroll-padding-inline:20px}
+.home .between:has(>.sec-title){align-items:baseline}
+@media (min-width:768px){.maid-rail{scroll-padding-inline:0}.home .quick-book{margin:-100px 0 0}}
+.qb-services{scroll-padding-inline:18px}
