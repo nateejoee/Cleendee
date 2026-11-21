@@ -88,7 +88,7 @@ const D = {
     a_default: 'ค่าเริ่มต้น', a_min_per_unit: 'นาทีต่อหน่วย', a_new_addon: 'เพิ่มงานเสริม', a_code: 'รหัส (ภาษาอังกฤษ)', a_name_th: 'ชื่อภาษาไทย', a_name_en: 'ชื่อภาษาอังกฤษ', a_to_maid: 'ให้แม่บ้าน',
     a_kind: 'แบบ', a_value: 'ลด', a_max_disc: 'ลดสูงสุด', a_min_total: 'ยอดขั้นต่ำ', a_max_uses: 'ใช้ได้กี่ครั้ง', a_ends: 'หมดอายุ (ไม่ใส่ = ไม่หมด)', a_add_promo: 'สร้างโค้ด', a_used: 'ใช้แล้ว', a_until: 'ถึง',
     // หน้าบังคับเข้าสู่ระบบ / ธีม / ลูกเล่น / หน้าแรกบนคอม (เพิ่ม 20/11/69)
-    lw_account: 'เข้าสู่ระบบเพื่อดูบัญชีของคุณ',
+    loc_outside: 'อยู่นอกพื้นที่บริการชุมพร', lw_account: 'เข้าสู่ระบบเพื่อดูบัญชีของคุณ',
     chk_amount_mismatch: 'ยอดเงินในสลิปไม่ตรงกับยอดที่ต้องชำระ', chk_duplicate_slip: 'สลิปนี้เคยใช้แล้ว', chk_wrong_receiver: 'บัญชีผู้รับเงินไม่ใช่บัญชีร้าน',
     chk_unreadable: 'รูปนี้ไม่ใช่สลิปที่อ่านได้', chk_bank_delay: 'ธนาคารยังไม่ส่งข้อมูล ลองตรวจอีกครั้งภายหลัง', chk_bank_down: 'ระบบธนาคารขัดข้อง',
     chk_not_found_yet: 'ยังไม่พบรายการโอนนี้', chk_no_trans_ref: 'ไม่พบเลขอ้างอิงรายการในสลิป', chk_old_slip: 'สลิปลงวันที่ก่อนการจอง',
@@ -187,7 +187,7 @@ const D = {
     a_open_h: 'Open for booking', a_soon_h: 'Coming soon',
     a_default: 'Default', a_min_per_unit: 'Minutes per unit', a_new_addon: 'New add-on', a_code: 'Code (English)', a_name_th: 'Thai name', a_name_en: 'English name', a_to_maid: 'To helper',
     a_kind: 'Type', a_value: 'Discount', a_max_disc: 'Max discount', a_min_total: 'Minimum total', a_max_uses: 'Max uses', a_ends: 'Expires (blank = never)', a_add_promo: 'Create code', a_used: 'used', a_until: 'until',
-    lw_account: 'Log in to see your account',
+    loc_outside: 'Outside Chumphon service area', lw_account: 'Log in to see your account',
     chk_amount_mismatch: 'Slip amount does not match the amount due', chk_duplicate_slip: 'This slip was already used', chk_wrong_receiver: 'Paid to an account that is not the shop',
     chk_unreadable: 'Not a readable slip', chk_bank_delay: 'Bank has not sent the data yet, check again later', chk_bank_down: 'Bank system is down',
     chk_not_found_yet: 'Transfer not found yet', chk_no_trans_ref: 'No transaction reference on the slip', chk_old_slip: 'Slip dated before the booking',

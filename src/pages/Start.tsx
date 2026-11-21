@@ -1,3 +1,4 @@
+import { useLiveArea, DISTRICT_EN } from '../lib/liveArea'
 import { ServiceFAQ, HoursGuide } from '../components/ServiceGuide'
 import { bookingStep } from '../lib/bookingMetrics'
 import { useEffect, useState } from 'react'
@@ -90,6 +91,7 @@ export function Home() {
   const { t, lang } = useI18n(); const { profile } = useAuth(); const nav = useNavigate(); const districts = useDistricts(); const services = useServices(); const { maids: allMaids, failed: maidsFailed } = useMaidsLoad(); const blocked = useBlockedMaids(); const maids = allMaids?.filter(m => !blocked.includes(m.id))
   const distId = profile?.district_id ?? Number(localStorage.getItem('cd_district') || 1)
   const d = districts.find(x => x.id === distId)
+  const live = useLiveArea() // ตำแหน่งปัจจุบันของผู้ใช้ อัปเดตเมื่อเคลื่อนที่
   const extra = [
     { to: '/book/time?plan=weekly', icon: 'cal', label: t('s_monthly'), svc: 'general_cleaning' },
     { to: '/account/favorites', icon: 'heart', label: t('s_rebook'), svc: '' },
@@ -105,7 +107,10 @@ export function Home() {
   return <div className="page home">
     {/* ภาพใหญ่หัวหน้า: ภาพถ่ายวิลล่า + ไล่สีกรมท่า ทับด้วยคำทักทายและปุ่มจอง */}
     <div className="lux-hero" style={{ backgroundImage: `url(${imgHero})` }}>
-      <div className="between"><span className="mob-only"><Logo white h={30} /></span><span className="lh-loc"><Icon n="pin" size={15} /><span className="lh-loc-t">{d ? (lang === 'th' ? 'อ.' + d.name_th + ' ชุมพร' : d.name_en + ', Chumphon') : 'Chumphon'}</span></span><LangToggle /></div>
+      <div className="between"><span className="mob-only"><Logo white h={30} /></span><span className="lh-loc"><Icon n="pin" size={15} /><span className="lh-loc-t">{live?.state === 'in'
+        ? (lang === 'th' ? 'ต.' + live.subdistrict + ' อ.' + live.district.replace(/^เมืองชุมพร$/, 'เมือง') : (districts.find(x => x.name_th === live.district)?.name_en ?? DISTRICT_EN[live.district] ?? live.district) + ', Chumphon')
+        : live?.state === 'outside' ? t('loc_outside')
+        : d ? (lang === 'th' ? 'อ.' + d.name_th + ' ชุมพร' : d.name_en + ', Chumphon') : 'Chumphon'}</span></span><LangToggle /></div>
       <div className="lh-body">
         <div className="lh-greet">{t(greetKey())}{profile?.full_name ? ', ' + profile.full_name : ''}</div>
         <h1>{t('tagline')}</h1>
