@@ -18,6 +18,7 @@ import { PromoArt } from '../components/BrandArt'
 import { RewardsCard } from '../components/Rewards'
 import { ServiceArt } from '../components/ServiceArt'
 import { ART_TINT } from '../lib/serviceTint'
+import { serviceImage } from '../lib/serviceImages'
 import imgClean from '../assets/ill/cleaning.webp'
 import imgSched from '../assets/ill/schedule.webp'
 import imgSafe from '../assets/ill/safety.webp'
@@ -280,7 +281,7 @@ export function Service() {
   const ben = [['clock', t('ben1'), t('ben1d')], ['wallet', t('ben2'), t('ben2d')], ['check', t('ben3'), t('ben3d')], ['shield', t('ben4'), t('ben4d')]]
   return <div className="page nobar">
     <div style={{ position: 'relative', background: 'var(--ocean)' }}>
-      <img src={imgClean} alt="" style={{ width: '100%', aspectRatio: '4/3', maxHeight: 360, objectFit: 'cover', display: 'block' }} />
+      <img src={serviceImage(s.code)} alt="" style={{ width: '100%', aspectRatio: '4/3', maxHeight: 360, objectFit: 'cover', display: 'block' }} />
       <button className="back" onClick={() => nav(-1)} style={{ position: 'absolute', top: 14, left: 14, background: '#fff' }} aria-label="Back"><Icon n="back" /></button>
     </div>
     <div className="pad mt16"><h2 className="service-title">{svcName(s, lang)}</h2>

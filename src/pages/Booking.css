@@ -536,3 +536,6 @@
 @media (max-width:360px){.bk-modes{grid-template-columns:1fr}.bk-mode{min-height:0}}
 .app:has(.booking-journey .booking-action) .totop{bottom:120px}
 @media (min-width:820px){.app:has(.booking-journey .booking-action) .totop{bottom:32px}}
+
+/* ภาพงานเสริม */
+.addon-thumb{width:52px;height:52px;border-radius:12px;object-fit:cover;flex:none;box-shadow:0 2px 8px rgba(19,41,75,.14)}

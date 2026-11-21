@@ -7,6 +7,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import generatePayload from 'promptpay-qr'
 import { sb, friendly, type Maid, type Rating, type Quote2, type Service } from '../lib/supabase'
+import { addonImage } from '../lib/serviceImages'
 import { useServices, useAddons, svcName, svcUnit, jobHours } from '../lib/services'
 import { useI18n, money, fmtDate, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
@@ -375,6 +376,7 @@ export function BookTime() {
           const on = d.addons.includes(a.code)
           return <button key={a.code} className={'choice' + (on ? ' on' : '')} aria-pressed={on} onClick={() => setD(setDraft({ addons: on ? d.addons.filter(x => x !== a.code) : [...d.addons, a.code], hour: null }))}>
             <span className={'chk' + (on ? ' on' : '')}>{on && <Icon n="check" size={14} />}</span>
+            {addonImage(a.code) && <img className="addon-thumb" src={addonImage(a.code)} alt="" loading="lazy" />}
             <span className="booking-grow"><b>{lang === 'th' ? a.name_th : a.name_en}</b><span className="small muted">+{a.minutes} {t('minutes')}</span></span>
             <b>+{money(a.price)}</b>
           </button>

@@ -7,10 +7,10 @@ import { svcName, svcUnit } from '../lib/services'
 import { Avatar, Icon, Loading, CustomerTabs } from '../components/ui'
 import { Empty } from '../components/EmptyArt'
 import { ServiceArt } from '../components/ServiceArt'
+import { serviceImage } from '../lib/serviceImages'
 import { ART_TINT } from '../lib/serviceTint'
 import type { useMaidsLoad } from './Book'
 import imgHero from '../assets/ill/hero.webp'
-import imgClean from '../assets/ill/cleaning.webp'
 import imgSafe from '../assets/ill/safety.webp'
 import imgChat from '../assets/ill/chat.webp'
 import imgHome from '../assets/ill/chumphon.webp'
@@ -24,7 +24,7 @@ type Maids = ReturnType<typeof useMaidsLoad>['maids']
 type Extra = { to: string; art: string; label: string; svc: string }
 
 // ภาพประกอบของแต่ละบริการ (บริการที่ไม่มีภาพเฉพาะใช้ภาพวนตามลำดับ)
-const SVC_IMG: Record<string, string> = { general_cleaning: imgClean }
+const SVC_IMG: Record<string, string> = Object.fromEntries(['general_cleaning', 'deep_cleaning', 'office_cleaning', 'ac_cleaning', 'ironing', 'sofa_cleaning', 'mattress_cleaning'].map(c => [c, serviceImage(c)]))
 const ROTATE = [imgChat, imgSched, imgHome, imgSafe]
 
 export function HomeDesktop({ quickBook, services, bookable, maids, maidsFailed, extra, short, open, place, greeting }: {
