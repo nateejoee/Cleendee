@@ -467,3 +467,72 @@
   .booking-journey .booking-primary:disabled{background:rgba(255,255,255,.1);color:rgba(255,255,255,.5)}
 }
 [data-dark="1"] .booking-journey .booking-panel{box-shadow:0 1px 2px rgba(0,0,0,.3),0 16px 40px -16px rgba(0,0,0,.5)}
+
+/* ===== ขั้นที่ 1 โครงใหม่ (21/11/69): แถวสรุป + การ์ดวิธีหาแม่บ้าน 2 แบบ + ตารางแม่บ้าน ค้นหา/เรียง/ดูเพิ่ม ===== */
+.bk-h2{display:flex;align-items:center;gap:10px;font-size:1.05rem;font-weight:700;margin:4px 2px 12px}
+.bk-h2::before{content:"";width:4px;height:18px;border-radius:4px;background:linear-gradient(180deg,var(--sun),color-mix(in srgb,var(--sun) 55%,var(--ocean)))}
+.bk-count{margin-left:auto;font-size:.75rem;font-weight:650;padding:2px 10px;border-radius:99px;background:var(--foam);color:var(--ink2)}
+
+.bk-summary{background:var(--card);border:1px solid color-mix(in srgb,var(--line) 80%,transparent);border-radius:22px;overflow:hidden;
+  box-shadow:0 1px 2px rgba(11,27,51,.04),0 10px 28px rgba(11,27,51,.07)}
+.bk-sum-row{display:flex;align-items:center;gap:12px;width:100%;padding:13px 16px;text-align:left;color:var(--ink)}
+.bk-sum-row+.bk-sum-row{border-top:1px solid var(--rule)}
+.bk-sum-ic{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,var(--ocean),var(--ocean-d));color:var(--sun)}
+.bk-sum-t{flex:1;min-width:0;display:flex;flex-direction:column}
+.bk-sum-t small{font-size:.72rem;color:var(--ink2);letter-spacing:.02em}
+.bk-sum-t b{font-size:.9rem;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bk-sum-act{font-size:.8rem;font-weight:700;color:var(--ocean);padding:6px 12px;border-radius:99px;background:var(--foam)}
+[data-dark="1"] .bk-sum-act{color:var(--sun)}
+.bk-pill{display:inline-flex;padding:3px;border-radius:99px;background:var(--foam);gap:2px}
+.bk-pill button{min-width:52px;padding:7px 12px;border-radius:99px;font-size:.8rem;font-weight:700;color:var(--ink2)}
+.bk-pill button.on{background:linear-gradient(135deg,var(--ocean),var(--ocean-d));color:var(--sun);box-shadow:0 4px 10px -3px rgba(11,27,51,.4)}
+
+.bk-modes{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.bk-mode{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;padding:16px 14px 14px;border-radius:22px;
+  background:var(--card);border:1px solid var(--line);color:var(--ink);min-height:158px;transition:transform .2s,box-shadow .2s,border-color .2s}
+.bk-mode b{font-size:1rem;line-height:1.3;margin-top:6px}
+.bk-mode small{font-size:.78rem;color:var(--ink2);line-height:1.4}
+.bk-mode-art{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:var(--foam);color:var(--ink2)}
+.bk-mode-tag{margin-top:auto;padding-top:8px;font-size:.78rem;font-weight:700;color:var(--ink2)}
+.bk-mode-tag.free{color:var(--leaf)}
+.bk-mode.on{border-color:transparent;color:#fff;background:radial-gradient(120% 100% at 100% 0%,color-mix(in srgb,var(--sun) 30%,transparent),transparent 55%),linear-gradient(155deg,var(--ocean),var(--ocean-d));
+  box-shadow:0 0 0 2px var(--sun),0 18px 36px -14px rgba(11,27,51,.55)}
+.bk-mode.on small{color:rgba(255,255,255,.75)}
+.bk-mode.on .bk-mode-art{background:linear-gradient(135deg,color-mix(in srgb,var(--sun) 70%,#fff),var(--sun));color:var(--on-sun)}
+.bk-mode.on .bk-mode-tag{color:var(--sun)}
+.bk-mode.on::after{content:"";position:absolute;top:14px;right:14px;width:22px;height:22px;border-radius:50%;background:var(--sun) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231C1408' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E") center/13px no-repeat}
+@media (hover:hover){.bk-mode:not(.on):hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(11,27,51,.10)}}
+.bk-assure{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:12px;padding:12px 14px;border-radius:16px;background:color-mix(in srgb,var(--sun) 9%,var(--card));border:1px dashed color-mix(in srgb,var(--sun) 45%,var(--line));font-size:.78rem;color:var(--ink2)}
+.bk-assure span{display:inline-flex;align-items:center;gap:6px}
+.bk-assure .ico{color:color-mix(in srgb,var(--sun) 70%,var(--ink))}
+
+.bk-picker{animation:bk-in .35s ease-out}
+@keyframes bk-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.bk-tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.bk-search{flex:1 1 200px;display:flex;align-items:center;gap:8px;padding:0 14px;height:44px;border-radius:14px;background:var(--card);border:1px solid var(--line);color:var(--ink2)}
+.bk-search input{flex:1;min-width:0;border:0;background:none;outline:none;font-size:.9rem;color:var(--ink)}
+.bk-search:focus-within{border-color:var(--sun);box-shadow:0 0 0 3px color-mix(in srgb,var(--sun) 20%,transparent)}
+.bk-sort{display:flex;gap:6px;overflow-x:auto}
+.bk-sort button{flex:none;height:44px;padding:0 14px;border-radius:14px;border:1px solid var(--line);background:var(--card);font-size:.8rem;font-weight:650;color:var(--ink2)}
+.bk-sort button.on{background:var(--ink);border-color:var(--ink);color:var(--card)}
+
+.bk-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.bk-maid{position:relative;display:flex;flex-direction:column;border-radius:20px;background:var(--card);border:1px solid var(--line);overflow:hidden;transition:transform .2s,box-shadow .2s,border-color .2s}
+.bk-maid-pick{display:flex;flex-direction:column;align-items:center;gap:3px;padding:16px 10px 10px;text-align:center;color:var(--ink)}
+.bk-maid-ph{position:relative;margin-bottom:6px;border-radius:50%;padding:3px;background:linear-gradient(135deg,var(--line),transparent)}
+.bk-maid-ph .avatar,.bk-maid-ph .booking-avatar-fallback{width:68px;height:68px;font-size:1.5rem}
+.bk-maid b{font-size:.95rem;font-weight:700}
+.bk-maid-meta{font-size:.78rem;color:var(--ink)} .bk-maid-meta i,.bk-maid-jobs{font-style:normal;color:var(--ink2);font-size:.74rem}
+.bk-maid-ok{display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:.68rem;font-weight:650;padding:2px 8px;border-radius:99px;color:var(--leaf);background:var(--leaf-l)}
+.bk-maid-prof{display:flex;align-items:center;justify-content:center;gap:4px;padding:9px;border-top:1px solid var(--rule);font-size:.75rem;font-weight:650;color:var(--ink2)}
+.bk-maid.on{border-color:var(--sun);background:linear-gradient(170deg,color-mix(in srgb,var(--sun) 14%,var(--card)),var(--card) 60%);box-shadow:0 0 0 2px color-mix(in srgb,var(--sun) 35%,transparent),0 14px 30px -12px color-mix(in srgb,var(--sun) 45%,transparent)}
+.bk-maid.on .bk-maid-ph{background:linear-gradient(135deg,var(--sun),color-mix(in srgb,var(--sun) 40%,var(--ocean)))}
+.bk-maid-check{position:absolute;right:-2px;bottom:-2px;min-width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:.75rem;font-weight:800;
+  background:linear-gradient(135deg,var(--ocean),var(--ocean-d));color:var(--sun);border:2px solid var(--card)}
+@media (hover:hover){.bk-maid:not(.on):hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(11,27,51,.10)}}
+.bk-more{margin-top:12px}
+@media (min-width:640px){.bk-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (min-width:1050px){.bk-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:360px){.bk-modes{grid-template-columns:1fr}.bk-mode{min-height:0}}
+.app:has(.booking-journey .booking-action) .totop{bottom:120px}
+@media (min-width:820px){.app:has(.booking-journey .booking-action) .totop{bottom:32px}}

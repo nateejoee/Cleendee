@@ -70,6 +70,10 @@ function HelperAvatar({ maid, size = 44 }: { maid: Maid; size?: number }) {
 
 const SelectedAddress = createContext<{ address: string; change: () => void }>({ address: '', change: () => {} })
 
+type SortKey = 'rec' | 'rating' | 'jobs'
+const SORTS: [SortKey, [string, string]][] = [['rec', ['แนะนำ', 'Top picks']], ['rating', ['คะแนนสูง', 'Top rated']], ['jobs', ['งานเยอะ', 'Most jobs']]]
+const PAGE = 8
+
 export function BookMaid() {
   const location = useContext(SelectedAddress)
   const [params] = useSearchParams()
@@ -121,63 +125,85 @@ export function BookMaid() {
   const quantityLabel = s ? qty + ' ' + svcUnit(s, lang) + (team ? (lang === 'th' ? ' × 2 คน' : ' × 2 helpers') : '') : ''
   const picked = [d.maidId, team ? d.maid2Id : null].filter(Boolean).map(id => list?.find(m => m.id === id)?.nickname).filter(Boolean) as string[]
   const th = lang === 'th'
+  // เลือกเอง/ให้ระบบหา · ค้นหา · เรียง · แสดงทีละ 8 คน (คนที่เลือกไว้อยู่บนสุดเสมอ)
+  const [manual, setManual] = useState(chosenCount > 0 || !!suggested)
+  const [q2, setQ2] = useState(''); const [sort, setSort] = useState<SortKey>('rec'); const [show, setShow] = useState(PAGE)
+  const shown = (list || []).filter(m => !q2.trim() || m.nickname.toLowerCase().includes(q2.trim().toLowerCase()))
+    .sort((a, b) => sort === 'rating' ? (b.avg_rating ?? 0) - (a.avg_rating ?? 0) || (b.review_count ?? 0) - (a.review_count ?? 0)
+      : sort === 'jobs' ? (b.jobs_done ?? 0) - (a.jobs_done ?? 0) : 0)
+    .sort((a, b) => Number([d.maidId, d.maid2Id].includes(b.id)) - Number([d.maidId, d.maid2Id].includes(a.id)))
 
   return <BookingLayout title={t('who_cleans')} service={s ? svcName(s, lang) : undefined} step={0}
     action={{ label: t('next'), onClick: () => nav('/book/time') }}
     price={amount + ' ' + t('baht')} priceLabel={isOnce ? (th ? 'เริ่มต้นที่' : 'From') : t('booking_estimate')}
     meta={[quantityLabel, isOnce ? (th ? 'เลือกชั่วโมงได้ในขั้นถัดไป' : 'Choose hours in the next step') : null, picked.length ? picked.join(', ') : null].filter(Boolean).join(' · ')}>
     <div className="booking-stack">
-      <button type="button" className="booking-address" onClick={location.change}>
-        <Icon n="pin" size={18} /><span>{location.address}</span><b>{t('change')}</b>
-      </button>
-      {s?.allow_team && d.plan === 'once' && <section className="booking-panel team-picker" aria-labelledby="team-title">
-        <h2 id="team-title">{th ? 'จำนวนแม่บ้าน' : 'Number of helpers'}</h2>
-        <div className="seg-cards">{([1, 2] as const).map(n => <button key={n} type="button" aria-pressed={(team ? 2 : 1) === n} className={'seg-card' + ((team ? 2 : 1) === n ? ' on' : '')} onClick={() => setPeople(n)}>
-          <span className="seg-ic">{n === 1 ? <Icon n="user" size={20} /> : <Icon n="team" size={20} />}</span>
-          <b>{n === 1 ? (th ? '1 คน' : '1 helper') : (th ? '2 คน' : '2 helpers')}</b>
-          <small>{n === 1 ? (th ? 'งานทั่วไป' : 'Regular job') : (th ? 'เสร็จไวขึ้นเกือบครึ่ง' : 'Done in about half the time')}</small></button>)}</div>
-        {team && <p className="small muted">{th ? 'คิดราคาตามจำนวนคน × ชั่วโมง เลือกแม่บ้านเองได้สูงสุด 2 คน คนที่ไม่ได้เลือกระบบจะหาให้' : 'Price is helpers × hours. Pick up to 2 helpers; we find the rest.'}</p>}
-      </section>}
-      <div className={'booking-option' + (chosenCount === 0 ? ' is-selected' : '')}>
-        <button type="button" className="booking-option-select" aria-pressed={chosenCount === 0} onClick={() => pick(null)}>
-          <span className="booking-option-icon"><Icon n="team" size={21} /></span>
-          <span className="booking-option-info">
-            <strong>{team ? (th ? 'ให้เราหาให้ทั้ง 2 คน' : 'Find both helpers for me') : t('auto_pick')}</strong>
-            <span className="booking-option-meta">{t('auto_pick_d')}</span>
-          </span>
-          <span className="booking-option-tail"><span className="booking-option-radio" aria-hidden="true" />{t('free')}</span>
+      {/* แถวสรุป: ที่อยู่ + จำนวนแม่บ้าน (สวิตช์เล็ก ไม่กินที่) */}
+      <section className="bk-summary">
+        <button type="button" className="bk-sum-row" onClick={location.change}>
+          <span className="bk-sum-ic"><Icon n="pin" size={18} /></span>
+          <span className="bk-sum-t"><small>{th ? 'ทำความสะอาดที่' : 'Cleaning at'}</small><b>{location.address}</b></span>
+          <span className="bk-sum-act">{t('change')}</span>
         </button>
-      </div>
+        {s?.allow_team && d.plan === 'once' && <div className="bk-sum-row is-static">
+          <span className="bk-sum-ic"><Icon n="team" size={18} /></span>
+          <span className="bk-sum-t"><small>{th ? 'จำนวนแม่บ้าน' : 'Helpers'}</small><b>{team ? (th ? 'เสร็จไวขึ้นเกือบครึ่ง' : 'About half the time') : (th ? 'งานทั่วไป' : 'Regular job')}</b></span>
+          <span className="bk-pill" role="group" aria-label={th ? 'จำนวนแม่บ้าน' : 'Helpers'}>{([1, 2] as const).map(n => <button key={n} type="button" aria-pressed={(team ? 2 : 1) === n} className={(team ? 2 : 1) === n ? 'on' : ''} onClick={() => setPeople(n)}>{n} {th ? 'คน' : ''}</button>)}</span>
+        </div>}
+      </section>
 
-      <section aria-labelledby="manual-helper-title">
-        <div className="booking-section-heading">
-          <h2 id="manual-helper-title">{t('or_pick')}</h2>
-          {d.plan === 'once' && <span>+{prices.chooseFee ?? '…'} {t('baht')}{team ? (th ? ' / คน' : ' each') : ''}</span>}
+      {/* เลือกวิธีหาแม่บ้าน: 2 การ์ดใหญ่ เลือกเองแล้วค่อยแสดงรายชื่อ (รายชื่อยาวไม่ดันหน้า) */}
+      <section aria-labelledby="mode-title">
+        <h2 id="mode-title" className="bk-h2">{th ? 'ให้ใครมาทำความสะอาด' : 'Who should come'}</h2>
+        <div className="bk-modes">
+          <button type="button" className={'bk-mode' + (!manual ? ' on' : '')} aria-pressed={!manual} onClick={() => { setManual(false); pick(null) }}>
+            <span className="bk-mode-art" aria-hidden="true"><Icon n="star" size={22} /></span>
+            <b>{team ? (th ? 'ให้เราจับคู่ทั้ง 2 คน' : 'Match both for me') : (th ? 'ให้เราจับคู่ให้' : 'Match me')}</b>
+            <small>{t('auto_pick_d')}</small>
+            <span className="bk-mode-tag free">{t('free')}</span>
+          </button>
+          <button type="button" className={'bk-mode' + (manual ? ' on' : '')} aria-pressed={manual} onClick={() => setManual(true)}>
+            <span className="bk-mode-art" aria-hidden="true"><Icon n="heart" size={22} /></span>
+            <b>{th ? 'เลือกแม่บ้านเอง' : 'Choose my helper'}</b>
+            <small>{th ? 'ดูรีวิว เลือกคนที่ถูกใจ' : 'Read reviews, pick who you like'}</small>
+            {d.plan === 'once' && <span className="bk-mode-tag">+{prices.chooseFee ?? '…'} {t('baht')}{team ? (th ? '/คน' : ' each') : ''}</span>}
+          </button>
         </div>
+        {!manual && <div className="bk-assure">
+          <span><Icon n="shield" size={16} />{th ? 'ยืนยันตัวตนทุกคน' : 'ID verified'}</span>
+          <span><Icon n="star" size={16} />{th ? 'คัดคนรีวิวดีที่ว่าง' : 'Top-rated & free'}</span>
+          <span><Icon n="check" size={16} />{th ? 'แจ้งชื่อก่อนวันงาน' : 'Named before the day'}</span>
+        </div>}
+      </section>
+
+      {manual && <section className="bk-picker" aria-labelledby="manual-helper-title">
+        <div className="bk-picker-head">
+          <h2 id="manual-helper-title" className="bk-h2">{team ? (th ? 'เลือกได้สูงสุด 2 คน' : 'Pick up to 2') : (th ? 'แม่บ้านที่รับงานนี้' : 'Helpers for this job')}{list && <span className="bk-count">{list.length}</span>}</h2>
+        </div>
+        {list && list.length > 4 && <div className="bk-tools">
+          <label className="bk-search"><Icon n="search" size={17} /><input value={q2} onChange={e => { setQ2(e.target.value); setShow(PAGE) }} placeholder={th ? 'ค้นหาชื่อแม่บ้าน' : 'Search helpers'} /></label>
+          <div className="bk-sort" role="group" aria-label={th ? 'เรียงตาม' : 'Sort'}>{SORTS.map(([k, l]) => <button key={k} type="button" className={sort === k ? 'on' : ''} aria-pressed={sort === k} onClick={() => setSort(k)}>{th ? l[0] : l[1]}</button>)}</div>
+        </div>}
         {failed ? <Empty art="error" title={t('load_failed')}>
           <button className="btn b-line mt12" type="button" onClick={retry}>{t('try_again')}</button></Empty>
-          : !list ? <Loading /> : list.length === 0 ? <Empty art="search" title={t('no_maid_for_service')} /> :
-          <div className="booking-option-list">{list.map(m => {
+          : !list ? <Loading /> : list.length === 0 ? <Empty art="search" title={t('no_maid_for_service')} /> : shown.length === 0 ? <Empty small art="search" title={th ? 'ไม่พบชื่อนี้' : 'No match'} /> : <>
+          <div className="bk-grid">{shown.slice(0, show).map(m => {
             const selected = d.maidId === m.id || (team && d.maid2Id === m.id)
             const order = team && selected ? (d.maidId === m.id ? 1 : 2) : null
-            return <article key={m.id} className={'booking-option' + (selected ? ' is-selected' : '')}>
-              <button type="button" className="booking-option-select" aria-pressed={selected} onClick={() => pick(m.id)}>
-                <HelperAvatar maid={m} />
-                <span className="booking-option-info">
-                  <strong>{m.nickname}</strong>
-                  <span className="booking-option-meta">
-                    {m.review_count ? <><span className="star" aria-hidden="true">★</span> {m.avg_rating ?? '–'} ({m.review_count} {t('reviews')})</> : t('no_reviews')}
-                    {' · '}{m.jobs_done ?? 0} {t('homes_done')}
-                  </span>
-                </span>
-                {order ? <span className="team-badge" aria-label={th ? 'คนที่ ' + order : 'Helper ' + order}>{order}</span> : <span className={'booking-option-radio' + (team ? ' sq' : '')} aria-hidden="true" />}
+            return <article key={m.id} className={'bk-maid' + (selected ? ' on' : '')}>
+              <button type="button" className="bk-maid-pick" aria-pressed={selected} onClick={() => pick(m.id)}>
+                <span className="bk-maid-ph"><HelperAvatar maid={m} size={68} />{selected && <span className="bk-maid-check">{order ?? <Icon n="check" size={14} />}</span>}</span>
+                <b>{m.nickname}</b>
+                <span className="bk-maid-meta">{m.review_count ? <><span className="star" aria-hidden="true">★</span> {m.avg_rating ?? '–'} <i>({m.review_count})</i></> : <i>{th ? 'ใหม่' : 'New'}</i>}</span>
+                <span className="bk-maid-jobs">{m.jobs_done ?? 0} {t('homes_done')}</span>
+                {(m.id_verified || m.background_checked) && <span className="bk-maid-ok"><Icon n="shield" size={12} />{th ? 'ตรวจแล้ว' : 'Verified'}</span>}
               </button>
-              <Link to={'/maid-profile/' + m.id} className="booking-profile-link" aria-label={t('view_profile') + ' · ' + m.nickname}>
-                {t('view_profile')}<Icon n="next" size={14} />
-              </Link>
+              <Link to={'/maid-profile/' + m.id} className="bk-maid-prof" aria-label={t('view_profile') + ' · ' + m.nickname}>{th ? 'โปรไฟล์' : 'Profile'}<Icon n="next" size={12} /></Link>
             </article>
-          })}</div>}
-      </section>
+          })}</div>
+          {shown.length > show && <button type="button" className="btn b-line bk-more" onClick={() => setShow(show + PAGE)}>{th ? `ดูเพิ่มอีก ${shown.length - show} คน` : `Show ${shown.length - show} more`}</button>}
+        </>}
+      </section>}
     </div>
   </BookingLayout>
 }
