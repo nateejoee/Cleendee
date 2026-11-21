@@ -13,6 +13,7 @@ import { useMaids, useBlockedMaids, AddressForm, useAddresses } from './Book'
 import { CountUp, confetti, relTime, useMinuteTick } from '../lib/fx'
 import { useTheme } from '../lib/theme'
 import { RatingForm } from '../components/Rating'
+import { Orb } from './Support'
 
 function ThemePicker() {
   const { lang } = useI18n()
@@ -298,13 +299,46 @@ export function Claim() {
   </div>
 }
 
+// แถวผู้ช่วยคลีนดี (AI + เจ้าหน้าที่) แยกจากแชทกับแม่บ้าน
+function AssistantCard() {
+  const { lang, t } = useI18n(); const { session } = useAuth(); const th = lang === 'th'
+  const [info, setInfo] = useState<{ status: string; body: string | null; sender: string | null; at: string | null } | null>(null)
+  useEffect(() => {
+    if (!session) return
+    sb.from('support_threads').select('id,status').eq('customer_id', session.user.id).maybeSingle().then(async ({ data: th0 }) => {
+      if (!th0) { setInfo({ status: 'new', body: null, sender: null, at: null }); return }
+      const { data: m } = await sb.from('support_messages').select('sender,body,created_at').eq('thread_id', th0.id).order('id', { ascending: false }).limit(1).maybeSingle()
+      setInfo({ status: th0.status, body: m?.body ?? null, sender: m?.sender ?? null, at: m?.created_at ?? null })
+    })
+  }, [session])
+  const staff = info?.status === 'waiting_staff' || info?.status === 'answered'
+  const preview = !info?.body ? (th ? 'ถามเรื่องราคา บริการ การจอง ได้ตลอดเวลา' : 'Ask about prices, services and booking anytime')
+    : info.sender === 'system' ? (th ? 'ส่งเรื่องให้เจ้าหน้าที่แล้ว' : 'Passed to our staff')
+    : (info.sender === 'customer' ? (th ? 'คุณ: ' : 'You: ') : '') + info.body
+  return <Link to="/support" className="msx-ai">
+    <Orb size={54} live />
+    <span className="msx-ai-main">
+      <span className="msx-ai-top"><b>{th ? 'ผู้ช่วยคลีนดี' : 'CleenDee Assistant'}</b>{info?.at && <small>{relTime(info.at, t)}</small>}</span>
+      <span className="msx-ai-tag"><i className={staff ? 'staff' : ''} />{staff ? (th ? 'เจ้าหน้าที่ดูแลอยู่' : 'Staff on this chat') : (th ? 'AI · ตอบทันที' : 'AI · instant replies')}</span>
+      <span className="msx-ai-prev">{preview}</span>
+    </span>
+    {info?.status === 'answered' && info.sender === 'staff' ? <span className="msx-dot" aria-label={th ? 'มีข้อความใหม่' : 'New message'} /> : <Icon n="next" size={18} />}
+  </Link>
+}
+
 export function Messages() {
-  const { t, lang } = useI18n(); const { list } = useMyBookings(); const maids = useMaids(); const helpers = useBookingHelpers()
+  const { t, lang } = useI18n(); const { profile } = useAuth(); const { list } = useMyBookings(); const maids = useMaids(); const helpers = useBookingHelpers()
+  const th = lang === 'th'
   const rows = (list || []).filter(b => b.maid_id && ['confirmed', 'on_the_way', 'working', 'completed'].includes(b.status)).reverse()
   return <div className="page"><div className="hero"><h1>{t('tab_msgs')}</h1></div>
-    <div className="mt12">{rows.length === 0 ? <div className="pad"><div className="empty muted">{t('nothing')}</div></div> : rows.map(b => { const m = helpers.find(x => x.id === b.maid_id) ?? maids?.find(x => x.id === b.maid_id)
-      return <Link key={b.id} to={'/bookings/' + b.id} className="listrow" style={{ color: 'var(--ink)' }}>{m && <Avatar name={m.nickname} seed={m.id} size={44} />}
-        <span style={{ flex: 1 }}><b>{m?.nickname}</b><span className="small muted">{fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}</span></span><StatusPill s={b.status} /></Link> })}</div>
+    {profile?.role === 'customer' && <div className="pad msx-sec"><div className="msx-label">{th ? 'ช่วยเหลือ' : 'Help'}</div><AssistantCard /></div>}
+    <div className="pad msx-sec"><div className="msx-label">{th ? 'แชทกับแม่บ้าน' : 'Chats with helpers'}{rows.length > 0 && <span>{rows.length}</span>}</div>
+      {rows.length === 0
+        ? <div className="msx-empty"><span className="msx-empty-ic"><Icon n="chat" size={22} /></span><b>{th ? 'ยังไม่มีแชทกับแม่บ้าน' : 'No helper chats yet'}</b><small>{th ? 'แชทจะขึ้นที่นี่เมื่อจองและได้แม่บ้านแล้ว' : 'Chats appear here once your booking has a helper'}</small></div>
+        : <div className="msx-list">{rows.map(b => { const m = helpers.find(x => x.id === b.maid_id) ?? maids?.find(x => x.id === b.maid_id)
+          return <Link key={b.id} to={'/bookings/' + b.id} className="msx-row">{m && <Avatar name={m.nickname} seed={m.id} size={46} />}
+            <span className="msx-row-main"><b>{m?.nickname}</b><small>{fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}</small></span><StatusPill s={b.status} /></Link> })}</div>}
+    </div>
     <CustomerTabs /></div>
 }
 

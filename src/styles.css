@@ -641,3 +641,81 @@ li{text-wrap:pretty}
 @keyframes support-dot{0%,80%,100%{opacity:.25}40%{opacity:1}}
 .support-row{display:flex;flex-direction:column;gap:6px;text-align:left;width:100%}
 .support-row small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* help chat: ลายเซ็นผู้ช่วยคลีนดี */
+.page.nobar.sx{padding-bottom:0}
+.sx{display:flex;flex-direction:column;min-height:100dvh;background:radial-gradient(120% 60% at 50% 0%,color-mix(in srgb,var(--sun) 18%,transparent),transparent 70%),var(--bg)}
+.sx-hero{margin:14px 16px 4px;padding:18px;border-radius:24px;display:flex;gap:14px;align-items:center;color:#fff;
+  background:linear-gradient(135deg,var(--ocean) 0%,var(--ocean-d) 100%);box-shadow:0 12px 30px -14px color-mix(in srgb,var(--ocean-d) 70%,transparent);position:relative;overflow:hidden}
+.sx-hero::after{content:"";position:absolute;right:-40px;top:-60px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--sun) 45%,transparent),transparent 70%)}
+.sx-id{display:flex;flex-direction:column;gap:3px;position:relative;z-index:1}
+.sx-id b{font-size:18px;letter-spacing:.2px}
+.sx-state{display:flex;align-items:center;gap:7px;font-size:13px;opacity:.85}
+.sx-state i{width:8px;height:8px;border-radius:50%;background:#4ADE80;box-shadow:0 0 0 0 #4ADE80;animation:sx-pulse 2s infinite}
+.sx-state i.staff{background:var(--sun);animation:none}
+@keyframes sx-pulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,.6)}70%{box-shadow:0 0 0 7px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+.sx-orb{flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;color:#fff;position:relative;z-index:1;
+  background:conic-gradient(from 210deg,#F6DFA8,var(--sun),#A9853F,#F6DFA8);box-shadow:inset 0 1px 2px rgba(255,255,255,.55),0 4px 12px -4px color-mix(in srgb,var(--sun) 80%,transparent)}
+.sx-orb.live::before{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid color-mix(in srgb,var(--sun) 55%,transparent);animation:sx-ring 2.4s ease-out infinite}
+@keyframes sx-ring{0%{transform:scale(.9);opacity:1}100%{transform:scale(1.25);opacity:0}}
+.sx-feed{flex:1;display:flex;flex-direction:column;gap:12px;padding:16px 16px 8px}
+.sx-msg{display:flex;gap:8px;align-items:flex-end;max-width:88%;animation:sx-in .28s ease-out both}
+.sx-msg.me{align-self:flex-end;flex-direction:row-reverse}
+@keyframes sx-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.sx-bub{padding:10px 14px;border-radius:18px;font-size:14.5px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--card);color:var(--ink);border-bottom-left-radius:6px}
+.sx-msg.ai .sx-bub{border:1px solid transparent;background:linear-gradient(var(--card),var(--card)) padding-box,linear-gradient(135deg,color-mix(in srgb,var(--sun) 70%,transparent),var(--line)) border-box;box-shadow:0 6px 18px -12px color-mix(in srgb,var(--sun) 90%,transparent)}
+.sx-msg.staff .sx-bub{background:var(--leaf-l);border:1px solid color-mix(in srgb,var(--leaf) 25%,transparent)}
+.sx-msg.me .sx-bub{background:linear-gradient(135deg,var(--ocean),var(--ocean-d));color:#fff;border-bottom-left-radius:18px;border-bottom-right-radius:6px}
+.sx-bub small{display:block;font-size:11px;font-weight:700;letter-spacing:.3px;color:#A9853F;margin-bottom:3px}
+.sx-msg.staff .sx-bub small{color:var(--leaf)}
+.sx-bub time{display:block;font-size:10.5px;opacity:.55;margin-top:4px;text-align:right}
+.sx-staff-av{flex:none;width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--leaf);color:#fff}
+.sx-sys{align-self:center;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);background:var(--card);border:1px dashed var(--line);border-radius:99px;padding:6px 14px;text-align:center}
+.sx-typing{display:flex;gap:5px;padding:14px 16px}
+.sx-typing i{width:7px;height:7px;border-radius:50%;background:var(--sun);animation:sx-dot 1.1s infinite ease-in-out}
+.sx-typing i:nth-child(2){animation-delay:.15s}.sx-typing i:nth-child(3){animation-delay:.3s}
+@keyframes sx-dot{0%,80%,100%{transform:translateY(0);opacity:.35}40%{transform:translateY(-4px);opacity:1}}
+.sx-dock{position:sticky;bottom:0;z-index:4;padding:10px 16px calc(12px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;
+  background:linear-gradient(to top,var(--bg) 70%,transparent)}
+.sx-handoff{align-self:center;display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:99px;padding:7px 14px}
+.sx-note{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);background:var(--sun-l);border-radius:14px;padding:9px 12px}
+.sx-composer{display:flex;align-items:flex-end;gap:8px;background:var(--card);border-radius:26px;padding:6px 6px 6px 16px;border:1px solid var(--line);
+  box-shadow:0 10px 28px -16px color-mix(in srgb,var(--ocean-d) 60%,transparent);transition:border-color .2s,box-shadow .2s}
+.sx-composer:focus-within{border-color:var(--sun);box-shadow:0 0 0 3px color-mix(in srgb,var(--sun) 25%,transparent)}
+.sx-composer textarea{flex:1;border:0;outline:0;background:transparent;resize:none;font:inherit;font-size:15px;color:var(--ink);padding:9px 0;max-height:120px;field-sizing:content}
+.sx-send{flex:none;width:42px;height:42px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:var(--on-sun);background:linear-gradient(135deg,#F0D58E,var(--sun));transition:transform .15s,opacity .2s}
+.sx-send:disabled{opacity:.4}
+.sx-send:not(:disabled):active{transform:scale(.92)}
+.sx-fine{font-size:11px;color:var(--ink3);text-align:center;line-height:1.5}
+.sx-fine a{color:var(--ink2);text-decoration:underline}
+@media (prefers-reduced-motion:reduce){.sx-msg,.sx-orb.live::before,.sx-state i,.sx-typing i{animation:none}}
+.sx-end{scroll-margin-bottom:190px}
+
+/* messages: ผู้ช่วยคลีนดี แยกจากแชทแม่บ้าน */
+.msx-sec{margin-top:18px}
+.msx-label{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--ink3);margin:0 4px 10px}
+.msx-label span{font-size:11px;background:var(--foam);color:var(--ink2);border-radius:99px;padding:1px 8px;letter-spacing:0}
+.msx-ai{display:flex;align-items:center;gap:14px;padding:16px;border-radius:22px;color:#fff;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,var(--ocean) 0%,var(--ocean-d) 100%);box-shadow:0 14px 32px -16px color-mix(in srgb,var(--ocean-d) 75%,transparent);transition:transform .15s}
+.msx-ai:active{transform:scale(.985)}
+.msx-ai::after{content:"";position:absolute;right:-50px;top:-70px;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--sun) 42%,transparent),transparent 70%);pointer-events:none}
+.msx-ai>svg,.msx-ai .msx-dot{position:relative;z-index:1;flex:none;opacity:.8}
+.msx-ai-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;position:relative;z-index:1}
+.msx-ai-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.msx-ai-top b{font-size:17px}
+.msx-ai-top small{font-size:11px;opacity:.65;white-space:nowrap}
+.msx-ai-tag{display:flex;align-items:center;gap:6px;font-size:12px;color:#F0D58E;font-weight:600}
+.msx-ai-tag i{width:7px;height:7px;border-radius:50%;background:#4ADE80;animation:sx-pulse 2s infinite}
+.msx-ai-tag i.staff{background:var(--sun);animation:none}
+.msx-ai-prev{font-size:13.5px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msx-dot{width:11px;height:11px;border-radius:50%;background:var(--brick);box-shadow:0 0 0 3px color-mix(in srgb,var(--brick) 30%,transparent);opacity:1!important}
+.msx-list{background:var(--card);border-radius:20px;border:1px solid var(--line);overflow:hidden}
+.msx-row{display:flex;align-items:center;gap:12px;padding:12px 14px;color:var(--ink)}
+.msx-row+.msx-row{border-top:1px solid var(--rule)}
+.msx-row-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.msx-row-main small{font-size:12.5px;color:var(--ink2)}
+.msx-empty{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:26px 20px;background:var(--card);border:1px dashed var(--line);border-radius:20px}
+.msx-empty b{font-size:15px}
+.msx-empty small{font-size:13px;color:var(--ink2)}
+.msx-empty-ic{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--foam);color:var(--ink2);margin-bottom:4px}
+@media (prefers-reduced-motion:reduce){.msx-ai-tag i{animation:none}}

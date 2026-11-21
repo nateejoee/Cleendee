@@ -38,8 +38,8 @@ export function Support() {
   useEffect(() => { end.current?.scrollIntoView({ block: 'end' }) }, [msgs?.length, thinking])
 
   if (ready && !session) return <Navigate to="/login" replace />
-  if (profile && profile.role !== 'customer') return <Navigate to="/account" replace />
-  if (!msgs) return <div className="page nobar"><TopBar title={th ? 'แชทช่วยเหลือ' : 'Help chat'} back="/account" /><Loading /></div>
+  if (profile && profile.role !== 'customer') return <Navigate to="/messages" replace />
+  if (!msgs) return <div className="page nobar"><TopBar title={th ? 'แชทช่วยเหลือ' : 'Help chat'} back="/messages" /><Loading /></div>
 
   const send = async () => {
     const body = text.trim()
@@ -61,32 +61,43 @@ export function Support() {
   }
   const withStaff = thread?.status === 'waiting_staff' || thread?.status === 'answered'
 
-  return <div className="page nobar support-page"><TopBar title={th ? 'แชทช่วยเหลือ' : 'Help chat'} back="/account" />
-    <div className="pad mt16 stack">
-      <div className="card stack support-box">
-        <div className="chatbox">
-          <div className="bub support-ai"><small className="support-who">{th ? 'ผู้ช่วยอัตโนมัติ (AI)' : 'Automatic helper (AI)'}</small>
-            {th ? 'สวัสดีค่ะ ถามเรื่องราคา บริการ ขั้นตอนจอง การยกเลิก หรือการชดเชยได้เลย ถ้าอยากคุยกับเจ้าหน้าที่ กดปุ่มด้านล่างได้ค่ะ' : 'Hi! Ask about prices, services, booking steps, cancellation or compensation. Tap the button below if you would like to talk to our staff.'}</div>
-          {msgs.map(m => m.sender === 'system'
-            ? <div key={m.id} className="support-sys">{systemText(m.body, th)}</div>
-            : <div key={m.id} className={'bub' + (m.sender === 'customer' ? ' me' : m.sender === 'staff' ? ' support-staff' : ' support-ai')}>
-              {m.sender !== 'customer' && <small className="support-who">{m.sender === 'staff' ? (th ? 'เจ้าหน้าที่' : 'Staff') : (th ? 'ผู้ช่วยอัตโนมัติ (AI)' : 'Automatic helper (AI)')}</small>}
-              {m.body}<small className="bt">{relTime(m.created_at, t)}</small></div>)}
-          {thinking && <div className="bub support-ai support-typing" role="status" aria-label={th ? 'กำลังพิมพ์' : 'Typing'}><i /><i /><i /></div>}
-          <div ref={end} />
-        </div>
-        {withStaff && <div className="infonote"><Icon n="clock" />{thread?.status === 'answered'
-          ? (th ? 'เจ้าหน้าที่ตอบแล้ว พิมพ์ต่อได้เลย' : 'Staff has replied. You can keep typing.')
-          : (th ? 'รอเจ้าหน้าที่ตอบ ปกติภายในเวลาทำการ' : 'Waiting for our staff to reply.')}</div>}
-        <div className="row"><textarea className="input" rows={2} maxLength={1000} value={text} onChange={e => setText(e.target.value)}
-          placeholder={th ? 'พิมพ์ข้อความ…' : 'Type a message…'}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }} />
-          <button className="btn b-ocean sm" disabled={busy || !text.trim()} onClick={send}>{th ? 'ส่ง' : 'Send'}</button></div>
-        {!withStaff && <button className="btn b-line" onClick={askStaff}><Icon n="user" size={17} />{th ? 'คุยกับเจ้าหน้าที่' : 'Talk to staff'}</button>}
-        <div className="tiny muted" style={{ textAlign: 'center' }}>{th ? 'AI อาจตอบผิดได้ ผู้ช่วยมองไม่เห็นข้อมูลการจองหรือบัญชีของคุณ ถ้าเกี่ยวกับการจองของคุณ ให้คุยกับเจ้าหน้าที่' : 'The AI can be wrong and cannot see your bookings or account. For anything about your booking, talk to our staff.'}</div>
-      </div>
-      <Link to="/guarantee" className="link" style={{ textAlign: 'center' }}>{th ? 'ดูการรับประกันของ CleenDee' : 'See the CleenDee guarantee'}</Link>
+  return <div className="page nobar support-page sx"><TopBar title={th ? 'แชทช่วยเหลือ' : 'Help chat'} back="/messages" />
+    <div className="sx-hero">
+      <Orb size={58} live />
+      <div className="sx-id"><b>{th ? 'ผู้ช่วยคลีนดี' : 'CleenDee Assistant'}</b>
+        <span className="sx-state"><i className={withStaff ? 'staff' : ''} />{withStaff ? (th ? 'เจ้าหน้าที่ดูแลเรื่องนี้อยู่' : 'Our staff is on this chat') : (th ? 'AI · ตอบทันที' : 'AI · replies instantly')}</span></div>
+    </div>
+    <div className="sx-feed">
+      <div className="sx-msg ai"><Orb size={30} /><div className="sx-bub"><small>{th ? 'ผู้ช่วยอัตโนมัติ (AI)' : 'Automatic helper (AI)'}</small>
+        {th ? 'สวัสดีค่ะ ถามเรื่องราคา บริการ ขั้นตอนจอง การยกเลิก หรือการชดเชยได้เลย ถ้าอยากคุยกับเจ้าหน้าที่ กดปุ่มด้านล่างได้ค่ะ' : 'Hi! Ask about prices, services, booking steps, cancellation or compensation. Tap the button below if you would like to talk to our staff.'}</div></div>
+      {msgs.map(m => m.sender === 'system'
+        ? <div key={m.id} className="sx-sys"><Icon n="user" size={14} />{systemText(m.body, th)}</div>
+        : <div key={m.id} className={'sx-msg ' + (m.sender === 'customer' ? 'me' : m.sender)}>
+          {m.sender === 'ai' && <Orb size={30} />}{m.sender === 'staff' && <span className="sx-staff-av"><Icon n="user" size={16} /></span>}
+          <div className="sx-bub">{m.sender !== 'customer' && <small>{m.sender === 'staff' ? (th ? 'เจ้าหน้าที่' : 'Staff') : (th ? 'ผู้ช่วยอัตโนมัติ (AI)' : 'Automatic helper (AI)')}</small>}
+            {m.body}<time>{relTime(m.created_at, t)}</time></div></div>)}
+      {thinking && <div className="sx-msg ai" role="status" aria-label={th ? 'กำลังพิมพ์' : 'Typing'}><Orb size={30} live /><div className="sx-bub sx-typing"><i /><i /><i /></div></div>}
+      <div ref={end} className="sx-end" />
+    </div>
+    <div className="sx-dock">
+      {withStaff && <div className="sx-note"><Icon n="clock" size={15} />{thread?.status === 'answered'
+        ? (th ? 'เจ้าหน้าที่ตอบแล้ว พิมพ์ต่อได้เลย' : 'Staff has replied. You can keep typing.')
+        : (th ? 'รอเจ้าหน้าที่ตอบ ปกติภายในเวลาทำการ' : 'Waiting for our staff to reply.')}</div>}
+      {!withStaff && <button className="sx-handoff" onClick={askStaff}><Icon n="user" size={15} />{th ? 'คุยกับเจ้าหน้าที่' : 'Talk to staff'}</button>}
+      <div className="sx-composer"><textarea rows={1} maxLength={1000} value={text} onChange={e => setText(e.target.value)}
+        placeholder={th ? 'ถามผู้ช่วยคลีนดี…' : 'Ask CleenDee Assistant…'} aria-label={th ? 'ข้อความ' : 'Message'}
+        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }} />
+        <button className="sx-send" disabled={busy || !text.trim()} onClick={send} aria-label={th ? 'ส่ง' : 'Send'}><Icon n="next" size={20} /></button></div>
+      <div className="sx-fine">{th ? 'AI อาจตอบผิดได้ และมองไม่เห็นข้อมูลการจองหรือบัญชีของคุณ เรื่องการจองของคุณ ให้คุยกับเจ้าหน้าที่ · ' : 'The AI can be wrong and cannot see your bookings or account. For your booking, talk to our staff · '}
+        <Link to="/guarantee">{th ? 'การรับประกันของ CleenDee' : 'CleenDee guarantee'}</Link></div>
     </div>{toast.node}</div>
+}
+
+// ลายเซ็นของผู้ช่วย: หยดน้ำสีทองมีประกาย (เข้ากับปุ่ม "จองเลย")
+export function Orb({ size, live = false }: { size: number; live?: boolean }) {
+  return <span className={'sx-orb' + (live ? ' live' : '')} style={{ width: size, height: size }} aria-hidden="true">
+    <svg viewBox="0 0 24 24" width={size * 0.56} height={size * 0.56}><path d="M12 3c3.6 4.3 6 7.6 6 10.6A6 6 0 0 1 6 13.6C6 10.6 8.4 7.3 12 3z" fill="currentColor" />
+      <path d="M16.6 4.2l.5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5z M19.4 8.6l.3.8.8.3-.8.3-.3.8-.3-.8-.8-.3.8-.3z" fill="#fff" /></svg></span>
 }
 
 type Row = { id: number; customer_id: string; customer_name: string | null; status: Status; updated_at: string; last_body: string | null; last_sender: Msg['sender'] | null }
