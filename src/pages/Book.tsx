@@ -1,6 +1,6 @@
 import { bookingStep } from '../lib/bookingMetrics'
 import { SlotAlternatives } from '../components/SlotAlternatives'
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { addressForPin } from '../lib/pinAddress'
 import { LocationPin, type MapPin } from '../components/LocationPin'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -11,7 +11,7 @@ import { useServices, useAddons, svcName, svcUnit, jobHours } from '../lib/servi
 import { useI18n, money, fmtDate, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { getDraft, setDraft, clearDraft, startIso, bkkToday, getAutoPicked, setAutoPicked, type Draft } from '../lib/draft'
-import { Avatar, DistrictOptions, Icon, Loading, useToast } from '../components/ui'
+import { Avatar, DistrictOptions, Icon, Loading, MonthCalendar, useToast } from '../components/ui'
 import { BookingLayout } from './BookingLayout'
 import { useServiceAreas } from '../lib/areas'
 import { confetti } from '../lib/fx'
@@ -272,8 +272,9 @@ export function BookTime() {
     // วันที่ในร่างเก่าอาจผ่านไปแล้ว (เปิดแท็บค้างข้ามคืน) ให้เป็นวันนี้และล้างเวลา
     return cur.date && cur.date < bkkToday() ? setDraft({ date: bkkToday(), hour: null }) : cur
   })
-  const days = useMemo(() => Array.from({ length: 14 }, (_, i) => bkkToday(i)), [])
-  const date = d.date ?? (urgentMode ? days[0] : days[1])
+  // จองล่วงหน้าได้ 60 วัน (วันนี้ถึงอีก 59 วัน) เลือกจากปฏิทินรายเดือน
+  const minDay = bkkToday(), maxDay = bkkToday(59)
+  const date = d.date && d.date <= maxDay ? d.date : (urgentMode ? minDay : bkkToday(1))
   const s = services?.find(x => x.code === d.service)
   const isPkg = d.plan !== 'once'
   const team = !isPkg && d.people === 2 && !!s?.allow_team
@@ -354,11 +355,7 @@ export function BookTime() {
       </section>}
       <section className="booking-panel">
         <div className="booking-date-heading"><h2>{t('date')}</h2><span className="small muted">{selectedDate}</span></div>
-        <div className="cal">{days.map(x => <button key={x} className={'cd' + (x === date ? ' on' : '')}
-          aria-label={fmtDate(x + 'T12:00:00+07:00', lang, { weekday: 'long', month: 'long', day: 'numeric' })} aria-pressed={x === date}
-          onClick={() => setD(setDraft({ date: x, hour: null }))}>
-          <small>{fmtDate(x + 'T12:00:00+07:00', lang, { weekday: 'short' })}</small><b>{Number(x.slice(8))}</b>
-        </button>)}</div>
+        <MonthCalendar value={date} min={minDay} max={maxDay} onPick={x => setD(setDraft({ date: x, hour: null }))} />
         <h2>{t('start_time')}</h2>
         {loadedKey !== slotKey || !slots ? <Loading /> : slotError ? <button className="btn b-line" onClick={() => setRetry(n => n+1)}>{lang === 'th' ? 'โหลดคิวไม่สำเร็จ · ลองอีกครั้ง' : 'Could not load times · Retry'}</button> :
           slots.length === 0 ? (pkgBlocked ? <p>{t('pkg_need_maid')}</p> : team ? <p className="muted">{lang === 'th' ? 'วันนี้ไม่มีเวลาที่แม่บ้านว่างพร้อมกัน 2 คน ลองเลือกวันอื่น' : 'No time with 2 free helpers on this day. Try another day.'}</p> : <SlotAlternatives key={slotKey} date={date} maid={d.maidId} service={s.code} hours={hours} plan={d.plan} choose={row => {

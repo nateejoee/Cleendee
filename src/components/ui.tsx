@@ -163,3 +163,39 @@ export function DistrictOptions({ groups, keep }: { groups: AreaGroup[]; keep?: 
   if (groups.length < 2) return <>{extra}{groups[0]?.districts.map(opt)}</>
   return <>{extra}{groups.map(g => <optgroup key={g.province.code} label={th ? 'จ.' + g.province.name_th : g.province.name_en}>{g.districts.map(opt)}</optgroup>)}</>
 }
+
+// ปฏิทินรายเดือนสำหรับเลือกวันจอง: เลือกได้ตั้งแต่ min ถึง max (YYYY-MM-DD) วันนอกช่วงกดไม่ได้
+// สัปดาห์เริ่มวันจันทร์ · มีปุ่มเลื่อนเดือนก่อน/ถัดไป (กดไม่ได้เมื่อพ้นช่วง)
+export function MonthCalendar({ value, min, max, onPick }: { value: string; min: string; max: string; onPick: (d: string) => void }) {
+  const { lang } = useI18n()
+  const [ym, setYm] = useState(value.slice(0, 7))
+  useEffect(() => { setYm(value.slice(0, 7)) }, [value]) // วันที่เปลี่ยนจากที่อื่น (เช่นเลือกวันว่างที่แนะนำ) ให้เปิดเดือนนั้น
+  const [y, m] = ym.split('-').map(Number)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const first = new Date(Date.UTC(y, m - 1, 1))
+  const lead = (first.getUTCDay() + 6) % 7 // ช่องว่างก่อนวันที่ 1 (จันทร์ = 0)
+  const dim = new Date(Date.UTC(y, m, 0)).getUTCDate()
+  const shift = (k: number) => { const d = new Date(Date.UTC(y, m - 1 + k, 1)); setYm(d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1)) }
+  const loc = lang === 'th' ? 'th-TH' : 'en-GB'
+  const title = first.toLocaleDateString(loc, { month: 'long', year: 'numeric', timeZone: 'UTC' })
+  const wk = Array.from({ length: 7 }, (_, i) => new Date(Date.UTC(2024, 0, 1 + i)).toLocaleDateString(loc, { weekday: 'short', timeZone: 'UTC' }))
+  const today = min
+  return <div className="mcal">
+    <div className="mcal-head">
+      <button type="button" className="mcal-nav" disabled={ym <= min.slice(0, 7)} onClick={() => shift(-1)} aria-label={lang === 'th' ? 'เดือนก่อน' : 'Previous month'}><Icon n="back" size={18} /></button>
+      <b>{title}</b>
+      <button type="button" className="mcal-nav" disabled={ym >= max.slice(0, 7)} onClick={() => shift(1)} aria-label={lang === 'th' ? 'เดือนถัดไป' : 'Next month'}><Icon n="next" size={18} /></button>
+    </div>
+    <div className="mcal-grid">
+      {wk.map(w => <span key={w} className="mcal-wd">{w}</span>)}
+      {Array.from({ length: lead }, (_, i) => <span key={'e' + i} />)}
+      {Array.from({ length: dim }, (_, i) => {
+        const d = ym + '-' + pad(i + 1); const off = d < min || d > max
+        return <button type="button" key={d} disabled={off} aria-pressed={d === value}
+          className={'mcal-d' + (d === value ? ' on' : '') + (d === today ? ' today' : '')}
+          aria-label={new Date(d + 'T12:00:00Z').toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })}
+          onClick={() => onPick(d)}>{i + 1}</button>
+      })}
+    </div>
+  </div>
+}
