@@ -1,7 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { I18nProvider, localStorageGet } from './lib/i18n'
 import { AuthProvider, useAuth } from './lib/auth'
-import { Onboarding, Login, Home, Service } from './pages/Start'
+import { Onboarding, Login, AdminLogin, Home, Service } from './pages/Start'
 import { BookingLocation, BookMaid, MaidProfile, BookTime, BookDetails, BookConfirm, Pay } from './pages/Book'
 import { Support, AdminSupport } from './pages/Support'
 import { AdminAuditLog } from './pages/AuditLog'
@@ -28,6 +28,14 @@ function Member({ children, title, text, img = imgLogin, tab = false }: { childr
   return <>{children}</>
 }
 
+// หน้าแอดมิน: ถ้ายังไม่เข้าสู่ระบบ ไปที่หน้าเข้าสู่ระบบของแอดมิน
+function AdminOnly({ children }: { children: ReactNode }) {
+  const { session, ready } = useAuth()
+  if (!ready) return <Loading />
+  if (!session) return <Navigate to="/admin/login" replace />
+  return <>{children}</>
+}
+
 function Root() {
   const { profile, ready } = useAuth()
   const [next] = useState(() => {
@@ -50,6 +58,7 @@ export default function App() {
       <Route path="/home" element={<Home />} />
       <Route path="/welcome" element={<Onboarding />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/service" element={<Service />} />
       <Route path="/service/:code" element={<Service />} />
@@ -74,13 +83,13 @@ export default function App() {
       <Route path="/maid/availability" element={<Member title="tab_avail" text="lw_page"><MaidAvailability /></Member>} />
       <Route path="/maid/income" element={<Member title="tab_income" text="lw_page"><MaidIncome /></Member>} />
       <Route path="/maid/apply" element={<Member title="become_maid" text="lw_page"><MaidApply /></Member>} />
-      <Route path="/admin" element={<Member title="a_title" text="lw_page"><AdminHome /></Member>} />
-      <Route path="/admin/log" element={<Member title="a_title" text="lw_page"><AdminAuditLog /></Member>} />
-      <Route path="/admin/support" element={<Member title="a_title" text="lw_page"><AdminSupport /></Member>} />
-      <Route path="/admin/money" element={<Member title="tab_money" text="lw_page"><AdminMoney /></Member>} />
-      <Route path="/admin/maids" element={<Member title="tab_maids" text="lw_page"><AdminMaids /></Member>} />
-      <Route path="/admin/settings" element={<Member title="tab_settings" text="lw_page"><AdminSettings /></Member>} />
-      <Route path="/admin/settings/pages" element={<Member title="tab_settings" text="lw_page"><AdminPublicPages /></Member>} />
+      <Route path="/admin" element={<AdminOnly><AdminHome /></AdminOnly>} />
+      <Route path="/admin/log" element={<AdminOnly><AdminAuditLog /></AdminOnly>} />
+      <Route path="/admin/support" element={<AdminOnly><AdminSupport /></AdminOnly>} />
+      <Route path="/admin/money" element={<AdminOnly><AdminMoney /></AdminOnly>} />
+      <Route path="/admin/maids" element={<AdminOnly><AdminMaids /></AdminOnly>} />
+      <Route path="/admin/settings" element={<AdminOnly><AdminSettings /></AdminOnly>} />
+      <Route path="/admin/settings/pages" element={<AdminOnly><AdminPublicPages /></AdminOnly>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   </div></BrowserRouter></AuthProvider></ThemeProvider></I18nProvider>

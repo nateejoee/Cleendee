@@ -74,18 +74,12 @@ const SOCIAL: { id: string; label: string; bg: string; fg: string; icon: React.R
 ]
 
 export function Login() {
-  const { t, lang } = useI18n(); const nav = useNavigate(); const { refresh } = useAuth()
-  const [showEmail, setShowEmail] = useState(false); const [email, setEmail] = useState(''); const [pw, setPw] = useState('')
-  const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
+  const { t, lang } = useI18n()
+  const [err, setErr] = useState('')
   const social = async (provider: string) => {
     setErr('')
     const { error } = await sb.auth.signInWithOAuth({ provider: provider as 'google', options: { redirectTo: window.location.origin + '/' } })
     if (error) setErr(friendly(error, lang))
-  }
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault(); setErr(''); setBusy(true)
-    try { const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password: pw }); if (error) throw error; await refresh(); nav('/', { replace: true }) }
-    catch (e2) { setErr(friendly(e2, lang)) } finally { setBusy(false) }
   }
   return <div className="page nobar">
     <TopBar title={t('login')} />
@@ -95,12 +89,35 @@ export function Login() {
       {SOCIAL.map(s => <button key={s.id} className="btn" style={{ background: s.bg, color: s.fg, border: s.bg === '#fff' ? '1.5px solid var(--line)' : 0 }} onClick={() => social(s.id)}>{s.icon}{t('continue_with')} {s.label}</button>)}
       {err && <div className="err">{err}</div>}
       <p className="tiny muted" style={{ textAlign: 'center' }}>{t('login_terms')}</p>
-      <button className="btn b-line" aria-expanded={showEmail} onClick={() => setShowEmail(!showEmail)}>{t('staff_login')}</button>
-      {showEmail && <form className="stack" onSubmit={submit}>
-        <div className="field"><label>{t('email')}</label><input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" /></div>
-        <div className="field"><label>{t('password')}</label><input className="input" type="password" value={pw} onChange={e => setPw(e.target.value)} required autoComplete="current-password" /></div>
-        <button className="btn b-ocean" disabled={busy}>{t('login')}</button></form>}
       <SiteFooter />
+    </div>
+  </div>
+}
+
+// เข้าสู่ระบบของแอดมิน (ลิงก์แยก /admin/login) ใช้อีเมลและรหัสผ่าน บัญชีที่ไม่ใช่แอดมินจะถูกออกจากระบบทันที
+export function AdminLogin() {
+  const { t, lang } = useI18n(); const nav = useNavigate(); const { refresh } = useAuth(); const th = lang === 'th'
+  const [email, setEmail] = useState(''); const [pw, setPw] = useState('')
+  const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault(); setErr(''); setBusy(true)
+    try {
+      const { data, error } = await sb.auth.signInWithPassword({ email: email.trim(), password: pw }); if (error) throw error
+      const { data: p } = await sb.from('profiles').select('role').eq('id', data.user.id).maybeSingle()
+      if (p?.role !== 'admin') { await sb.auth.signOut(); setErr(th ? 'บัญชีนี้ไม่ใช่บัญชีแอดมิน' : 'This is not an admin account'); return }
+      await refresh(); nav('/admin', { replace: true })
+    } catch (e2) { setErr(friendly(e2, lang)) } finally { setBusy(false) }
+  }
+  return <div className="page nobar">
+    <TopBar title={th ? 'เข้าสู่ระบบแอดมิน' : 'Admin sign-in'} back="/" />
+    <div className="pad stack mt20">
+      <div style={{ textAlign: 'center', margin: '10px 0 8px' }}><img src="/brand/CleenDee_logo_stacked.svg" alt="CleenDee" style={{ height: 96 }} /></div>
+      <p className="muted" style={{ textAlign: 'center' }}>{th ? 'สำหรับผู้ดูแลระบบเท่านั้น' : 'For administrators only'}</p>
+      <form className="stack" onSubmit={submit}>
+        <div className="field"><label>{t('email')}</label><input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="username" /></div>
+        <div className="field"><label>{t('password')}</label><input className="input" type="password" value={pw} onChange={e => setPw(e.target.value)} required autoComplete="current-password" /></div>
+        {err && <div className="err" role="alert">{err}</div>}
+        <button className="btn b-ocean" disabled={busy}>{t('login')}</button></form>
     </div>
   </div>
 }
