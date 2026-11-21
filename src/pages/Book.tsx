@@ -237,6 +237,33 @@ function FreeDays({ maidId }: { maidId: string }) {
         <small>{fmtDate(x + 'T12:00:00+07:00', lang, { weekday: 'short' })}</small><b>{Number(x.slice(8))}</b></button>)}</div>}</>
 }
 
+// การ์ดเลือกแพ็กเกจ แนวหน้าราคาของเว็บ AI: ราคาใหญ่ ราคาเฉลี่ยต่อชั่วโมง ส่วนที่ประหยัด และสิ่งที่ได้
+function PlanCards({ s, plan, prices, onPick }: { s: Service; plan: Draft['plan']; prices: Prices; onPick: (p: Draft['plan']) => void }) {
+  const { t, lang } = useI18n(); const th = lang === 'th'
+  const rate = s.price_per_unit
+  const rows = (['once', 'biweekly', 'weekly'] as const).map(p => {
+    const visits = p === 'weekly' ? 4 : p === 'biweekly' ? 2 : 1
+    const price = p === 'once' ? s.min_qty * rate : prices.pkg?.[p]
+    const hrs = p === 'once' ? s.min_qty : visits * 6
+    const save = p === 'once' || price === undefined ? 0 : hrs * rate - price
+    const perHour = price === undefined ? null : Math.round(price / hrs)
+    const feats = p === 'once'
+      ? [th ? 'จ่ายครั้งเดียว ไม่ผูกมัด' : 'Pay once, no commitment', th ? `เลือกได้ ${s.min_qty}–${s.max_qty} ชม.` : `Choose ${s.min_qty}–${s.max_qty} hours`, th ? `เลือกแม่บ้านเองได้ +${prices.chooseFee ?? '…'} บาท` : `Pick your helper +${prices.chooseFee ?? '…'} THB`]
+      : [th ? `${visits} ครั้งต่อเดือน ครั้งละ 6 ชม.` : `${visits} visits a month, 6 h each`, th ? 'แม่บ้านคนเดิมทุกครั้ง' : 'Same helper every visit', th ? 'ไม่มีค่าเลือกแม่บ้าน' : 'No helper-choice fee']
+    return { p, price, save, perHour, feats }
+  })
+  return <div className="pricing" role="radiogroup" aria-label={t('booking_frequency')}>{rows.map(r => {
+    const on = plan === r.p, best = r.p === 'weekly'
+    return <button key={r.p} type="button" role="radio" aria-checked={on} className={'pz' + (on ? ' on' : '') + (best ? ' best' : '')} onClick={() => onPick(r.p)}>
+      {best && <span className="pz-flag">{th ? 'คุ้มที่สุด' : 'Best value'}</span>}
+      <span className="pz-head"><b className="pz-name">{t(r.p)}</b><span className="pz-dot" aria-hidden="true">{on && <Icon n="check" size={14} />}</span></span>
+      <span className="pz-price">{r.p === 'once' && <small>{th ? 'เริ่มต้น' : 'From'}</small>}<strong>{r.price === undefined ? '…' : money(r.price)}</strong><small>{th ? 'บาท' : 'THB'} / {r.p === 'once' ? (th ? 'ครั้ง' : 'visit') : (th ? 'เดือน' : 'month')}</small></span>
+      <span className="pz-sub">{r.perHour !== null && <span>{th ? `เฉลี่ย ${money(r.perHour)} บาท/ชม.` : `${money(r.perHour)} THB/h`}</span>}{r.save > 0 && <span className="pz-save">{th ? `ประหยัด ${money(r.save)} บาท` : `Save ${money(r.save)} THB`}</span>}</span>
+      <ul className="pz-feats">{r.feats.map(f => <li key={f}><Icon n="check" size={15} />{f}</li>)}</ul>
+    </button>
+  })}</div>
+}
+
 export function BookTime() {
   const { t, lang } = useI18n(); const nav = useNavigate(); const [sp] = useSearchParams(); const services = useServices(); const allAddons = useAddons(); const prices = usePrices()
   const urgentMode = sp.get('urgent') === '1'
@@ -303,13 +330,7 @@ export function BookTime() {
       {(s.code === 'general_cleaning' || !isPkg) && <section className="booking-panel">
         {s.code === 'general_cleaning' && !team && <>
           <h2>{t('booking_frequency')}</h2>
-          <div className="plan-grid">{(['once', 'biweekly', 'weekly'] as const).map(p =>
-            <button key={p} aria-pressed={d.plan === p} className={'plan-card' + (d.plan === p ? ' chosen' : '')} onClick={() => setD(setDraft({ plan: p, hour: null }))}>
-              <span className="between"><b>{t(p)}</b><span className="radio" aria-hidden="true" /></span>
-              <strong>{p === 'once' ? money(s.min_qty * s.price_per_unit) : prices.pkg?.[p] !== undefined ? money(prices.pkg[p]) : '…'} ฿</strong>
-              <small>{p === 'once' ? t('min_qty') + ' ' + s.min_qty + ' ' + unit : (p === 'weekly' ? '4' : '2') + (lang === 'th' ? ' ครั้ง · ครั้งละ 6 ชม.' : ' visits · 6 h each')}</small>
-            </button>)}</div>
-          <p className="small muted">{t('pkg_note')}</p>
+          <PlanCards s={s} plan={d.plan} prices={prices} onPick={p => setD(setDraft({ plan: p, hour: null }))} />
         </>}
         {pkgBlocked && <div className="infonote">{t('pkg_need_maid')} <button className="link" onClick={() => nav('/book')}>{t('choose')}</button></div>}
         {!isPkg && <>
