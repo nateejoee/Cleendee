@@ -8,7 +8,7 @@ import { useI18n, money, fmtDate, fmtTime, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { clearDraft, setDraft, emptyDraft, bkkToday, startIso, setAutoPicked } from '../lib/draft'
 import { useServices, useAddons, svcName, svcUnit } from '../lib/services'
-import { AdminTabs, Avatar, CustomerTabs, Icon, Loading, MaidTabs, StatusPill, TopBar, useToast } from '../components/ui'
+import { AdminTabs, Avatar, CustomerTabs, Icon, Loading, MaidTabs, MonthCalendar, StatusPill, TopBar, useToast } from '../components/ui'
 import { useMaids, useBlockedMaids, AddressForm, useAddresses } from './Book'
 import { confetti, relTime, useMinuteTick } from '../lib/fx'
 import { useTheme } from '../lib/theme'
@@ -225,8 +225,9 @@ function AddToCalendar({ b, title, address }: { b: Booking; title: string; addre
 function Reschedule({ b, svc, onDone }: { b: Booking; svc: string; onDone: () => void }) {
   const { t, lang } = useI18n(); const [open, setOpen] = useState(false); const [err, setErr] = useState('')
   const hours = Math.round((new Date(b.end_at).getTime() - new Date(b.start_at).getTime()) / 3600e3)
-  const days = Array.from({ length: 14 }, (_, i) => bkkToday(i + 1))
-  const [date, setDate] = useState(days[0]); const [slots, setSlots] = useState<number[] | null>(null)
+  // เลื่อนได้ตั้งแต่พรุ่งนี้ถึงอีก 59 วัน (จองล่วงหน้าได้ 60 วัน เหมือนหน้าจอง)
+  const minDay = bkkToday(1), maxDay = bkkToday(59)
+  const [date, setDate] = useState(minDay); const [slots, setSlots] = useState<number[] | null>(null)
   useEffect(() => {
     if (!open) return; setSlots(null)
     sb.rpc('available_slots_v2', { p_date: date, p_maid: b.maid_id, p_service_code: svc, p_hours: hours })
@@ -238,7 +239,7 @@ function Reschedule({ b, svc, onDone }: { b: Booking; svc: string; onDone: () =>
   }
   if (!open) return <button className="btn b-ghost" onClick={() => setOpen(true)}><Icon n="clock" />{t('reschedule')}</button>
   return <div className="card stack"><b className="disp">{t('reschedule')}</b><div className="small muted">{t('reschedule_d')}</div>
-    <div className="cal">{days.map(x => <button key={x} className={'cd' + (x === date ? ' on' : '')} onClick={() => setDate(x)}><small>{fmtDate(x + 'T12:00:00+07:00', lang, { weekday: 'short' })}</small><b>{Number(x.slice(8))}</b></button>)}</div>
+    <MonthCalendar value={date} min={minDay} max={maxDay} onPick={setDate} />
     {!slots ? <Loading /> : slots.length === 0 ? <div className="muted small">{t('no_slots')}</div> :
       <div className="tgrid">{slots.map(h => <button key={h} className="tc" onClick={() => go(h)}>{String(h).padStart(2, '0')}:00</button>)}</div>}
     {err && <div className="err">{err}</div>}<button className="link" onClick={() => setOpen(false)}>{t('close')}</button></div>

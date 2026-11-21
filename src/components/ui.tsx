@@ -179,7 +179,7 @@ export function MonthCalendar({ value, min, max, onPick }: { value: string; min:
   const loc = lang === 'th' ? 'th-TH' : 'en-GB'
   const title = first.toLocaleDateString(loc, { month: 'long', year: 'numeric', timeZone: 'UTC' })
   const wk = Array.from({ length: 7 }, (_, i) => new Date(Date.UTC(2024, 0, 1 + i)).toLocaleDateString(loc, { weekday: 'short', timeZone: 'UTC' }))
-  const today = min
+  const today = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10) // วันนี้ตามเวลาไทย
   return <div className="mcal">
     <div className="mcal-head">
       <button type="button" className="mcal-nav" disabled={ym <= min.slice(0, 7)} onClick={() => shift(-1)} aria-label={lang === 'th' ? 'เดือนก่อน' : 'Previous month'}><Icon n="back" size={18} /></button>

@@ -61,6 +61,7 @@ const ERR: Record<string, [string, string]> = {
   invalid_message: ['ข้อความว่างหรือยาวเกินไป', 'The message is empty or too long'],
   maid_busy: ['แม่บ้านไม่ว่างเวลานี้ ลองเลือกเวลาอื่น', 'This helper is busy then. Try another time'],
   start_too_soon: ['ต้องจองล่วงหน้าอย่างน้อย 2 ชั่วโมง', 'Please book at least 2 hours ahead'],
+  start_too_far: ['จองล่วงหน้าได้ไม่เกิน 60 วัน', 'You can book up to 60 days ahead'],
   address_not_found: ['กรุณาเลือกที่อยู่', 'Please choose an address'],
   area_not_served: ['ยังไม่เปิดให้บริการในพื้นที่นี้', 'We do not serve this area yet'],
   maid_not_available: ['แม่บ้านคนนี้ยังรับงานไม่ได้', 'This helper is not available'],

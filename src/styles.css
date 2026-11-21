@@ -866,3 +866,15 @@ button.memcard:focus-visible{outline:2px solid var(--foil2);outline-offset:3px}
 .mc-foot{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12px;color:var(--muted-m);margin-top:2px}
 .mc-name{font-size:14px;font-weight:600;color:var(--ink-m);letter-spacing:.04em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 @media (prefers-reduced-motion:reduce){.mc-sheen{animation:none;display:none}.mc-bar i{transition:none}}
+
+/* ปฏิทินรายเดือน (จองล่วงหน้าได้ 60 วัน · หน้าจองและเลื่อนนัด) */
+.mcal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.mcal-head b { font-size: 1rem; }
+.mcal-nav { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); display: flex; align-items: center; justify-content: center; color: var(--ink); }
+.mcal-nav:disabled { opacity: .35; cursor: default; }
+.mcal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+.mcal-wd { text-align: center; font-size: .72rem; color: var(--ink2); padding: 2px 0 4px; }
+.mcal-d { min-height: 42px; border-radius: 9px; border: 1px solid var(--line); background: var(--card); font-weight: 600; font-variant-numeric: tabular-nums; position: relative; }
+.mcal-d:disabled { border-color: transparent; background: transparent; color: var(--ink3); opacity: .45; cursor: default; }
+.mcal-d.today::after { content: ""; position: absolute; left: 50%; bottom: 5px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--booking-accent, var(--sun)); }
+.mcal-d.on { color: var(--ink); background: var(--booking-tint, var(--soft)); border-color: var(--booking-accent, var(--sun)); border-width: 2px; }
