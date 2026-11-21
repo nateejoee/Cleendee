@@ -1,8 +1,10 @@
 import { sb } from './supabase'
 
 // ---------- รูปโปรไฟล์: ตรวจไฟล์ ตัดเป็นสี่เหลี่ยมจัตุรัส ย่อเป็น JPEG ~400px แล้วอัปโหลดเข้า avatars/<uid>/<uuid>.jpg ----------
-const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp']
-export const photoFileOk = (f: File) => PHOTO_TYPES.includes(f.type) && f.size <= 5 * 1024 * 1024
+// รับรูปจากกล้องมือถือได้ทุกขนาด (ไม่เกิน 30 MB) เพราะย่อในเครื่องก่อนอัปโหลด ไฟล์ที่ส่งจริงเหลือราว 30-60 KB
+// บางเครื่องไม่ระบุชนิดไฟล์ จึงดูจากนามสกุลด้วย ถ้าเบราว์เซอร์เปิดรูปไม่ได้ (เช่น HEIC บางรุ่น) squareJpeg จะแจ้ง bad_image
+const PHOTO_EXT = /\.(jpe?g|png|webp|gif|bmp|heic|heif|avif)$/i
+export const photoFileOk = (f: File) => (f.type.startsWith('image/') || (!f.type && PHOTO_EXT.test(f.name))) && f.size <= 30 * 1024 * 1024
 
 export async function squareJpeg(file: File, size = 400): Promise<Blob> {
   const src = URL.createObjectURL(file)

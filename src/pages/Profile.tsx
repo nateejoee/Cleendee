@@ -75,7 +75,7 @@ function ProfileForm({ profile, session }: { profile: Profile; session: Session 
         <label className="pf-photo" aria-label={t('pf_change_photo')}>
           <Avatar name={name || 'C'} url={avatar} seed={uid} size={104} />
           <span className="pf-cam">{photoBusy ? <span className="lp-spin" /> : <Icon n="camera" size={18} />}</span>
-          <input type="file" accept="image/jpeg,image/png,image/webp" disabled={photoBusy} onChange={e => { void pick(e.target.files?.[0]); e.target.value = '' }} />
+          <input type="file" accept="image/*" disabled={photoBusy} onChange={e => { void pick(e.target.files?.[0]); e.target.value = '' }} />
         </label>
         <small className="muted">{t('pf_change_photo')}</small>
         {photoMsg && <small role="alert" style={{ color: 'var(--brick)' }}>{photoMsg}</small>}
@@ -221,7 +221,7 @@ function PhotoRequest({ uid, name, current, pending, onSent }: { uid: string; na
       {pending && <><Icon n="next" style={{ marginTop: 26, color: 'var(--ink3)' }} /><div className="pf-cmp"><Avatar name={name} url={pending.photo_url} seed={uid} size={72} /><small className="muted">{t('mp_requested')}</small></div></>}
     </div>
     <label className="btn b-line photo-control" style={{ flexDirection: 'row' }}><Icon n="camera" size={18} /><span>{busy ? t('loading') : t('mp_new_photo')}</span>
-      <input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={e => { void pick(e.target.files?.[0]); e.target.value = '' }} /></label>
+      <input type="file" accept="image/*" disabled={busy} onChange={e => { void pick(e.target.files?.[0]); e.target.value = '' }} /></label>
     <small className="muted">{t('pf_photo_err')}</small>
     {msg && <small role="alert" style={{ color: 'var(--brick)' }}>{msg}</small>}
   </div>

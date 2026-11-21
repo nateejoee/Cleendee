@@ -99,7 +99,7 @@ const D = {
     just_now: 'เมื่อสักครู่', min_ago: 'นาทีที่แล้ว', hr_ago: 'ชม.ที่แล้ว', day_ago: 'วันที่แล้ว',
     hero_d: 'แม่บ้านคลีนดี ยืนยันตัวตนและตรวจประวัติทุกคน จองง่าย ราคาชัดเจน มีการันตีงาน', why_us: 'ทำไมต้องคลีนดี', how_it_works: 'จองง่าย 4 ขั้นตอน', top_maids: 'แม่บ้านแนะนำ', see_all: 'ดูทั้งหมด',
     // แก้ไขโปรไฟล์ / ลบบัญชี / โปรไฟล์แม่บ้าน / คำขอแก้ไขข้อมูลแม่บ้าน (เพิ่ม 21/11/69)
-    edit_profile: 'แก้ไขโปรไฟล์', pf_change_photo: 'แตะรูปเพื่อเปลี่ยน', pf_photo_err: 'เลือกรูป JPG, PNG หรือ WebP ขนาดไม่เกิน 5 MB', pf_photo_fail: 'อ่านรูปนี้ไม่ได้ ลองเลือกรูปอื่น',
+    edit_profile: 'แก้ไขโปรไฟล์', pf_change_photo: 'แตะรูปเพื่อเปลี่ยน', pf_photo_err: 'ไฟล์นี้ไม่ใช่รูปภาพ หรือใหญ่เกิน 30 MB', pf_photo_fail: 'อ่านรูปนี้ไม่ได้ ลองเลือกรูปอื่น',
     pf_name: 'ชื่อที่แสดง', pf_phone: 'เบอร์โทรมือถือ', pf_phone_d: 'แม่บ้านที่รับงานเห็นได้หลังชำระเงิน จนงานเสร็จ · ต้องมีก่อนจอง', pf_contact_email: 'อีเมลรับใบเสร็จ', pf_contact_email_d: 'ไม่บังคับ ถ้าไม่ใส่จะใช้อีเมลที่เข้าสู่ระบบ',
     pf_birthday: 'วันเกิด', pf_gender: 'เพศ', pf_optional: 'ไม่บังคับ', gd_female: 'หญิง', gd_male: 'ชาย', gd_other: 'อื่น ๆ', gd_unspecified: 'ไม่ระบุ',
     pf_signin: 'บัญชีที่ใช้เข้าสู่ระบบ', pf_signin_d: 'เปลี่ยนไม่ได้จากหน้านี้', pf_via: 'เข้าสู่ระบบด้วย',
@@ -208,7 +208,7 @@ const D = {
     greet_morning: 'Good morning', greet_afternoon: 'Good afternoon', greet_evening: 'Good evening', offline: 'You are offline', back_top: 'Back to top',
     just_now: 'just now', min_ago: 'min ago', hr_ago: 'h ago', day_ago: 'd ago',
     hero_d: 'CleenDee helpers, ID-verified and background-checked. Easy booking, clear prices, guaranteed work', why_us: 'Why CleenDee', how_it_works: 'Book in 4 easy steps', top_maids: 'Recommended helpers', see_all: 'See all',
-    edit_profile: 'Edit profile', pf_change_photo: 'Tap the photo to change it', pf_photo_err: 'Choose a JPG, PNG or WebP up to 5 MB', pf_photo_fail: 'Couldn’t read this image. Try another one',
+    edit_profile: 'Edit profile', pf_change_photo: 'Tap the photo to change it', pf_photo_err: 'This file is not a photo or is larger than 30 MB', pf_photo_fail: 'Couldn’t read this image. Try another one',
     pf_name: 'Display name', pf_phone: 'Mobile number', pf_phone_d: 'Your helper sees it after payment until the job is done · needed to book', pf_contact_email: 'Email for receipts', pf_contact_email_d: 'Optional. If empty we use your sign-in email',
     pf_birthday: 'Birthday', pf_gender: 'Gender', pf_optional: 'optional', gd_female: 'Female', gd_male: 'Male', gd_other: 'Other', gd_unspecified: 'Prefer not to say',
     pf_signin: 'Sign-in account', pf_signin_d: 'Can’t be changed here', pf_via: 'Signed in with',
