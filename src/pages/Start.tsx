@@ -15,6 +15,7 @@ import { useMaidsLoad, useBlockedMaids } from './Book'
 import imgHero from '../assets/ill/hero.webp'
 import { PromoArt } from '../components/BrandArt'
 import { RewardsCard } from '../components/Rewards'
+import { ServiceArt, ART_TINT } from '../components/ServiceArt'
 import imgClean from '../assets/ill/cleaning.webp'
 import imgSched from '../assets/ill/schedule.webp'
 import imgSafe from '../assets/ill/safety.webp'
@@ -135,9 +136,12 @@ export function Home() {
   const d = districts.find(x => x.id === distId)
   const live = useLiveArea() // ตำแหน่งปัจจุบันของผู้ใช้ อัปเดตเมื่อเคลื่อนที่
   const extra = [
-    { to: '/book/time?plan=weekly', icon: 'cal', label: t('s_monthly'), svc: 'general_cleaning' },
-    { to: '/account/favorites', icon: 'heart', label: t('s_rebook'), svc: '' },
+    { to: '/book/time?plan=weekly', art: 'monthly', label: t('s_monthly'), svc: 'general_cleaning' },
+    { to: '/account/favorites', art: 'rebook', label: t('s_rebook'), svc: '' },
   ]
+  // ชื่อสั้นสำหรับช่องบริการ (ชื่อเต็มยังอยู่ในหน้ารายละเอียด)
+  const SHORT: Record<string, [string, string]> = { general_cleaning: ['ทำความสะอาดบ้าน', 'Home cleaning'], deep_cleaning: ['ทำความสะอาดใหญ่', 'Deep clean'], office_cleaning: ['ออฟฟิศ / ร้านค้า', 'Office / shop'], ac_cleaning: ['ล้างแอร์', 'Air-con'], sofa_cleaning: ['ซักโซฟา', 'Sofa'], mattress_cleaning: ['ที่นอน', 'Mattress'] }
+  const short = (code: string, full: string) => SHORT[code]?.[lang === 'th' ? 0 : 1] ?? full
   const open = (code: string, to: string) => { if (code) setDraft({ ...emptyDraft, service: code }); nav(to) }
   const why = [['clock', t('ben1'), t('ben1d')], ['wallet', t('ben2'), t('ben2d')], ['shield', t('ben3'), t('ben3d')]]
   const steps: [Key, Key][] = [
@@ -168,19 +172,23 @@ export function Home() {
         <section className="pad" aria-labelledby="home-services">
           <h2 id="home-services" className="sec-title">{t('services')}</h2>
           {!services ? <Loading /> : <>
-            <div className="svc-list">{bookable.map(s =>
-              <button key={s.code} className="svl-row" onClick={() => open(s.code, '/service/' + s.code)}>
-                <span className="svl-ic"><Icon n={s.icon} size={22} /></span>
-                <span className="svl-txt"><b>{svcName(s, lang)}</b>{(th ? s.desc_th : s.desc_en) && <small>{th ? s.desc_th : s.desc_en}</small>}</span>
-                <Icon n="next" size={18} />
+            <div className="gx-big">{bookable.slice(0, 2).map(s =>
+              <button key={s.code} className="gx-hero" style={{ '--tint': ART_TINT[s.code] ?? ART_TINT.general_cleaning } as React.CSSProperties} onClick={() => open(s.code, '/service/' + s.code)}>
+                <b>{short(s.code, svcName(s, lang))}</b>
+                <span className="gx-art"><ServiceArt code={s.code} size={78} /></span>
               </button>)}
             </div>
-            <div className="svl-quick">{extra.map(s =>
-              <button key={s.to} className="svl-q" onClick={() => open(s.svc, s.to)}><span className="svl-ic sm"><Icon n={s.icon} size={18} /></span><b>{s.label}</b></button>)}
+            <div className="gx-grid">
+              {bookable.slice(2).map(s => <button key={s.code} className="gx-tile" onClick={() => open(s.code, '/service/' + s.code)}>
+                <span className="gx-ic" style={{ '--tint': ART_TINT[s.code] } as React.CSSProperties}><ServiceArt code={s.code} size={44} /></span>
+                <span className="gx-name">{short(s.code, svcName(s, lang))}</span></button>)}
+              {extra.map(s => <button key={s.to} className="gx-tile" onClick={() => open(s.svc, s.to)}>
+                <span className="gx-ic" style={{ '--tint': ART_TINT[s.art] } as React.CSSProperties}><ServiceArt code={s.art} size={44} /></span>
+                <span className="gx-name">{s.label}</span></button>)}
+              {services.filter(s => !s.active && s.coming_soon).map(s => <div key={s.code} className="gx-tile soon">
+                <span className="gx-ic" style={{ '--tint': ART_TINT[s.code] } as React.CSSProperties}><ServiceArt code={s.code} size={44} /><span className="gx-badge">{t('soon')}</span></span>
+                <span className="gx-name">{short(s.code, svcName(s, lang))}</span></div>)}
             </div>
-            {services.some(s => !s.active && s.coming_soon) && <div className="svl-soon"><span>{t('soon')}</span>
-              {services.filter(s => !s.active && s.coming_soon).map(s => <span key={s.code} className="svl-chip"><Icon n={s.icon} size={15} />{svcName(s, lang)}</span>)}
-            </div>}
           </>}
         </section>
         <section className="pad" aria-labelledby="home-maids">
