@@ -20,6 +20,7 @@ export type Booking = {
   total_price: number; maid_payout: number; status: BookingStatus; needs_replacement: boolean
   qty: number | null; addons: string[]; addons_price: number; urgent_fee: number; promo_code: string | null
   checklist: { t: string; done: boolean }[]; rescheduled_at: string | null
+  offer_maid_id?: string | null; offer_expires_at?: string | null // งานที่ระบบกำลังเสนอให้แม่บ้านคนหนึ่ง
   team_id?: number | null // งาน 2 คน: แถวแรก team_id = id ตัวเอง, แถวคนที่ 2 team_id = id แถวแรก
   created_at: string; confirmed_at: string | null; completed_at: string | null; cancelled_at: string | null
 }
@@ -57,6 +58,9 @@ const ERR: Record<string, [string, string]> = {
   invalid_state: ['ทำรายการนี้ไม่ได้ในตอนนี้', 'This action is not available now'],
   full_name_required: ['กรุณากรอกชื่อ-นามสกุลจริง', 'Please enter your full name'],
   phone_invalid: ['เบอร์โทรไม่ถูกต้อง', 'Invalid phone number'],
+  quiz_failed: ['ตอบแบบทดสอบถูกไม่ถึง 4 ข้อ ลองทบทวนแล้วตอบใหม่', 'Fewer than 4 quiz answers were correct. Please review and try again'],
+  quiz_required: ['กรุณาตอบแบบทดสอบให้ครบทุกข้อ', 'Please answer every quiz question'],
+  job_offered_to_other: ['งานนี้กำลังเสนอให้แม่บ้านคนอื่นอยู่ ลองใหม่ภายหลัง', 'This job is being offered to another helper. Try again later'],
   team_not_available: ['บริการนี้ยังจองแม่บ้าน 2 คนไม่ได้', 'This service cannot be booked with 2 helpers'],
   same_helper_twice: ['เลือกแม่บ้านคนเดียวกันซ้ำไม่ได้', 'Please pick two different helpers'],
   phone_required: ['กรุณาใส่เบอร์โทรก่อนจอง', 'Please add your phone number before booking'],

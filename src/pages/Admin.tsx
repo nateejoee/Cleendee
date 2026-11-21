@@ -179,7 +179,7 @@ export function AdminMoney() {
   </div>
 }
 
-type MaidRow = { id: string; nickname: string; bio: string | null; status: string; id_verified: boolean; background_checked: boolean; created_at: string; services: string[] }
+type MaidRow = { id: string; nickname: string; bio: string | null; status: string; id_verified: boolean; background_checked: boolean; created_at: string; services: string[]; trial?: boolean }
 type Application = { id: string; full_name: string; phone: string; line_id: string | null; birth_date: string; experience_years: number | null; experience_note: string | null; applied_services: string[]; available_days: string[]; available_times: string[]; service_districts: number[]; referee_name: string | null; referee_phone: string | null; id_card_path: string; selfie_path: string; conduct_cert_path: string | null; consent_at: string }
 const DAY_TH: Record<string, string> = { mon: 'จ.', tue: 'อ.', wed: 'พ.', thu: 'พฤ.', fri: 'ศ.', sat: 'ส.', sun: 'อา.' }
 const TIME_TH: Record<string, string> = { morning: 'เช้า', afternoon: 'บ่าย', evening: 'เย็น' }
@@ -211,7 +211,7 @@ const MAID_STATUS: Record<string, [string, string]> = { pending: ['รออน�
 export function AdminMaids() {
   const { t, lang } = useI18n(); const toast = useToast(); const services = useServices(); const [rows, setRows] = useState<MaidRow[] | null>(null); const [filter, setFilter] = useState<string | null>(null); const th = lang === 'th'; const [apps, setApps] = useState<Record<string, Application>>({}); const [openApp, setOpenApp] = useState<string | null>(null); const [docUrl, setDocUrl] = useState<{ url: string; pdf: boolean } | null>(null); const [avg, setAvg] = useState<Record<string, { avg_rating: number; review_count: number }>>({})
   useEffect(() => { sb.rpc('admin_maid_ratings').then(({ data }) => setAvg(Object.fromEntries(((data as { maid_id: string; avg_rating: number; review_count: number }[]) || []).map(x => [x.maid_id, x])))) }, [])
-  const load = () => sb.from('maids').select('id,nickname,bio,status,id_verified,background_checked,created_at,services').order('created_at', { ascending: false }).then(({ data }) => setRows(data || []))
+  const load = () => sb.from('maids').select('id,nickname,bio,status,id_verified,background_checked,created_at,services,trial').order('created_at', { ascending: false }).then(({ data }) => setRows(data || []))
   useEffect(() => { load() }, [])
   useEffect(() => { sb.rpc('admin_maid_applications').then(({ data }) => setApps(Object.fromEntries(((data as Application[]) || []).map(x => [x.id, x])))) }, [])
   if (useAdminGuard()) return <Navigate to="/" />
@@ -225,7 +225,10 @@ export function AdminMaids() {
       <button key={k} className={'chip' + (cur === k ? ' on' : '')} onClick={() => setFilter(k)}>{k === 'all' ? (th ? 'ทั้งหมด' : 'All') : MAID_STATUS[k][th ? 0 : 1]} ({n})</button>)}</div></div>}
     <div className="pad mt12 stack cols">{!rows ? <Loading /> : shown.length === 0 ? <div className="empty">{t('nothing')}</div> : shown.map(m => <div key={m.id} className="card stack">
       <div className="row"><Avatar name={m.nickname} seed={m.id} size={44} /><span style={{ flex: 1 }}><b className="disp">{m.nickname}</b><span className="small muted" style={{ display: 'block' }}>{m.bio}</span>{avg[m.id] && <span className="small" style={{ display: 'block', color: avg[m.id].avg_rating < 4.5 ? 'var(--brick)' : undefined, fontWeight: avg[m.id].avg_rating < 4.5 ? 700 : undefined }}>★ {avg[m.id].avg_rating} ({avg[m.id].review_count} {t('reviews')}){avg[m.id].avg_rating < 4.5 && ' · ' + t('a_low_avg')}</span>}</span>
-        <span className={'pill ' + (m.status === 'approved' ? 'p-leaf' : m.status === 'pending' ? 'p-sun' : 'p-brick')}>{MAID_STATUS[m.status]?.[th ? 0 : 1] ?? m.status}</span></div>
+        <span className="stack" style={{ gap: 4, alignItems: 'flex-end' }}><span className={'pill ' + (m.status === 'approved' ? 'p-leaf' : m.status === 'pending' ? 'p-sun' : 'p-brick')}>{MAID_STATUS[m.status]?.[th ? 0 : 1] ?? m.status}</span>
+          {m.status === 'approved' && m.trial && <span className="pill p-sun">{th ? 'ทดลองงาน' : 'On trial'}</span>}</span></div>
+      {m.status === 'approved' && m.trial && <div className="admin-hint row" style={{ justifyContent: 'space-between' }}>{th ? 'จะผ่านทดลองงานเองเมื่อได้รีวิว 4 ดาวขึ้นไป' : 'Passes automatically after a 4-star review'}
+        <button className="btn sm b-line" onClick={async () => { const { error } = await sb.rpc('admin_set_maid_trial', { p_maid: m.id, p_trial: false }); toast.show(error ? friendly(error, lang) : t('saved')); load() }}>{th ? 'ให้ผ่านเลย' : 'Pass now'}</button></div>}
       {apps[m.id] ? <><button className="link" style={{ textAlign: 'start' }} onClick={() => setOpenApp(openApp === m.id ? null : m.id)}>{openApp === m.id ? (th ? '▾ ซ่อนใบสมัคร' : '▾ Hide application') : (th ? '▸ ดูใบสมัครและเอกสาร' : '▸ View application and documents')}</button>
         {openApp === m.id && <ApplicationInfo a={apps[m.id]} onDoc={showDoc} />}</> : <small className="muted">{th ? 'สมัครด้วยแบบฟอร์มเดิม (ไม่มีรายละเอียดเพิ่ม)' : 'Applied with the old form (no extra details)'}</small>}
       <div className="chips"><button className={'chip' + (m.id_verified ? ' on' : '')} onClick={() => set(m, { id_verified: !m.id_verified })}>{t('id_ok')}</button>
@@ -253,13 +256,14 @@ export function AdminSettings() {
     <div className="pad mt16 stack">
       <Link to="/admin/log" className="btn b-line"><Icon n="clock" size={18} />{th ? 'บันทึกการทำงาน (Log)' : 'Activity log'}</Link>
       <Link to="/admin/settings/pages" className="btn b-line"><Icon n="grid" size={18} />{lang === 'th' ? 'จัดการการันตีและนโยบายความเป็นส่วนตัว' : 'Manage guarantee and privacy pages'}</Link>
-      <div className="chips admin-jump">{([['s-pay', th ? 'รับเงิน' : 'Payment'], ['s-areas', th ? 'พื้นที่ให้บริการ' : 'Service areas'], ['s-shop', t('a_shop')], ['s-prices', t('a_prices')], ['s-addons', t('addons')], ['s-promo', t('promo_code')]] as [string, string][]).map(([k, label]) => <button key={k} className="chip" onClick={() => jump(k)}>{label}</button>)}</div>
+      <div className="chips admin-jump">{([['s-pay', th ? 'รับเงิน' : 'Payment'], ['s-areas', th ? 'พื้นที่ให้บริการ' : 'Service areas'], ['s-shop', t('a_shop')], ['s-tiers', th ? 'ระดับสมาชิก' : 'Tiers'], ['s-prices', t('a_prices')], ['s-addons', t('addons')], ['s-promo', t('promo_code')]] as [string, string][]).map(([k, label]) => <button key={k} className="chip" onClick={() => jump(k)}>{label}</button>)}</div>
       <section id="s-pay" className="admin-sec card stack"><div className="sec-title" style={{ margin: 0 }}>{th ? 'บัญชีรับเงิน (พร้อมเพย์)' : 'Payment account (PromptPay)'}</div>
       <div className="field"><label>{t('a_pp')}</label><input className="input" inputMode="numeric" value={id} onChange={e => setId(e.target.value)} placeholder="08xxxxxxxx / 13 หลัก" /></div>
       <div className="field"><label>{t('a_pp_name')}</label><input className="input" value={name} onChange={e => setName(e.target.value)} /></div>
       <button className="btn b-sun" onClick={save}>{t('save')}</button></section>
       <section id="s-areas" className="admin-sec"><ServiceAreas toast={toast.show} /></section>
       <section id="s-shop" className="admin-sec card stack"><ShopSettings toast={toast.show} /></section>
+      <section id="s-tiers" className="admin-sec card stack"><TierSettings toast={toast.show} /></section>
       <section id="s-prices" className="admin-sec"><ServicePrices toast={toast.show} /></section>
       <section id="s-addons" className="admin-sec"><AddonEditor toast={toast.show} /></section>
       <section id="s-promo" className="admin-sec"><PromoEditor toast={toast.show} /></section>
@@ -318,6 +322,25 @@ function SvcField({ label, v, on, unit }: { label: string; v: number | string | 
 }
 
 // ตั้งค่าร้าน: ค่าเรียกด่วน เลื่อนนัด ส่วนลด และข้อมูลบนใบเสร็จ
+// ระดับสมาชิกลูกค้า และเวลาที่ให้แม่บ้านตอบรับงานที่ระบบเสนอ
+function TierSettings({ toast }: { toast: (m: string) => void }) {
+  const { t, lang } = useI18n(); const th = lang === 'th'
+  const keys = ['tier_silver', 'tier_gold', 'tier_platinum', 'mult_silver', 'mult_gold', 'mult_platinum', 'offer_minutes']
+  const [f, setF] = useState<Record<string, string> | null>(null)
+  useEffect(() => { sb.from('settings').select(keys.join(',')).maybeSingle().then(({ data }) => setF(Object.fromEntries(keys.map(k => [k, String((data as Record<string, unknown> | null)?.[k] ?? '')])))) }, [])
+  if (!f) return <Loading />
+  const set = (k: string) => (v: string) => setF({ ...f, [k]: v })
+  const save = async () => { const { error } = await sb.rpc('admin_update_tiers', { p: Object.fromEntries(keys.map(k => [k, Number(f[k])])) }); toast(error ? friendly(error, lang) : t('saved')) }
+  return <><div className="sec-title">{th ? 'ระดับสมาชิกและการส่งงาน' : 'Member tiers and job offers'}</div>
+    <p className="admin-hint">{th ? 'ระดับคิดจากยอดใช้จ่ายของงานที่เสร็จแล้ว ระดับสูงได้แต้มคูณเพิ่ม' : 'Tiers come from money spent on completed jobs. Higher tiers earn more points.'}</p>
+    <div className="row" style={{ flexWrap: 'wrap' }}>
+      <Num label={th ? 'Silver ตั้งแต่ (บาท)' : 'Silver from (THB)'} v={f.tier_silver} on={set('tier_silver')} /><Num label={th ? 'แต้ม × Silver' : 'Points × Silver'} v={f.mult_silver} on={set('mult_silver')} />
+      <Num label={th ? 'Gold ตั้งแต่ (บาท)' : 'Gold from (THB)'} v={f.tier_gold} on={set('tier_gold')} /><Num label={th ? 'แต้ม × Gold' : 'Points × Gold'} v={f.mult_gold} on={set('mult_gold')} />
+      <Num label={th ? 'Platinum ตั้งแต่ (บาท)' : 'Platinum from (THB)'} v={f.tier_platinum} on={set('tier_platinum')} /><Num label={th ? 'แต้ม × Platinum' : 'Points × Platinum'} v={f.mult_platinum} on={set('mult_platinum')} />
+      <Num label={th ? 'แม่บ้านตอบรับงานภายใน (นาที)' : 'Helper must answer within (min)'} v={f.offer_minutes} on={set('offer_minutes')} /></div>
+    <button className="btn b-ocean" onClick={save}>{t('save')}</button></>
+}
+
 function ShopSettings({ toast }: { toast: (m: string) => void }) {
   const { t, lang } = useI18n(); const [f, setF] = useState<Record<string, string> | null>(null)
   const keys = ['urgent_fee', 'urgent_maid_bonus', 'urgent_min_lead_minutes', 'reschedule_min_hours', 'first_booking_discount', 'choose_maid_fee', 'business_name', 'business_address', 'tax_id']

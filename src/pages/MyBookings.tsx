@@ -392,6 +392,22 @@ function PhoneRow() {
     {toast.node}</div>
 }
 
+// ระดับสมาชิก: ใช้จ่ายครบตามเกณฑ์ ได้แต้มคูณเพิ่ม
+const TIER_NAME: Record<string, string> = { member: 'Member', silver: 'Silver', gold: 'Gold', platinum: 'Platinum' }
+function TierCard() {
+  const { lang } = useI18n(); const th = lang === 'th'
+  const [d, setD] = useState<{ spent: number; tier: string; mult: number; next: string | null; next_at: number | null; mults: Record<string, number> } | null>(null)
+  useEffect(() => { sb.rpc('my_tier').then(({ data }) => setD(data)) }, [])
+  if (!d) return null
+  const pct = d.next_at ? Math.min(100, Math.round(d.spent / d.next_at * 100)) : 100
+  return <div className={'tier-card t-' + d.tier}>
+    <div className="between"><span className="tier-name">{TIER_NAME[d.tier]}</span><span className="tier-mult">{th ? 'แต้ม ×' : 'Points ×'}{d.mult}</span></div>
+    <div className="tier-bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}><i style={{ width: pct + '%' }} /></div>
+    <small>{d.next && d.next_at ? (th ? `ใช้บริการอีก ${money(d.next_at - d.spent)} บาท เป็น ${TIER_NAME[d.next]} ได้แต้ม ×${d.mults[d.next]}` : `Spend ${money(d.next_at - d.spent)} THB more to reach ${TIER_NAME[d.next]} (points ×${d.mults[d.next]})`)
+      : (th ? 'ระดับสูงสุดแล้ว ขอบคุณที่ใช้บริการ' : 'Top tier reached. Thank you!')}</small>
+  </div>
+}
+
 export function Account() {
   const { t, lang, setLang } = useI18n(); const { profile, session } = useAuth(); const nav = useNavigate()
   const [maidApp, setMaidApp] = useState<{ status: string } | null>(null)
@@ -417,7 +433,7 @@ export function Account() {
     <CustomerTabs /></div>
   return <div className="page">
     <div className="hero tall"><div className="row"><Avatar name={profile?.full_name || 'C'} size={54} seed={session.user.id} /><div><h1 style={{ fontSize: 21 }}>{profile?.full_name}</h1><div className="sub">{session.user.email}</div></div></div></div>
-    <div className="pad" style={{ marginTop: -54, position: 'relative', zIndex: 2 }}><div className="kpi"><div className="small">{t('my_points')}</div><div className="v"><CountUp value={profile?.points ?? 0} /> {t('points')}</div><div className="small mt8">{t('points_rule')}</div></div></div>
+    <div className="pad" style={{ marginTop: -54, position: 'relative', zIndex: 2 }}><div className="kpi"><div className="small">{t('my_points')}</div><div className="v"><CountUp value={profile?.points ?? 0} /> {t('points')}</div><div className="small mt8">{t('points_rule')}</div></div>{isCustomer && <TierCard />}</div>
     <div className="mt16">
       {profile?.role === 'admin' && <Link to="/admin" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--sun-l)' }}><Icon n="grid" /></span><b style={{ flex: 1 }}>Admin</b><Icon n="next" /></Link>}
       {profile?.role === 'maid' && <Link to="/maid" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico" style={{ background: 'var(--sun-l)' }}><Icon n="grid" /></span><b style={{ flex: 1 }}>{t('tab_jobs')}</b><Icon n="next" /></Link>}

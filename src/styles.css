@@ -785,3 +785,29 @@ li{text-wrap:pretty}
 .team-row{display:flex;align-items:center;gap:10px;padding:10px;border-radius:14px;background:var(--foam);color:var(--ink)}
 .team-row.on{background:color-mix(in srgb,var(--ocean) 8%,var(--card));outline:1.5px solid color-mix(in srgb,var(--ocean) 30%,transparent)}
 .team-row b{display:block}
+
+/* job offers, join page, tiers */
+.newjob.offer{box-shadow:0 0 0 2px var(--sun)}
+.offer-timer{display:inline-flex;align-items:center;gap:5px;margin-left:8px;font-size:12.5px;color:#F0D58E;font-weight:600}
+.income-est{gap:10px}
+.income-big{font-size:32px;font-weight:700;color:var(--ink);font-family:var(--font-display);line-height:1.1}
+.income-big small{font-size:14px;font-weight:600;color:var(--ink2)}
+.income-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.income-row>span{font-size:13px;color:var(--ink2)}
+.join-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.join-steps>div{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:14px;background:var(--card);border:1px solid var(--line);font-size:13px}
+.join-steps b{flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--sun);color:var(--on-sun);font-size:12px}
+.quiz-q{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:6px}
+.quiz-q legend{font-weight:650;font-size:14px;margin-bottom:6px}
+.quiz-opt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;border:1.5px solid var(--line);cursor:pointer;font-size:13.5px}
+.quiz-opt.on{border-color:var(--ocean);background:color-mix(in srgb,var(--ocean) 6%,var(--card))}
+.quiz-opt input{margin-top:3px;flex:none}
+.tier-card{margin-top:10px;padding:14px 16px;border-radius:18px;color:#fff;display:flex;flex-direction:column;gap:8px;background:linear-gradient(135deg,#5B6B80,#3A4658)}
+.tier-card.t-silver{background:linear-gradient(135deg,#9AA5B4,#5E6B7D)}
+.tier-card.t-gold{background:linear-gradient(135deg,#E4C77E,#A8823A)}
+.tier-card.t-platinum{background:linear-gradient(135deg,#2B3A55,#0B1B33);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--sun) 60%,transparent)}
+.tier-name{font-size:18px;font-weight:700;letter-spacing:.5px}
+.tier-mult{font-size:12px;font-weight:700;background:rgba(255,255,255,.2);border-radius:99px;padding:3px 10px}
+.tier-bar{height:7px;border-radius:99px;background:rgba(255,255,255,.25);overflow:hidden}
+.tier-bar i{display:block;height:100%;background:#fff;border-radius:99px}
+.tier-card small{font-size:12.5px;opacity:.9}

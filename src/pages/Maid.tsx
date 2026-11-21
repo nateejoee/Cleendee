@@ -20,7 +20,10 @@ function useMaidData() {
     sb.from('bookings').select('*').eq('maid_id', session.user.id).order('start_at').then(({ data }) => setMine((data as Booking[]) || []))
     const [{ data: me }, { data: st }] = await Promise.all([sb.from('maids').select('services').eq('id', session.user.id).maybeSingle(), sb.from('service_types').select('id,code')])
     const ok = new Set((st || []).filter(x => (me?.services || []).includes(x.code)).map(x => x.id))
-    sb.from('bookings').select('*').is('maid_id', null).eq('needs_replacement', true).eq('status', 'awaiting_maid').order('start_at').then(({ data }) => setOpen(((data as Booking[]) || []).filter(b => ok.has(b.service_type_id))))
+    // งานที่ยังไม่มีแม่บ้าน: ถ้าระบบกำลังเสนอให้คนอื่นอยู่ ไม่แสดง (เสนอให้เราแสดงก่อน)
+    sb.from('bookings').select('*').is('maid_id', null).eq('needs_replacement', true).eq('status', 'awaiting_maid').order('start_at').then(({ data }) => setOpen(((data as Booking[]) || [])
+      .filter(b => ok.has(b.service_type_id) && (!b.offer_maid_id || b.offer_maid_id === session.user.id || !b.offer_expires_at || new Date(b.offer_expires_at) <= new Date()))
+      .sort((a, b) => Number(b.offer_maid_id === session.user.id) - Number(a.offer_maid_id === session.user.id))))
     sb.from('payouts').select('amount,status,transferred_at,booking_id').eq('maid_id', session.user.id).then(({ data }) => setPayouts(data || []))
   }
   useEffect(() => { load(); const iv = setInterval(load, 20000); return () => clearInterval(iv) }, [session])
@@ -73,7 +76,17 @@ export function MaidHome() {
     <div className="pad mt16 stack">
       <div className="desk-nav"><a href="#maid-offers">{lang === 'th' ? 'รอตอบรับ' : 'Offers'} <b>{req.length + open.length}</b></a><a href="#maid-active">{t('m_my_jobs')} <b>{jobs.length}</b></a></div>
       <h2 id="maid-offers" className="desk-heading">{lang === 'th' ? 'งานที่รอตอบรับ' : 'Job offers'}</h2>
-      {open.map(b => <div key={b.id} className="urgent"><span className="rico" style={{ background: '#fff', color: 'var(--brick)' }}><Icon n="clock" /></span>
+      {open.map(b => profile && b.offer_maid_id === profile.id && b.offer_expires_at && new Date(b.offer_expires_at) > new Date()
+        ? <div key={b.id} className="newjob offer">
+          <span className="pill" style={{ background: 'var(--sun)', color: 'var(--ink)' }}>{lang === 'th' ? 'งานเสนอให้คุณ' : 'Offered to you'}</span>
+          <span className="offer-timer"><Icon n="clock" size={14} />{lang === 'th' ? 'ตอบรับภายใน ' : 'Answer within '}{Math.max(1, Math.ceil((new Date(b.offer_expires_at).getTime() - Date.now()) / 60000))} {lang === 'th' ? 'นาที' : 'min'}</span>
+          <div className="mt8" style={{ color: '#AFC3D3' }}>{t('m_youget')}</div><div className="big">{money(b.maid_payout)} {t('baht')}</div>
+          <div className="r mt8"><Icon n="clock" style={{ color: '#8FB0CA' }} />{fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}–{fmtTime(b.end_at)}</div>
+          <div className="r"><Icon n="pin" style={{ color: '#8FB0CA' }} />{dn(b.district_id)}{b.team_id ? (lang === 'th' ? ' · งานทีม 2 คน' : ' · team of 2') : ''}</div>
+          <JobInfo b={b} dark />
+          <div className="row mt12"><button className="btn b-sun" style={{ flex: 2 }} onClick={() => act('maid_take_job', { p_booking_id: b.id })}>{t('m_accept')}</button>
+            <button className="btn b-dark2" style={{ flex: 1 }} onClick={() => act('maid_decline_offer', { p_booking_id: b.id })}>{t('m_reject')}</button></div></div>
+        : <div key={b.id} className="urgent"><span className="rico" style={{ background: '#fff', color: 'var(--brick)' }}><Icon n="clock" /></span>
         <span style={{ flex: 1 }}><b className="disp">{t('m_urgent')} {fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}</b><span className="small" style={{ display: 'block', color: '#8A3324' }}>{dn(b.district_id)} · {money(b.maid_payout)} ฿</span><JobInfo b={b} dark={false} /></span>
         <button className="btn sm b-red" onClick={() => act('maid_take_job', { p_booking_id: b.id })}>{t('m_take')}</button></div>)}
       {req.map(b => <div key={b.id} className="newjob">
@@ -277,12 +290,43 @@ function FileField({ label, hint, cta, file, onFile, accept, required }: { label
     {msg && <small role="alert" style={{ color: 'var(--brick)' }}>{msg}</small>}</div>
 }
 
+// แบบทดสอบก่อนสมัคร (ต้องตอบถูกอย่างน้อย 4 ใน 5 ข้อ เซิร์ฟเวอร์ตรวจคำตอบอีกครั้ง)
+const QUIZ: [string, string, [string, string][]][] = [
+  ['เจอของมีค่าวางอยู่ระหว่างทำความสะอาด ควรทำอย่างไร?', 'You find valuables while cleaning. What do you do?',
+    [['เก็บไปไว้ที่อื่นที่คิดว่าปลอดภัย', 'Move them somewhere you think is safer'], ['ไม่แตะต้อง ถ้าต้องขยับให้วางที่เดิมและแจ้งลูกค้า', 'Leave them; if you must move them, put them back and tell the customer'], ['ถ่ายรูปเก็บไว้เป็นหลักฐาน', 'Take photos of them']]],
+  ['ใช้น้ำยาทำความสะอาดห้องน้ำอย่างไรให้ปลอดภัย?', 'How do you use bathroom cleaners safely?',
+    [['ใช้ให้มากที่สุดจะได้สะอาดเร็ว', 'Use as much as possible'], ['ผสมน้ำยาฟอกขาวกับน้ำยาล้างห้องน้ำให้แรงขึ้น', 'Mix bleach with toilet cleaner for extra power'], ['ใช้ทีละชนิด ไม่ผสมกัน และเปิดระบายอากาศ', 'Use one at a time, never mix, keep the room ventilated']]],
+  ['ลำดับการทำความสะอาดห้องที่ถูกต้องคือ?', 'What is the right cleaning order in a room?',
+    [['จากบนลงล่าง ปัดฝุ่นก่อน แล้วถูพื้นเป็นอย่างสุดท้าย', 'Top to bottom: dust first, mop the floor last'], ['ถูพื้นก่อน แล้วค่อยปัดฝุ่น', 'Mop first, then dust'], ['ทำส่วนไหนก่อนก็ได้', 'Any order is fine']]],
+  ['ถ้าจะไปถึงบ้านลูกค้าช้ากว่าเวลานัด ควรทำอย่างไร?', 'You will be late. What do you do?',
+    [['ไม่ต้องแจ้ง รีบไปให้ถึง', 'Just hurry, no need to tell anyone'], ['แจ้งลูกค้าในแชทของแอปทันที พร้อมเวลาที่จะถึง', 'Message the customer in the app right away with your arrival time'], ['ยกเลิกงานแล้วให้ลูกค้าจองใหม่', 'Cancel the job']]],
+  ['ลูกค้าขอเบอร์ส่วนตัวเพื่อจ้างงานกันเองนอกแอป ควรทำอย่างไร?', 'A customer asks to hire you directly outside the app. What do you do?',
+    [['ให้เบอร์ไป จะได้งานเพิ่ม', 'Give your number'], ['ตกลง แล้วรับเงินสดครั้งหน้า', 'Agree and take cash next time'], ['ปฏิเสธอย่างสุภาพ และให้จองผ่านแอปเพื่อความคุ้มครองทั้งสองฝ่าย', 'Politely decline and ask them to book in the app so both of you are protected']]],
+]
+
+// ตัวอย่างรายได้จากราคาและส่วนแบ่งจริงในระบบ (ไม่ใช่การรับประกันรายได้)
+function IncomeEstimate() {
+  const { lang } = useI18n(); const th = lang === 'th'; const services = useServices()
+  const [hrs, setHrs] = useState(6); const [days, setDays] = useState(22)
+  const s = services?.find(x => x.code === 'general_cleaning' && x.active)
+  if (!s) return null
+  const perHour = Math.round(s.price_per_unit * s.payout_pct / 100)
+  const month = perHour * hrs * days
+  return <section className="card apply-sec income-est"><h3>{th ? 'ตัวอย่างรายได้ต่อเดือน' : 'Example monthly income'}</h3>
+    <div className="income-big">{money(month)} <small>{th ? 'บาท/เดือน' : 'THB/month'}</small></div>
+    <div className="income-row"><span>{th ? 'ชั่วโมงต่อวัน' : 'Hours a day'}</span><div className="chips">{[4, 6, 8].map(n => <button type="button" key={n} className={'chip' + (hrs === n ? ' on' : '')} onClick={() => setHrs(n)}>{n} {th ? 'ชม.' : 'h'}</button>)}</div></div>
+    <div className="income-row"><span>{th ? 'วันต่อเดือน' : 'Days a month'}</span><div className="chips">{[12, 22, 26].map(n => <button type="button" key={n} className={'chip' + (days === n ? ' on' : '')} onClick={() => setDays(n)}>{n} {th ? 'วัน' : 'days'}</button>)}</div></div>
+    <small className="muted">{th ? `คิดจากงานทำความสะอาดทั่วไป แม่บ้านได้ ${perHour} บาท/ชม. (${s.payout_pct}% ของราคา) ไม่รวมงานเสริมและโบนัสงานด่วน รายได้จริงขึ้นกับจำนวนงานที่รับ` : `Based on general cleaning: you earn ${perHour} THB/h (${s.payout_pct}% of the price), before add-ons and urgent bonuses. Real income depends on the jobs you take.`}</small>
+  </section>
+}
+
 export function MaidApply() {
   const { t, lang } = useI18n(); const { session } = useAuth(); const nav = useNavigate(); const { groups } = useServiceAreas(); const services = useServices(); const th = lang === 'th'
   const [f, setF] = useState({ nickname: '', full_name: '', phone: '', line_id: '', birth_date: '', bio: '', experience_years: '', experience_note: '', district_id: 1, bank_name: '', bank_account: '', referee_name: '', referee_phone: '' })
   const [svc, setSvc] = useState<string[]>([]); const [days, setDays] = useState<string[]>([]); const [times, setTimes] = useState<string[]>([]); const [areas, setAreas] = useState<number[]>([])
   const [photo, setPhoto] = useState<File | null>(null); const [idCard, setIdCard] = useState<File | null>(null); const [selfie, setSelfie] = useState<File | null>(null); const [cert, setCert] = useState<File | null>(null)
   const [consent, setConsent] = useState(false); const [busy, setBusy] = useState(false)
+  const [quiz, setQuiz] = useState<(number | null)[]>(QUIZ.map(() => null))
   const [err, setErr] = useState(''); const [done, setDone] = useState(false)
   useEffect(() => { if (session) sb.from('maids').select('status').eq('id', session.user.id).maybeSingle().then(({ data }) => data && setDone(true)) }, [session])
   if (!session) return <div className="page nobar"><TopBar title={t('m_apply_t')} /><div className="pad mt20"><Link className="btn b-ocean" to="/login">{t('login')}</Link></div></div>
@@ -291,7 +335,7 @@ export function MaidApply() {
   const adultBefore = new Date(Date.now() + 7 * 3600e3); adultBefore.setUTCFullYear(adultBefore.getUTCFullYear() - 18)
   const adult = !!f.birth_date && f.birth_date <= adultBefore.toISOString().slice(0, 10) && f.birth_date >= '1930-01-01'
   const ok = !!f.nickname.trim() && !!f.full_name.trim() && /^0\d{8,9}$/.test(phone) && adult && svc.length > 0 && days.length > 0 && !!f.bank_name.trim() && f.bank_account.replace(/\D/g, '').length >= 8
-    && !!idCard && !!selfie && consent && (!f.referee_phone || /^0\d{8,9}$/.test(refPhone))
+    && !!idCard && !!selfie && consent && (!f.referee_phone || /^0\d{8,9}$/.test(refPhone)) && quiz.every(x => x !== null)
   const up = async (bucket: string, uid: string, name: string, file: File) => {
     const path = `${uid}/${name}-${crypto.randomUUID()}.${DOC_TYPES[file.type]}`
     const r = await sb.storage.from(bucket).upload(path, file, { contentType: file.type }); if (r.error) throw r.error
@@ -312,7 +356,7 @@ export function MaidApply() {
         full_name: f.full_name.trim(), phone, line_id: f.line_id.trim() || null, birth_date: f.birth_date,
         experience_years: f.experience_years === '' ? null : Number(f.experience_years), experience_note: f.experience_note.trim() || null,
         applied_services: svc, available_days: days, available_times: times, service_districts: [...new Set([f.district_id, ...areas])],
-        referee_name: f.referee_name.trim() || null, referee_phone: refPhone || null, id_card_path, selfie_path, conduct_cert_path, consent_at: new Date().toISOString(),
+        referee_name: f.referee_name.trim() || null, referee_phone: refPhone || null, id_card_path, selfie_path, conduct_cert_path, consent_at: new Date().toISOString(), quiz_answers: quiz,
       })
       if (error) throw error
       setDone(true)
@@ -327,6 +371,8 @@ export function MaidApply() {
     {done ? <div className="pad mt20"><div className="ok-note"><Icon n="check" />{t('m_wait')}</div><button className="btn b-ghost mt16" onClick={() => nav('/')}>{t('tab_home')}</button></div> :
       <div className="pad mt16 stack"><header className="join-banner"><div><h2>{th ? 'ร่วมงานกับ CleenDee' : 'Work with CleenDee'}</h2><p>{t('m_apply_d')}</p></div><img src={maidPortrait} alt="" /></header>
         <p className="admin-hint">{th ? 'ช่อง * จำเป็นต้องกรอก ใช้เวลาประมาณ 5 นาที เตรียมบัตรประชาชนและสมุดบัญชีไว้ได้เลย' : 'Fields marked * are required. About 5 minutes — have your ID card and bank details ready.'}</p>
+        <IncomeEstimate />
+        <div className="join-steps">{(th ? ['กรอกใบสมัครและทำแบบทดสอบ', 'แอดมินตรวจบัตรและประวัติ', 'ทดลองงานแรก', 'ได้รีวิว 4 ดาวขึ้นไป = เป็นแม่บ้านเต็มตัว'] : ['Apply and take the quiz', 'We check your ID and background', 'Do your first trial job', 'A 4-star review or better makes you a full helper']).map((x, i) => <div key={i}><b>{i + 1}</b><span>{x}</span></div>)}</div>
 
         <section className="card apply-sec"><h3>{th ? '1. ข้อมูลส่วนตัว' : '1. About you'}</h3><div className="apply-grid">
           {text('full_name', th ? 'ชื่อ-นามสกุลจริง' : 'Full name', { req: true, ph: th ? 'ตามบัตรประชาชน' : 'As on ID card' })}
@@ -377,11 +423,17 @@ export function MaidApply() {
           {text('bank_account', t('m_bank_acc'), { req: true, mode: 'numeric' })}
         </div></section>
 
+        <section className="card apply-sec"><h3>{th ? '7. แบบทดสอบความรู้พื้นฐาน' : '7. Basic knowledge quiz'}{star}</h3>
+          <p className="admin-hint" style={{ margin: 0 }}>{th ? 'ต้องตอบถูกอย่างน้อย 4 ใน 5 ข้อ' : 'Answer at least 4 of 5 correctly'}</p>
+          {QUIZ.map(([qt, qe, opts], i) => <fieldset key={i} className="quiz-q"><legend>{i + 1}. {th ? qt : qe}</legend>
+            {opts.map(([ot, oe], j) => <label key={j} className={'quiz-opt' + (quiz[i] === j ? ' on' : '')}><input type="radio" name={'q' + i} checked={quiz[i] === j} onChange={() => setQuiz(quiz.map((x, k) => k === i ? j : x))} /><span>{th ? ot : oe}</span></label>)}</fieldset>)}
+        </section>
+
         <label className="row" style={{ alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}><input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} style={{ width: 22, height: 22, marginTop: 3, flex: 'none' }} />
           <span className="small">{th ? 'ข้าพเจ้ายืนยันว่าข้อมูลเป็นความจริง ยินยอมให้ CleenDee เก็บและใช้ข้อมูลส่วนบุคคลและเอกสารนี้เพื่อตรวจสอบตัวตนและประวัติก่อนอนุมัติ และให้ติดต่อผู้แนะนำที่ระบุไว้' : 'I confirm the information is true and consent to CleenDee storing and using my personal data and documents to verify my identity and background, and to contacting the reference listed.'}{star}</span></label>
         {err && <div className="err" role="alert">{err}</div>}
         <button className="btn b-sun" disabled={!ok || busy} onClick={submit}>{busy ? (th ? 'กำลังส่งใบสมัคร…' : 'Submitting…') : t('m_submit')}</button>
-        {!ok && <small className="muted" style={{ textAlign: 'center' }}>{th ? 'กรอกช่อง * ให้ครบ แนบรูปบัตรและเซลฟี่ และติ๊กยอมรับ จึงจะส่งได้' : 'Complete the * fields, attach ID and selfie, and accept to submit.'}</small>}
+        {!ok && <small className="muted" style={{ textAlign: 'center' }}>{th ? 'กรอกช่อง * ให้ครบ แนบรูปบัตรและเซลฟี่ ตอบแบบทดสอบทุกข้อ และติ๊กยอมรับ จึงจะส่งได้' : 'Complete the * fields, attach ID and selfie, answer every quiz question, and accept to submit.'}</small>}
       </div>}
   </div>
 }
