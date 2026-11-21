@@ -7,6 +7,8 @@ import './styles.css'
 import './premium.css'
 import './desktop.css'
 import './desktop-shell.css'
+import './desktop-home.css'
+import './desktop-pages.css'
 import App from './App'
 import { registerServiceWorker } from './lib/notify'
 
