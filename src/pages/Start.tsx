@@ -14,6 +14,7 @@ import { CountUp, greetKey } from '../lib/fx'
 import { useMaidsLoad, useBlockedMaids } from './Book'
 import imgHero from '../assets/ill/hero.webp'
 import { PromoArt } from '../components/BrandArt'
+import { RewardsCard } from '../components/Rewards'
 import imgClean from '../assets/ill/cleaning.webp'
 import imgSched from '../assets/ill/schedule.webp'
 import imgSafe from '../assets/ill/safety.webp'
@@ -193,7 +194,7 @@ export function Home() {
       </div>
       <aside className="hg-side">
         {profile ? <div className="pad"><div className="sec-title">{t('my_points')}</div>
-          <button className="kpi lux-kpi" onClick={() => nav('/account')}><div className="small">{t('my_points')}</div><div className="v"><CountUp value={profile.points} /> {t('points')}</div><div className="small mt8">{t('points_rule')}</div></button></div>
+          {profile.role === 'customer' ? <RewardsCard points={profile.points} onClick={() => nav('/account')} /> : <button className="kpi lux-kpi" onClick={() => nav('/account')}><div className="small">{t('my_points')}</div><div className="v"><CountUp value={profile.points} /> {t('points')}</div><div className="small mt8">{t('points_rule')}</div></button>}</div>
           : <div className="pad mt20"><div className="card guestcard col"><b className="disp">{t('lw_book')}</b><Link to="/login" className="btn b-ocean">{t('login')} / {t('signup')}</Link></div></div>}
         <div className="pad"><div className="between"><div className="sec-title">{t('top_maids')}</div><Link to="/book" className="link">{t('see_all')}</Link></div>
           <div className="stack">{(maids || []).slice(0, 3).map(m => <Link key={m.id} to={'/maid-profile/' + m.id} className="mcard" style={{ color: 'var(--ink)' }}>
