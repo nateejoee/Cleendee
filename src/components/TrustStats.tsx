@@ -13,7 +13,7 @@ export function TrustStats({ desk = false }: { desk?: boolean }) {
   if (!s || s.jobs_done < s.min_jobs || s.jobs_done === 0) return null
   const items: [string, string, string][] = [
     ['home', money(s.jobs_done) + '+', th ? 'บ้านที่ทำความสะอาดแล้ว' : 'homes cleaned'],
-    ...(s.avg_rating && s.review_count ? [['star', String(s.avg_rating), th ? `คะแนนเฉลี่ยจาก ${money(s.review_count)} รีวิว` : `avg from ${money(s.review_count)} reviews`] as [string, string, string]] : []),
+    ...(s.avg_rating && s.review_count ? [['star', String(s.avg_rating), th ? `คะแนนเฉลี่ยจาก ${money(s.review_count)} รีวิว` : `average from ${money(s.review_count)} reviews`] as [string, string, string]] : []),
     ['team', money(s.maids), th ? 'แม่บ้านตรวจประวัติแล้ว' : 'verified helpers'],
   ]
   return <section className={'tstats' + (desk ? ' desk' : '')} aria-label={th ? 'ตัวเลขของคลีนดี' : 'CleenDee in numbers'}>

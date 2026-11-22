@@ -12,8 +12,10 @@ import './desktop-pages.css'
 import App from './App'
 import { registerServiceWorker } from './lib/notify'
 import { startReveal } from './lib/reveal'
+import { startThaiWrap } from './lib/thaiWrap'
 
 registerServiceWorker()
 startReveal()
+startThaiWrap() // ไม่ตัดบรรทัดกลางคำไทยทั้งเว็บ
 
 createRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>)
