@@ -280,8 +280,8 @@ export function Service() {
   const inc = lang === 'th' ? s.included_th : s.included_en, exc = lang === 'th' ? s.excluded_th : s.excluded_en
   const ben = [['clock', t('ben1'), t('ben1d')], ['wallet', t('ben2'), t('ben2d')], ['check', t('ben3'), t('ben3d')], ['shield', t('ben4'), t('ben4d')]]
   return <div className="page nobar">
-    {/* รูปบริการเป็นสี่เหลี่ยมจัตุรัส: แสดงเต็มรูป ไม่ครอป จอกว้างวางกลางแล้วเติมพื้นหลังด้วยรูปเดียวกันแบบเบลอ */}
-    <div className="svc-hero" style={{ ['--bg' as string]: `url(${serviceImage(s.code)})` }}>
+    {/* รูปบริการเต็มความกว้าง (ดู .svc-hero) */}
+    <div className="svc-hero">
       <img src={serviceImage(s.code)} alt="" />
       <button className="back" onClick={() => nav(-1)} style={{ position: 'absolute', top: 14, left: 14, background: '#fff' }} aria-label="Back"><Icon n="back" /></button>
     </div>
