@@ -75,7 +75,7 @@ function ProfileForm({ profile, session }: { profile: Profile; session: Session 
     <div className="pad mt16 stack pf">
       <div className="pf-photo-wrap">
         <label className="pf-photo" aria-label={t('pf_change_photo')}>
-          <Avatar name={name || 'C'} url={avatar} seed={uid} size={104} />
+          <Avatar name={name || 'C'} url={avatar} seed={uid} size={104} kind={profile?.role === 'maid' ? 'helper' : 'user'} gender={profile?.gender} />
           <span className="pf-cam">{photoBusy ? <span className="lp-spin" /> : <Icon n="camera" size={18} />}</span>
           <input type="file" accept="image/*" disabled={photoBusy} onChange={e => { void pick(e.target.files?.[0]); e.target.value = '' }} />
         </label>

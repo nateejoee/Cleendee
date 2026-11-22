@@ -20,7 +20,7 @@ export function MaidCard({ m, area }: { m: Maid & Partial<Rating>; area?: string
   const checked = m.background_checked || m.id_verified
   return <Link to={'/maid-profile/' + m.id} className="mc2">
     <span className={'mc2-ph' + (m.photo_url ? '' : ' sil')}>
-      {m.photo_url ? <img src={m.photo_url} alt="" loading="lazy" /> : <MaidSilhouette seed={m.id} />}
+      {m.photo_url ? <img src={m.photo_url} alt="" loading="lazy" /> : <MaidSilhouette seed={m.id} gender={m.gender} />}
       {checked && <span className="mc2-ok"><Icon n="shield" size={13} />{th ? 'ตรวจประวัติแล้ว' : 'Verified'}</span>}
     </span>
     <span className="mc2-body">

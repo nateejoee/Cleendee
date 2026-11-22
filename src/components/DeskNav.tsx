@@ -65,7 +65,7 @@ function UserMenu() {
   }
   return <div className="dk-user" ref={wrap}>
     <button ref={btn} className="dk-user-btn" aria-haspopup="menu" aria-expanded={open} aria-label={t('dk_menu')} onClick={() => setOpen(!open)}>
-      <Avatar name={name || '?'} url={profile?.avatar_url} seed={profile?.id} size={34} />
+      <Avatar name={name || '?'} url={profile?.avatar_url} seed={profile?.id} size={34} kind={profile?.role === 'maid' ? 'helper' : 'user'} gender={profile?.gender} />
       <span className="dk-user-name">{first}</span>
       <svg className="dk-caret" viewBox="0 0 24 24" aria-hidden><path d="M6 9l6 6 6-6" /></svg>
     </button>

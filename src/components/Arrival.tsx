@@ -62,7 +62,7 @@ export function Arrival({ booking, helper, side, reload }: Props) {
   }
   return <section className="cd-help card">
     <h2>{customer ? (th ? 'ยืนยันแม่บ้านที่มาถึง' : 'Verify your arriving helper') : (th ? 'ยืนยันก่อนเริ่มงาน' : 'Arrival check-in')}</h2>
-    {customer && helper && <div className="row"><Avatar name={helper.nickname} seed={helper.id} url={helper.photo_url} size={54} /><b>{helper.nickname}</b></div>}
+    {customer && helper && <div className="row"><Avatar name={helper.nickname} seed={helper.id} url={helper.photo_url} size={54} kind="helper" gender={(helper as { gender?: string | null }).gender} /><b>{helper.nickname}</b></div>}
     {!info ? <div role="status">{th ? 'กำลังตรวจสถานะนัด' : 'Checking appointment status'} · <button className="link" onClick={() => setRevision(n => n+1)}>{th ? 'โหลดใหม่' : 'Reload'}</button></div>
       : customer ? <>
         {info.key_allowed ? <p>{th ? 'คุณอนุญาตให้แม่บ้านที่ระบุเริ่มงานด้วยกุญแจสำหรับนัดนี้แล้ว' : 'You have authorised this helper to start this visit using the key.'}</p>

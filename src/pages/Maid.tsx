@@ -34,9 +34,9 @@ function useMaidData() {
 }
 
 // รูปโปรไฟล์ในหน้าแรกของแม่บ้าน: แตะเพื่อไปหน้าโปรไฟล์ (เปลี่ยนรูปต้องส่งคำขอให้แอดมินอนุมัติ)
-function MaidPhoto({ id, name, url }: { id: string; name: string; url: string | null }) {
+function MaidPhoto({ id, name, url, gender }: { id: string; name: string; url: string | null; gender?: string | null }) {
   const { t } = useI18n()
-  return <Link to="/maid/profile" className="photo-control" style={{ color: '#fff' }}><Avatar name={name} url={url} seed={id} size={54} /><span>{t('edit_profile')}</span></Link>
+  return <Link to="/maid/profile" className="photo-control" style={{ color: '#fff' }}><Avatar name={name} url={url} seed={id} size={54} kind="helper" gender={gender} /><span>{t('edit_profile')}</span></Link>
 }
 
 export function MaidHome() {
@@ -53,7 +53,7 @@ export function MaidHome() {
   const dn = (id: number) => { const d = districts.find(x => x.id === id); return d ? (lang === 'th' ? 'อ.' + d.name_th : d.name_en) : '' }
   const act = async (fn: string, args: object) => { const { error } = await sb.rpc(fn, args); if (error) toast.show(friendly(error, lang)); reload() }
   return <div className="page">
-    <div className="hero tall"><div className="between"><span className="sub">{t('hello')}</span><span className="hdr-tools"><Bell /><LangToggle /></span></div><div className="between"><h1>{nick || profile?.full_name}</h1>{profile?.role === 'maid' && <MaidPhoto id={profile.id} name={nick || profile.full_name || 'C'} url={photo} />}</div></div>
+    <div className="hero tall"><div className="between"><span className="sub">{t('hello')}</span><span className="hdr-tools"><Bell /><LangToggle /></span></div><div className="between"><h1>{nick || profile?.full_name}</h1>{profile?.role === 'maid' && <MaidPhoto id={profile.id} name={nick || profile.full_name || 'C'} url={photo} gender={profile.gender} />}</div></div>
     <div className="pad" style={{ marginTop: -50, position: 'relative', zIndex: 2 }}><div className="earn"><div><span>{t('m_month')}</span><b>{money(earned)} ฿</b></div><div style={{ background: 'var(--sun)' }}><span style={{ color: 'var(--ink)' }}>{t('m_pending')}</span><b>{money(pending)} ฿</b></div></div></div>
     <div className="pad mt16 stack">
       {profile?.role === 'maid' && <LineLink />}

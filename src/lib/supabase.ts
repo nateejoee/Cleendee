@@ -19,7 +19,7 @@ export type MaidChangeRequest = {
   status: 'pending' | 'approved' | 'rejected' | 'cancelled'; admin_note: string | null; created_at: string; decided_at: string | null
 }
 export type District = { id: number; province_code: string; name_th: string; name_en: string; active: boolean }
-export type Maid = { id: string; nickname: string; bio: string | null; photo_url: string | null; status: string; district_id: number | null; id_verified: boolean; background_checked: boolean; services?: string[] }
+export type Maid = { id: string; nickname: string; bio: string | null; photo_url: string | null; status: string; district_id: number | null; id_verified: boolean; background_checked: boolean; services?: string[]; gender?: string | null }
 export type Rating = { maid_id: string; avg_rating: number | null; review_count: number; jobs_done: number }
 export type BookingStatus = 'pending_payment' | 'payment_review' | 'awaiting_maid' | 'confirmed' | 'on_the_way' | 'working' | 'completed' | 'cancelled_by_customer' | 'refunded_no_maid' | 'payment_rejected'
 export type Booking = {

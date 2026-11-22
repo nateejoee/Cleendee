@@ -24,7 +24,7 @@ export function useMaidsLoad() {
   const [maids, setMaids] = useState<(Maid & Partial<Rating>)[] | null>(null)
   const [failed, setFailed] = useState(false); const [attempt, setAttempt] = useState(0)
   useEffect(() => {
-    Promise.all([sb.from('maids').select('id,nickname,bio,photo_url,status,district_id,id_verified,background_checked,services').eq('status', 'approved'), sb.rpc('maid_ratings')]).then(([m, r]) => {
+    Promise.all([sb.from('maids').select('id,nickname,bio,photo_url,status,district_id,id_verified,background_checked,services,gender').eq('status', 'approved'), sb.rpc('maid_ratings')]).then(([m, r]) => {
       const rr = new Map(((r.data as Rating[]) || []).map(x => [x.maid_id, x]))
       setFailed(!!m.error)
       setMaids(((m.data as Maid[]) || []).map(x => ({ ...x, ...rr.get(x.id) })).sort((a, b) => (b.avg_rating ?? 0) - (a.avg_rating ?? 0)))
@@ -67,8 +67,8 @@ function bookingQuantity(draft: Draft, service: Service | undefined) {
 
 function HelperAvatar({ maid, size = 44 }: { maid: Maid; size?: number }) {
   return maid.photo_url
-    ? <Avatar name={maid.nickname} url={maid.photo_url} seed={maid.id} size={size} />
-    : <span className="booking-avatar-fallback sil" style={{ width: size, height: size }} aria-hidden="true"><MaidSilhouette seed={maid.id} round /></span>
+    ? <Avatar name={maid.nickname} url={maid.photo_url} seed={maid.id} size={size} kind="helper" gender={maid.gender} />
+    : <span className="booking-avatar-fallback sil" style={{ width: size, height: size }} aria-hidden="true"><MaidSilhouette seed={maid.id} round gender={maid.gender} /></span>
 }
 
 const SelectedAddress = createContext<{ address: string; change: () => void }>({ address: '', change: () => {} })

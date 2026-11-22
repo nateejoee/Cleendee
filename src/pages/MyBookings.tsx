@@ -39,7 +39,7 @@ export function useMyBookings() {
 }
 
 // แม่บ้านของการจองของฉันทุกคน (รวมคนที่ถูกระงับแล้ว) ใช้แสดงชื่อ/รูปในงานเดิม
-type Helper = Pick<Maid, 'id' | 'nickname' | 'photo_url'>
+type Helper = Pick<Maid, 'id' | 'nickname' | 'photo_url' | 'gender'>
 function useBookingHelpers() {
   const { session } = useAuth(); const [h, setH] = useState<Helper[]>([])
   useEffect(() => { if (session) sb.rpc('my_booking_helpers').then(({ data }) => setH((data as Helper[]) || [])) }, [session])
@@ -170,7 +170,7 @@ export function BookingDetail() {
   const elArrival = b.maid_id && ['confirmed','on_the_way'].includes(b.status) && <Arrival key={b.id} booking={b} helper={m} side="customer" reload={load} />
   const elTrack = b.status === 'on_the_way' && <Track bookingId={b.id} home={addr?.lat && addr?.lng ? [addr.lat, addr.lng] : null} />
   const elTicket = <div className="ticket">
-        <div className="between"><StatusPill s={b.status} />{m && <Avatar name={m.nickname} seed={m.id} url={m.photo_url} size={40} />}</div>
+        <div className="between"><StatusPill s={b.status} />{m && <Avatar name={m.nickname} seed={m.id} url={m.photo_url} size={40} kind="helper" gender={m.gender} />}</div>
         <div className="when mt8">{fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}–{fmtTime(b.end_at)}</div>
         <div>{m ? m.nickname : t('s_awaiting_maid')} · {svcName(svc, lang)} {b.qty ?? ''} {svcUnit(svc, lang)}</div>
         {step >= 0 && <><div className="prog mt12">{[0, 1, 2, 3].map(i => <span key={i} style={{ display: 'contents' }}>{i > 0 && <span className={'ln' + (i <= step ? '' : ' off')} />}<span className={'dot' + (i <= step ? '' : ' off')}>{i <= step && <Icon n="check" size={13} />}</span></span>)}</div>
@@ -179,7 +179,7 @@ export function BookingDetail() {
   const elTeam = ts && <div className="card team-card"><div className="sec-title" style={{ margin: 0 }}>{th ? 'แม่บ้านในงานนี้ (2 คน)' : 'Helpers on this job (2)'}</div>
         {team.map((r, i) => { const h: Helper | undefined = helpers.find(x => x.id === r.maid_id) ?? maids?.find(x => x.id === r.maid_id)
           return <Link key={r.id} to={'/bookings/' + r.id} className={'team-row' + (r.id === b.id ? ' on' : '')} aria-current={r.id === b.id ? 'page' : undefined}>
-            {h ? <Avatar name={h.nickname} seed={h.id} url={h.photo_url} size={36} /> : <span className="rico"><Icon n="team" /></span>}
+            {h ? <Avatar name={h.nickname} seed={h.id} url={h.photo_url} size={36} kind="helper" gender={h.gender} /> : <span className="rico"><Icon n="team" /></span>}
             <span style={{ flex: 1, minWidth: 0 }}><b>{(th ? 'คนที่ ' : 'Helper ') + (i + 1)}: {h ? h.nickname : t('s_awaiting_maid')}</b>{r.id !== b.id && <span className="small muted">{th ? 'แตะเพื่อดูสถานะ แชท และการเดินทาง' : 'Tap for status, chat and arrival'}</span>}</span>
             <StatusPill s={r.status} /></Link> })}</div>
   const elPay = (b.status === 'pending_payment' || b.status === 'payment_rejected') && <button className="btn b-sun" onClick={() => nav(b.package_id ? '/pay/package/' + b.package_id : '/pay/booking/' + (b.team_id ?? b.id))}>{t('pay_title')} {money(ts ? ts.total : b.total_price)} {t('baht')}</button>
@@ -388,7 +388,7 @@ export function Messages() {
       {rows.length === 0
         ? <div className="msx-empty ntf-empty"><QuietChat /><b>{th ? 'ยังไม่มีแชทกับแม่บ้าน' : 'No helper chats yet'}</b><small>{th ? 'แชทจะขึ้นที่นี่เมื่อจองและได้แม่บ้านแล้ว' : 'Chats appear here once your booking has a helper'}</small></div>
         : <div className="msx-list">{rows.map(b => { const m = helpers.find(x => x.id === b.maid_id) ?? maids?.find(x => x.id === b.maid_id)
-          return <Link key={b.id} to={'/bookings/' + b.id} className="msx-row">{m && <Avatar name={m.nickname} seed={m.id} size={46} />}
+          return <Link key={b.id} to={'/bookings/' + b.id} className="msx-row">{m && <Avatar name={m.nickname} seed={m.id} url={m.photo_url} size={46} kind="helper" gender={m.gender} />}
             <span className="msx-row-main"><b>{m?.nickname}</b><small>{fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}</small></span><StatusPill s={b.status} /></Link> })}</div>}
     </div></>}
     <CustomerTabs /></div>
@@ -417,7 +417,7 @@ export function Account() {
     <Link to="/privacy" className="listrow" style={{ color: 'var(--ink)' }}><span className="rico"><Icon n="shield" /></span><b style={{ flex: 1 }}>Privacy</b><Icon n="next" /></Link>
     <CustomerTabs /></div>
   return <div className="page">
-    <div className={'hero' + (isCustomer ? ' tall' : '')}><Link to="/account/profile" className="acc-head" aria-label={t('edit_profile')}><Avatar name={profile?.full_name || 'C'} url={profile?.avatar_url} size={58} seed={session.user.id} />
+    <div className={'hero' + (isCustomer ? ' tall' : '')}><Link to="/account/profile" className="acc-head" aria-label={t('edit_profile')}><Avatar name={profile?.full_name || 'C'} url={profile?.avatar_url} size={58} seed={session.user.id} kind={profile?.role === 'maid' ? 'helper' : 'user'} gender={profile?.gender} />
       <div style={{ minWidth: 0 }}><h1 style={{ fontSize: 21 }}>{profile?.full_name}</h1><div className="sub">{session.user.email}</div><span className="acc-edit">{t('edit_profile')} <Icon n="next" size={14} /></span></div></Link></div>
     {isCustomer && <div className="pad" style={{ marginTop: -54, position: 'relative', zIndex: 2 }}><RewardsCard points={profile?.points ?? 0} name={profile?.full_name} since={profile?.created_at} onClick={() => nav('/account/rewards')} /></div>}
     <div className="mt16">
@@ -461,6 +461,6 @@ export function Favorites() {
   const ids = [...new Set((list || []).filter(b => b.status === 'completed' && b.maid_id && !blocked.includes(b.maid_id)).map(b => b.maid_id!))]
   return <div className="page nobar dp-sub dp-favs"><TopBar title={t('favorites')} />
     <div className="mt12">{ids.length === 0 ? <div className="pad"><Empty art="heart" title={t('nothing')} sub={t('e_fav_sub')} /></div> : ids.map(id => { const m = maids?.find(x => x.id === id); if (!m) return null
-      return <div key={id} className="listrow"><Avatar name={m.nickname} seed={m.id} size={44} /><b style={{ flex: 1 }}>{m.nickname}</b>
+      return <div key={id} className="listrow"><Avatar name={m.nickname} seed={m.id} url={m.photo_url} size={44} kind="helper" gender={m.gender} /><b style={{ flex: 1 }}>{m.nickname}</b>
         <button className="btn b-ghost sm" onClick={() => { setDraft({ maidId:null, plan:'once', hour:null }); setAutoPicked(null); nav('/book?helper=' + encodeURIComponent(id)) }}>{t('s_rebook').replace('\n', ' ')}</button></div> })}</div></div>
 }

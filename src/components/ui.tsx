@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { placeholderImg, type PersonKind } from '../lib/placeholders'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useI18n, type Key } from '../lib/i18n'
 import type { BookingStatus, District } from '../lib/supabase'
@@ -47,8 +48,10 @@ export function Logo({ white = false, h = 34 }: { white?: boolean; h?: number })
 }
 
 const COLORS = ['#E9967A,#C9674A', '#7DB3D6,#3F7DAA', '#9FCB9B,#4C9A6A', '#E8C26A,#C08E1F', '#B79FD6,#7B5BAA']
-export function Avatar({ name, url, size = 48, seed = '' }: { name: string; url?: string | null; size?: number; seed?: string }) {
+// รูปโปรไฟล์: ถ้าไม่มีรูปและบอก kind มา ใช้ภาพเงาพรีเมี่ยม (แม่บ้าน/ช่าง หรือ ลูกค้า แยกชาย/หญิง) แทนตัวอักษรย่อ
+export function Avatar({ name, url, size = 48, seed = '', kind, gender }: { name: string; url?: string | null; size?: number; seed?: string; kind?: PersonKind; gender?: string | null }) {
   const i = [...(seed || name)].reduce((a, c) => a + c.charCodeAt(0), 0) % COLORS.length
+  if (!url && kind) return <div className="avatar ph" style={{ width: size, height: size }}><img src={placeholderImg(kind, gender)} alt="" /></div>
   return <div className="avatar" style={{ width: size, height: size, fontSize: size * 0.4, background: `linear-gradient(140deg,${COLORS[i]})` }}>
     {url ? <img src={url} alt="" /> : name.slice(0, 1)}</div>
 }
