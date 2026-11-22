@@ -1,4 +1,5 @@
 import { FunnelReport } from '../components/FunnelReport'
+import { DateField } from '../components/DateField'
 import { LineLink } from '../components/LineLink'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
@@ -498,7 +499,7 @@ function PromoEditor({ toast }: { toast: (m: string) => void }) {
         <div className="field" style={{ flex: 1 }}><label>{t('a_kind')}</label><select className="input" value={f.kind} onChange={e => setF({ ...f, kind: e.target.value as 'amount' | 'percent' })}><option value="amount">{t('baht')}</option><option value="percent">%</option></select></div></div>
       <div className="row" style={{ flexWrap: 'wrap' }}><Num label={t('a_value')} v={f.value} on={v => setF({ ...f, value: v })} />{f.kind === 'percent' && <Num label={t('a_max_disc')} v={f.max_discount} on={v => setF({ ...f, max_discount: v })} />}
         <Num label={t('a_min_total')} v={f.min_total} on={v => setF({ ...f, min_total: v })} /><Num label={t('a_max_uses')} v={f.max_uses} on={v => setF({ ...f, max_uses: v })} /></div>
-      <div className="field"><label>{t('a_ends')}</label><input className="input" type="date" value={f.ends} onChange={e => setF({ ...f, ends: e.target.value })} /></div>
+      <div className="field"><label>{t('a_ends')}</label><DateField clearable placeholder={lang === 'th' ? 'ไม่มีวันหมดอายุ' : 'No end date'} value={f.ends} onChange={v => setF({ ...f, ends: v })} /></div>
       <button className="btn b-ocean" disabled={!f.code || !Number(f.value)} onClick={async () => { if (await put({ code: f.code, kind: f.kind, value: Number(f.value), max_discount: n(f.max_discount), min_total: Number(f.min_total || 0), max_uses: n(f.max_uses), once: true, ends: f.ends ? f.ends + 'T23:59:59+07:00' : null, active: true })) setF({ ...f, code: '' }) }}>{t('a_add_promo')}</button>
     </div>
     {!rows ? <Loading /> : rows.map(r => <div key={r.code} className="card between mt8"><span><b className="disp">{r.code}</b> <span className="small muted">{r.kind === 'amount' ? `−${money(r.value)} ${t('baht')}` : `−${r.value}%`} · {t('a_used')} {r.used_count}{r.max_uses ? '/' + r.max_uses : ''}{r.ends_at ? ' · ' + t('a_until') + ' ' + fmtDate(r.ends_at, lang) : ''}</span></span>

@@ -208,3 +208,5 @@
 .policy-editor-preview { display: block; width: min(100%, 315px); max-height: 190px; object-fit: cover; border-radius: 12px; }
 .policy-editor-file { max-width: 100%; overflow: hidden; }
 .policy-editor-hint { font-size: .8125rem; color: var(--ink2); overflow-wrap: anywhere; }
+/* ช่องวันที่ (ปฏิทิน) ในตัวแก้ไขหน้า ให้ระยะเท่ากับ label อื่น */
+.policy-editor-date { display: grid; gap: 4px; min-width: 0; font-size: .9375rem; margin: 8px 0; }

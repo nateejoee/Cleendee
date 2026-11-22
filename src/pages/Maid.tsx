@@ -1,4 +1,5 @@
 import { Arrival } from '../components/Arrival'
+import { DateField } from '../components/DateField'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { sb, friendly, type Booking } from '../lib/supabase'
@@ -371,7 +372,7 @@ export function MaidApply() {
           {text('phone', th ? 'เบอร์โทรศัพท์' : 'Phone number', { req: true, type: 'tel', mode: 'tel', ph: '08xxxxxxxx' })}
           {text('line_id', 'LINE ID')}
           <div className="field"><label>{th ? 'วันเกิด (อายุ 18 ปีขึ้นไป)' : 'Date of birth (18+)'}{star}</label>
-            <input className="input" type="date" min="1930-01-01" max={adultBefore.toISOString().slice(0, 10)} value={f.birth_date} onChange={set('birth_date')} />
+            <DateField min="1930-01-01" max={adultBefore.toISOString().slice(0, 10)} openAt="1990-01-01" value={f.birth_date} onChange={v => set('birth_date')({ target: { value: v } })} invalid={!!f.birth_date && !adult} />
             {f.birth_date && !adult && <small role="alert" style={{ color: 'var(--brick)' }}>{th ? 'ผู้สมัครต้องมีอายุ 18 ปีขึ้นไป' : 'Applicants must be 18 or older'}</small>}</div>
           <FileField label={th ? 'รูปโปรไฟล์' : 'Profile photo'} cta={th ? 'แนบรูปหน้าตรง' : 'Add photo'} file={photo} onFile={setPhoto} accept="image/jpeg,image/png,image/webp" />
         </div></section>

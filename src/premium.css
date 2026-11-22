@@ -335,3 +335,50 @@ button.memcard{width:100%;text-align:left}
 .maid-sil{display:block;width:100%;height:100%}
 .booking-avatar-fallback.sil{overflow:hidden;padding:0;flex:none}
 .mc2-ph.sil::after{display:none}
+/* ===== ช่องเลือกวันที่แบบปฏิทิน (DateField) ===== */
+.dfield{position:relative}
+.dfield-btn{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;cursor:pointer;font:inherit;color:var(--ink)}
+.dfield-btn.empty span:first-child{color:var(--ink3)}
+.dfield-ic{flex:none;display:grid;place-items:center;width:32px;height:32px;margin:-4px -6px -4px 0;border-radius:10px;background:var(--foam);color:var(--ocean)}
+.dfield.open .dfield-btn{border-color:var(--ocean);box-shadow:0 0 0 3px rgba(34,53,94,.12)}
+.dfield-scrim{display:none}
+.dpick{position:absolute;z-index:60;top:calc(100% + 8px);left:0;width:min(340px,92vw);padding:14px 14px 10px;background:var(--card);border:1px solid var(--hair,var(--line));border-radius:22px;box-shadow:0 18px 50px rgba(15,25,45,.18),0 2px 8px rgba(15,25,45,.06);animation:dpIn .16s ease-out}
+.dpick.up{top:auto;bottom:calc(100% + 8px);transform-origin:bottom}
+@keyframes dpIn{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}
+.dpick-grab{display:none}
+.dpick-head{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px}
+.dpick-nav{flex:none;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);display:grid;place-items:center;cursor:pointer;transition:background .15s}
+.dpick-nav:hover:not(:disabled){background:var(--foam)}
+.dpick-nav:disabled{opacity:.3;cursor:default}
+.dpick-sel{display:flex;gap:6px;min-width:0}
+.dpick-pill{position:relative;display:block}
+.dpick-pill select{appearance:none;-webkit-appearance:none;border:0;border-radius:99px;background:var(--foam);color:var(--ink);font:inherit;font-weight:700;font-size:15px;padding:7px 26px 7px 12px;cursor:pointer}
+.dpick-pill::after{content:"";position:absolute;right:11px;top:50%;width:6px;height:6px;margin-top:-5px;border-right:2px solid var(--ink2);border-bottom:2px solid var(--ink2);transform:rotate(45deg);pointer-events:none}
+.dpick-pill select:focus-visible{outline:2px solid var(--ocean);outline-offset:2px}
+.dpick-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.dpick-wd{text-align:center;font-size:12px;font-weight:700;color:var(--ink3);padding:4px 0 6px}
+.dpick-wd.we{color:var(--sun)}
+.dpick-d{position:relative;aspect-ratio:1/1;min-height:38px;border:0;border-radius:50%;background:transparent;color:var(--ink);font:inherit;font-size:14.5px;font-weight:600;font-variant-numeric:tabular-nums;cursor:pointer;transition:background .12s,color .12s,transform .12s}
+.dpick-d:hover:not(:disabled):not(.on){background:var(--foam)}
+.dpick-d:active:not(:disabled){transform:scale(.92)}
+.dpick-d:disabled{color:var(--ink3);opacity:.35;cursor:default}
+.dpick-d.today:not(.on){box-shadow:inset 0 0 0 1.5px var(--sun);color:var(--ocean)}
+.dpick-d.today::after{content:"";position:absolute;left:50%;bottom:5px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--sun)}
+.dpick-d.on{background:linear-gradient(150deg,#2B4170,#22355E);color:#fff;box-shadow:0 6px 14px rgba(34,53,94,.3)}
+.dpick-d.on::after{background:#fff}
+.dpick-foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+.dpick-link{border:0;background:none;font:inherit;font-weight:700;font-size:14px;color:var(--ocean);padding:6px 8px;border-radius:10px;cursor:pointer}
+.dpick-link:hover{background:var(--foam)}
+.dpick-link.muted{color:var(--ink2)}
+[data-dark="1"] .dpick-d.on{background:linear-gradient(150deg,#E3C47E,#C9A24D);color:#1B2440}
+[data-dark="1"] .dpick-d.today:not(.on){color:#E3C47E}
+/* มือถือ: เปิดเป็นแผ่นจากด้านล่างจอ พร้อมพื้นหลังมืด */
+@media (max-width:599px){
+  .dfield-scrim{display:block;position:fixed;inset:0;z-index:59;background:rgba(10,18,35,.42);animation:dpFade .2s}
+  .dpick,.dpick.up{position:fixed;top:auto;bottom:0;left:0;right:0;width:auto;border-radius:24px 24px 0 0;padding:8px 18px calc(14px + env(safe-area-inset-bottom));animation:dpSheet .24s cubic-bezier(.2,.8,.2,1)}
+  .dpick-grab{display:block;width:40px;height:4px;border-radius:99px;background:var(--line);margin:2px auto 12px}
+  .dpick-d{min-height:44px;font-size:16px}
+}
+@keyframes dpFade{from{opacity:0}}
+@keyframes dpSheet{from{transform:translateY(100%)}}
+@media (prefers-reduced-motion:reduce){.dpick,.dfield-scrim{animation:none}}

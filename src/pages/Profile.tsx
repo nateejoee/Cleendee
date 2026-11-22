@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { DateField } from '../components/DateField'
 import { useNavigate } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
 import { sb, friendly, type Gender, type MaidChangeRequest, type Profile } from '../lib/supabase'
@@ -91,7 +92,7 @@ function ProfileForm({ profile, session }: { profile: Profile; session: Session 
           <input id="pf-email" className="input" type="email" inputMode="email" autoComplete="email" maxLength={254} placeholder={session.user.email ?? 'name@example.com'} value={f.contact_email} onChange={set('contact_email')} aria-invalid={!!show('contact_email')} />
           {show('contact_email') ? <FieldErr msg={show('contact_email')} /> : <small className="muted">{t('pf_contact_email_d')}</small>}</div>
         <div className="field"><label htmlFor="pf-birth">{t('pf_birthday')}{opt}</label>
-          <input id="pf-birth" className="input" type="date" min={BIRTH_MIN} max={birthMax} value={f.birth_date} onChange={set('birth_date')} aria-invalid={!!show('birth_date')} /><FieldErr msg={show('birth_date')} /></div>
+          <DateField id="pf-birth" min={BIRTH_MIN} max={birthMax} openAt="1995-01-01" clearable value={f.birth_date} onChange={v => set('birth_date')({ target: { value: v } })} invalid={!!show('birth_date')} /><FieldErr msg={show('birth_date')} /></div>
         <div className="field"><label>{t('pf_gender')}{opt}</label>
           <div className="chips" role="radiogroup" aria-label={t('pf_gender')}>{genders.map(([g, k]) =>
             <button key={g} type="button" role="radio" aria-checked={f.gender === g} className={'chip' + (f.gender === g ? ' on' : '')} onClick={() => setF({ ...f, gender: f.gender === g ? '' : g })}>{t(k)}</button>)}</div></div>

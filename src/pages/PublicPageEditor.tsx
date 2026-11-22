@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { DateField } from '../components/DateField'
 import { Link } from 'react-router-dom'
 import { Loading, Icon } from '../components/ui'
 import { defaultPolicyCopy, policyColumns, policyImageBucket, policyImageLimit, policyImageTypes, policyImageUrl, policyKeys, readPolicy, resolvePolicyCopy, type PolicyCopy, type PolicyKey, type PolicyRecord } from '../lib/publicPages'
@@ -156,7 +157,7 @@ export function PublicPageEditor() {
       </label>
       <p className="policy-editor-hint">{th ? 'JPG, PNG หรือ WebP · ไม่เกิน 5 MB · จะแสดงในหน้าสาธารณะหลังเผยแพร่' : 'JPG, PNG or WebP · up to 5 MB · visible on the public page after publishing.'}</p>
       {(draft.file || draft.imagePath) && <div className="policy-editor-actions"><button className="btn b-line sm" type="button" onClick={() => update({ file: null, imagePath: null })}>{th ? 'ใช้ภาพเริ่มต้น' : 'Use default image'}</button></div>}
-      <label>{th ? 'วันที่ปรับปรุงล่าสุด' : 'Last updated date'}<input className="input" type="date" value={draft.date} onChange={e => update({ date: e.target.value })} /></label>
+      <div className="policy-editor-date"><span>{th ? 'วันที่ปรับปรุงล่าสุด' : 'Last updated date'}</span><DateField value={draft.date} onChange={v => update({ date: v })} /></div>
       {page === 'privacy' && draft.phones.map((phone, index) => <label key={index}>{th ? 'เบอร์ติดต่อ ' : 'Contact number '}{index + 1}
         <input className="input" type="tel" maxLength={22} value={phone} onChange={e => update({ phones: draft.phones.map((value, i) => i === index ? e.target.value : value) })} />
       </label>)}
