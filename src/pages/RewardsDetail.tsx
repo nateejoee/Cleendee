@@ -102,7 +102,14 @@ function TierBenefits({ d, rule }: { d: Tier | null; rule: Rule }) {
     s: th ? `จากปกติ ${money(fees.urgent_fee)} บาท เหลือ ${money(Math.round(fees.urgent_fee * (100 - p.urgent_discount_pct) / 100))} บาท` : `${money(fees.urgent_fee)} → ${money(Math.round(fees.urgent_fee * (100 - p.urgent_discount_pct) / 100))} THB` })
   items.push({ ic: 'shield', t: th ? 'การันตีงาน CleenDee' : 'CleenDee guarantee', s: th ? 'แม่บ้านไม่มาหาคนแทนหรือคืนเงิน · ของเสียหายชดเชย' : 'No-show replacement or refund · damage compensation' })
   return <div className="card rw-tabs-card">
-    <div className="rw-deck" aria-hidden="true">{ORDER.map(k => <span key={k} className={'rw-mini t-' + k + (k === cur ? ' on' : '')}><b>{NAME[k].toUpperCase()}</b></span>)}</div>
+    {/* การ์ด 4 ใบเรียงเฉียงแบบบัตรสมาชิกจริง กดการ์ดเพื่อเปลี่ยนแท็บได้ */}
+    <div className="rw-deck">{ORDER.map((k, i) => <button key={k} type="button" tabIndex={-1} aria-hidden="true" onClick={() => setTab(k)}
+      className={'rw-mini t-' + k + (k === cur ? ' on' : '')} style={{ ['--i' as string]: i }}>
+      <span className="rw-mini-sheen" />
+      <svg className="rw-mini-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.2 12 4l9 7.2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="M6 10v8.5h12V10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /></svg>
+      <b>{NAME[k].toUpperCase()}</b>
+      <span className="rw-mini-brand">CleenDee</span>
+    </button>)}<i className="rw-spark s1" /><i className="rw-spark s2" /><i className="rw-spark s3" /></div>
     <div className="rw-tabs" role="tablist">{ORDER.map(k => <button key={k} role="tab" aria-selected={k === cur} className={k === cur ? 'on' : ''} onClick={() => setTab(k)}>{NAME[k]}</button>)}</div>
     <div className={'rw-status' + (cur === my ? ' me' : rank(cur) > rank(my) ? ' lock' : '')}>{status}</div>
     {!perks ? <Loading /> : <div className="rw-perks">{items.map(x => <div key={x.t} className="rw-perk">
