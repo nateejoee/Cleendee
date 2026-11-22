@@ -14,8 +14,8 @@ import { formatPolicyPhones, policyPhoneHref } from '../lib/publicPages'
    หน้าที่มีแถบเมนูลูกค้า (CustomerTabs) จะ "ลงทะเบียน" ไว้ที่นี่แทนการแสดงเมนูข้าง
    แม่บ้านและแอดมินยังใช้เมนูข้างเหมือนเดิม */
 
-const NAV_ROUTES = ['/guarantee', '/privacy', '/faq'] // หน้าที่ไม่มีแถบเมนู แต่ควรมีเมนูด้านบนบนจอคอม
-const FOOT_ROUTES = ['/', '/home', '/bookings', '/account', '/guarantee', '/privacy', '/faq', '/messages']
+const NAV_ROUTES = ['/guarantee', '/privacy', '/faq', '/terms'] // หน้าที่ไม่มีแถบเมนู แต่ควรมีเมนูด้านบนบนจอคอม
+const FOOT_ROUTES = ['/', '/home', '/bookings', '/account', '/guarantee', '/privacy', '/faq', '/terms', '/messages']
 const SERVICES_ID = 'home-services'
 const YEAR = new Date().getFullYear()
 
@@ -127,7 +127,7 @@ export function DeskFooter() {
   const area = openProvinceNames(provinces, lang)
   const cols: { title: Key; links: [string, Key][] }[] = [
     { title: 'dk_col_svc', links: [['/book', 'dk_book'], ['/#' + SERVICES_ID, 'dk_services'], ['/bookings', 'tab_bookings']] },
-    { title: 'dk_col_about', links: [['/guarantee', 'dk_guarantee'], ['/maid/apply', 'dk_become'], ['/privacy', 'dk_privacy']] },
+    { title: 'dk_col_about', links: [['/guarantee', 'dk_guarantee'], ['/maid/apply', 'dk_become'], ['/terms', 'dk_terms'], ['/privacy', 'dk_privacy']] },
     { title: 'dk_col_help', links: [['/faq', 'dk_faq'], ['/support', 'dk_support'], ['/messages', 'tab_msgs'], ['/account', 'tab_account']] },
   ]
   return <footer className="dk-foot">
@@ -151,7 +151,7 @@ export function DeskFooter() {
       </div>
       <div className="dk-foot-base">
         <span>© {YEAR} CleenDee คลีนดี · {t('dk_rights')}</span>
-        <Link to="/privacy">{t('dk_privacy')}</Link>
+        <span className="dk-foot-legal"><Link to="/terms">{t('dk_terms')}</Link><Link to="/privacy">{t('dk_privacy')}</Link></span>
       </div>
     </div>
   </footer>

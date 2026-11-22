@@ -112,6 +112,9 @@ export function Login() {
           <div className="stack mt16">{SOCIAL.map(s => <button key={s.id} className="btn lg-btn" style={{ background: s.bg, color: s.fg, border: s.bg === '#fff' ? '1.5px solid var(--line)' : 0 }} onClick={() => social(s.id)}>{s.icon}{t('continue_with')} {s.label}</button>)}</div>
           {err && <div className="err mt12">{err}</div>}
           <p className="tiny muted mt16" style={{ textAlign: 'center' }}>{t('login_terms')}</p>
+          {/* แจ้งการยอมรับข้อกำหนดพร้อมลิงก์ (หน้าเว็บที่รับเงินจริงควรมี) */}
+          <p className="tiny muted lg-agree">{th ? <>การเข้าสู่ระบบถือว่าคุณยอมรับ <Link to="/terms">ข้อกำหนดการใช้บริการ</Link> และ <Link to="/privacy">นโยบายความเป็นส่วนตัว</Link></>
+            : <>By continuing you agree to our <Link to="/terms">Terms of service</Link> and <Link to="/privacy">Privacy policy</Link></>}</p>
           <div className="lg-safe"><Icon n="lock" size={14} />{th ? 'เราไม่เห็นรหัสผ่านของคุณ เข้าสู่ระบบผ่าน Google หรือ LINE โดยตรง' : 'We never see your password. You sign in directly with Google or LINE'}</div>
         </div>
         <SiteFooter />

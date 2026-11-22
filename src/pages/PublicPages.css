@@ -226,3 +226,12 @@
 .faq-contact .faq-line { width: auto; min-height: 44px; font-size: .875rem; background: #06C755; color: #fff; border-color: #06C755; }
 .faq-contact .faq-tel { width: auto; min-height: 44px; font-size: .875rem; font-variant-numeric: tabular-nums; background: var(--card); color: var(--policy-ink); border: 1.5px solid var(--line); }
 .faq-contact .faq-tel .ico { color: var(--policy-gold-text); }
+/* หน้าข้อกำหนดการใช้บริการ: หัวข้อเป็นเลขข้อ เนื้อหาเป็นรายการอ่านง่าย */
+.terms-date { margin-top: 10px; font-size: .85rem; opacity: .8; }
+.terms-sec { padding: 18px 0; border-bottom: 1px solid var(--line); }
+.terms-sec:last-of-type { border-bottom: 0; }
+.terms-sec h2 { font-size: 1.08rem; margin: 0 0 8px; }
+.terms-sec p, .terms-sec li { line-height: 1.75; color: var(--ink2); }
+.terms-sec ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+.terms-sec li::marker { color: var(--sun); }
+.terms-link { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; font-weight: 700; color: var(--ocean); }

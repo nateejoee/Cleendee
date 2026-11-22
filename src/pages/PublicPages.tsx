@@ -7,6 +7,7 @@ import { sb } from '../lib/supabase'
 import guaranteeImage from '../assets/ill/safety.webp'
 import privacyImage from '../assets/ill/chumphon.webp'
 import faqImage from '../assets/ill/faq.webp'
+import termsImage from '../assets/ill/schedule.webp'
 import { LINE_OA, LINE_URL, useContactPhones } from '../lib/contact'
 import { openProvinceNames, useProvinces } from '../lib/areas'
 import './PublicPages.css'
@@ -172,6 +173,99 @@ export function Faq() {
         </section>)}
       <footer className="policy-contact faq-contact">
         <h2>{th ? 'ยังมีคำถาม? ติดต่อทีมงาน' : 'Still have questions? Contact us'}</h2>
+        <div>
+          <a className="btn faq-line" href={LINE_URL} target="_blank" rel="noopener noreferrer"><Icon n="chat" size={18} />LINE {LINE_OA}</a>
+          {phones.map(phone => <a className="btn faq-tel" key={phone} href={policyPhoneHref(phone)}><Icon n="phone" size={18} />{formatPolicyPhones([phone], lang)}</a>)}
+        </div>
+      </footer>
+    </article>
+  </main>
+}
+
+// ---------- หน้าข้อกำหนดการใช้บริการ ----------
+// เนื้อหาเขียนตามกติกาที่ระบบใช้จริง: ตัวเลข (ค่าเลือกแม่บ้าน ค่าด่วน เลื่อนนัด เคลม) อ่านจาก settings ชุดเดียวกับหน้า FAQ
+// กติกายกเลิก/คืนเงินตรงกับฟังก์ชัน _customer_cancel_row และตาราง cancellation_rules (24 ชม. คืนเต็ม · 6–24 ชม. คืนครึ่ง · <6 ชม. ไม่คืน)
+const TERMS_UPDATED = '2026-11-23'
+export function Terms() {
+  const { lang, t } = useI18n()
+  const th = lang === 'th'
+  const navigate = useNavigate()
+  const phones = useContactPhones()
+  const area = openProvinceNames(useProvinces(), lang)
+  const [v, setV] = useState<FaqSettings | null>(null)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    sb.from('settings').select(FAQ_COLS).maybeSingle<FaqSettings>().then(({ data, error }) => { setV(data); setFailed(Boolean(error || !data)) })
+  }, [])
+  const m = (n: number) => money(n)
+  const sections: { h: string; p: (string | false)[] }[] = v ? [
+    { h: th ? '1. เกี่ยวกับบริการ' : '1. About the service', p: [
+      th ? `CleenDee คลีนดี เป็นบริการจองแม่บ้านทำความสะอาดออนไลน์ โดยแม่บ้านคนในพื้นที่ที่ผ่านการยืนยันตัวตนและตรวจประวัติแล้ว${area ? ` ปัจจุบันให้บริการใน ${area}` : ''}`
+        : `CleenDee is an online booking service for local, ID-verified and background-checked home cleaners.${area ? ` We currently serve ${area}.` : ''}`,
+      th ? 'เมื่อใช้งานเว็บไซต์หรือจองบริการ ถือว่าคุณได้อ่านและยอมรับข้อกำหนดนี้แล้ว' : 'By using the website or booking a service, you agree to these terms.',
+    ] },
+    { h: th ? '2. บัญชีผู้ใช้' : '2. Your account', p: [
+      th ? 'เข้าสู่ระบบด้วย Google หรือ LINE ครั้งแรกระบบจะสร้างบัญชีให้อัตโนมัติ เราไม่เห็นและไม่เก็บรหัสผ่านของคุณ' : 'Log in with Google or LINE. Your account is created automatically the first time; we never see or store your password.',
+      th ? 'ต้องใส่เบอร์โทรที่ติดต่อได้จริงก่อนจอง และกรอกที่อยู่และหมุดตำแหน่งให้ถูกต้อง เพื่อให้แม่บ้านเดินทางไปถึง' : 'A reachable phone number is required before booking, and your address and map pin must be accurate so the helper can find you.',
+    ] },
+    { h: th ? '3. การจองและราคา' : '3. Booking and prices', p: [
+      th ? 'ระบบแสดงราคารวมทุกรายการก่อนจ่ายเสมอ ไม่มีค่าใช้จ่ายแอบแฝง' : 'You always see the full total before paying, with no hidden fees.',
+      th ? `เลือกแม่บ้านเองมีค่าบริการ ${m(v.choose_maid_fee)} บาท หรือให้ระบบหาแม่บ้านที่ว่างให้โดยไม่มีค่าใช้จ่ายเพิ่ม ถ้าแม่บ้านที่เลือกไม่รับงาน ระบบคืนค่าเลือกให้` : `Choosing your helper costs ${m(v.choose_maid_fee)} THB, or we find one at no extra cost. If your chosen helper declines, this fee is refunded.`,
+      th ? `งานด่วน (เริ่มเร็วสุดใน ${v.urgent_min_lead_minutes} นาที) มีค่าเรียกด่วน ${m(v.urgent_fee)} บาท ระบบแจ้งก่อนจ่ายทุกครั้ง` : `Urgent jobs (from ${v.urgent_min_lead_minutes} minutes ahead) carry a ${m(v.urgent_fee)} THB urgent fee, shown before you pay.`,
+    ] },
+    { h: th ? '4. การชำระเงิน' : '4. Payment', p: [
+      th ? 'ชำระด้วยการสแกน QR พร้อมเพย์และแนบสลิปในหน้าชำระเงิน การจองจะยืนยันเมื่อตรวจสลิปผ่านแล้ว ถ้าตรวจอัตโนมัติไม่ได้ ทีมงานจะตรวจให้' : 'Pay by PromptPay QR and upload your slip. The booking is confirmed once the slip is verified; if automatic checking fails, our team checks it.',
+    ] },
+    { h: th ? '5. การยกเลิกและการคืนเงิน' : '5. Cancellations and refunds', p: [
+      th ? 'ยกเลิกก่อนชำระเงิน หรือระหว่างรอตรวจสลิป: ยกเลิกได้ฟรี' : 'Before paying or while your slip is being checked: free cancellation.',
+      th ? 'ยกเลิกหลังชำระเงินแต่ยังไม่มีแม่บ้านรับงาน: คืนเงินเต็มจำนวน' : 'After paying but before a helper accepts: full refund.',
+      th ? `หลังมีแม่บ้านรับงานแล้ว: ${t('cancel_rules')} (นับจากเวลาเริ่มงาน)` : `After a helper accepts: ${t('cancel_rules')} (counted from the start time).`,
+      th ? 'กรณีได้เงินคืนเต็มจำนวน แต้มที่ใช้ไปจะคืนเข้าบัญชีด้วย ยอดคืนเงินจะแสดงในรายละเอียดการจอง และทีมงานจะดำเนินการโอนคืน' : 'With a full refund, points you used are returned too. The refund amount appears in the booking details and our team processes the transfer.',
+    ] },
+    { h: th ? '6. การเลื่อนนัด' : '6. Rescheduling', p: [
+      th ? `เลื่อนได้ฟรี ก่อนเวลางานอย่างน้อย ${v.reschedule_min_hours} ชั่วโมง โดยแม่บ้านคนเดิมต้องว่างในเวลาใหม่` : `Free of charge at least ${v.reschedule_min_hours} hours before the job, if the same helper is free at the new time.`,
+    ] },
+    { h: th ? '7. ถ้าแม่บ้านไม่มา' : '7. If the helper does not show up', p: [
+      th ? 'เราหาแม่บ้านคนแทนให้ หรือคืนเงินเต็มจำนวน' : 'We find a replacement or refund you in full.',
+    ] },
+    { h: th ? '8. ความเสียหายและการรับประกันงาน' : '8. Damage and work guarantee', p: [
+      th ? `ถ้าของเสียหายระหว่างทำงาน แจ้งเคลมในแอปภายใน ${v.claim_report_days} วันหลังจบงาน พร้อมรูปถ่าย CleenDee ชดเชยสูงสุด ${m(v.claim_cap)} บาทต่องาน` : `If something is damaged during the job, file a claim in the app within ${v.claim_report_days} days with photos. CleenDee covers up to ${m(v.claim_cap)} THB per job.`,
+      th ? 'รายละเอียดการรับประกันงานทั้งหมดอยู่ที่หน้า "การรับประกันงาน"' : 'Full details are on the Guarantee page.',
+    ] },
+    { h: th ? '9. ความเป็นส่วนตัว' : '9. Privacy', p: [
+      th ? 'การเก็บและใช้ข้อมูลส่วนบุคคลเป็นไปตามนโยบายความเป็นส่วนตัว' : 'Personal data is handled as described in our Privacy Policy.',
+    ] },
+    { h: th ? '10. การแก้ไขข้อกำหนด' : '10. Changes to these terms', p: [
+      th ? 'เราอาจปรับปรุงข้อกำหนดนี้เป็นครั้งคราว โดยแสดงวันที่ปรับปรุงล่าสุดไว้ด้านบนของหน้านี้ การจองที่ยืนยันแล้วใช้เงื่อนไข ณ วันที่จอง' : 'We may update these terms from time to time; the last-updated date is shown at the top. Confirmed bookings follow the terms in effect when booked.',
+    ] },
+  ] : []
+  const links: Record<string, [string, string]> = { 8: ['/guarantee', th ? 'ดูการรับประกันงาน' : 'View guarantee'], 9: ['/privacy', th ? 'อ่านนโยบายความเป็นส่วนตัว' : 'Read privacy policy'] }
+
+  return <main className="page public-policy faq-page terms-page">
+    <header className="policy-top">
+      <button type="button" className="policy-back" aria-label={t('booking_back')} onClick={() => window.history.state?.idx > 0 ? navigate(-1) : navigate('/')}>
+        <Icon n="back" size={18} />
+      </button>
+      <Link to="/" className="policy-brand"><Logo h={33} /><Logo white h={33} /></Link>
+      <LangToggle />
+    </header>
+    <header className="policy-hero">
+      <div className="policy-hero-text">
+        <h1>{th ? 'ข้อกำหนดการใช้บริการ' : 'Terms of service'}</h1>
+        <p>{th ? 'กติกาการจอง การชำระเงิน การยกเลิก คืนเงิน และการรับประกันงาน เขียนให้อ่านง่ายและตรงกับที่ระบบใช้จริง' : 'Plain-language rules for booking, payment, cancellations, refunds and our guarantee, matching how the system actually works.'}</p>
+        <p className="terms-date">{th ? 'ปรับปรุงล่าสุด ' : 'Last updated '}{fmtDate(TERMS_UPDATED + 'T12:00:00+07:00', lang, { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+      </div>
+      <div className="policy-cover"><img className="policy-cover-image" src={termsImage} alt={th ? 'ภาพประกอบการนัดหมายแม่บ้าน' : 'Booking illustration'} fetchPriority="high" /></div>
+    </header>
+    <article className="policy-document" aria-label={th ? 'ข้อกำหนดการใช้บริการ' : 'Terms of service'}>
+      {failed ? <div className="stack" role="status"><p>{th ? 'โหลดข้อกำหนดไม่สำเร็จ ลองรีเฟรชหน้าอีกครั้ง' : 'Could not load the terms. Please refresh.'}</p></div>
+        : !v ? <Loading /> : sections.map((x, i) => <section className="terms-sec" key={x.h}>
+          <h2>{x.h}</h2>
+          {x.p.length > 1 ? <ul>{x.p.filter(Boolean).map(line => <li key={String(line)}>{line}</li>)}</ul> : <p>{x.p[0]}</p>}
+          {links[i + 1] && <Link className="terms-link" to={links[i + 1][0]}>{links[i + 1][1]} <Icon n="next" size={14} /></Link>}
+        </section>)}
+      <footer className="policy-contact faq-contact">
+        <h2>{th ? 'สอบถามเรื่องข้อกำหนด ติดต่อทีมงาน' : 'Questions about these terms? Contact us'}</h2>
         <div>
           <a className="btn faq-line" href={LINE_URL} target="_blank" rel="noopener noreferrer"><Icon n="chat" size={18} />LINE {LINE_OA}</a>
           {phones.map(phone => <a className="btn faq-tel" key={phone} href={policyPhoneHref(phone)}><Icon n="phone" size={18} />{formatPolicyPhones([phone], lang)}</a>)}

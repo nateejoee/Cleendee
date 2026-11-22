@@ -146,7 +146,7 @@ export function useToast() {
 export function SiteFooter({ dark = false }: { dark?: boolean }) {
   const { lang } = useI18n()
   return <div className="tiny site-foot" style={{ textAlign: 'center', padding: '14px 20px', color: dark ? '#CFE3F2' : 'var(--ink3)' }}>
-    © CleenDee คลีนดี · <Link to="/faq" style={{ color: 'inherit', textDecoration: 'underline' }}>{lang === 'th' ? 'คำถามที่พบบ่อย' : 'FAQ'}</Link> · <Link to="/privacy" style={{ color: 'inherit', textDecoration: 'underline' }}>{lang === 'th' ? 'นโยบายความเป็นส่วนตัว' : 'Privacy Policy'}</Link></div>
+    © CleenDee คลีนดี · <Link to="/faq" style={{ color: 'inherit', textDecoration: 'underline' }}>{lang === 'th' ? 'คำถามที่พบบ่อย' : 'FAQ'}</Link> · <Link to="/terms" style={{ color: 'inherit', textDecoration: 'underline' }}>{lang === 'th' ? 'ข้อกำหนด' : 'Terms'}</Link> · <Link to="/privacy" style={{ color: 'inherit', textDecoration: 'underline' }}>{lang === 'th' ? 'นโยบายความเป็นส่วนตัว' : 'Privacy Policy'}</Link></div>
 }
 
 // ระหว่างโหลด: โครงร่างแถบเทามีแสงวิ่ง (skeleton) แทนข้อความ "กำลังโหลด…"

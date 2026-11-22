@@ -12,7 +12,9 @@ import { MaidHome, MaidJob, MaidAvailability, MaidIncome, MaidApply } from './pa
 import { EditProfile, MaidEditProfile } from './pages/Profile'
 import { AdminHome, AdminMoney, AdminMaids, AdminSettings, AdminPublicPages } from './pages/Admin'
 import { Loading, LoginWall } from './components/ui'
-import { Faq, Guarantee, Privacy } from './pages/PublicPages'
+import { Faq, Guarantee, Privacy, Terms } from './pages/PublicPages'
+import { NotFound } from './pages/NotFound'
+import { PageTitle } from './lib/pageTitle'
 import { ThemeProvider } from './lib/theme'
 import { Motion, TopProgress, BackToTop, OfflineBar } from './lib/fx'
 import { useI18n, type Key } from './lib/i18n'
@@ -56,7 +58,7 @@ function Root() {
 
 export default function App() {
   return <I18nProvider><ThemeProvider><AuthProvider><BrowserRouter><div className="app">
-    <Motion /><TopProgress /><OfflineBar /><BackToTop /><RatePrompt />
+    <PageTitle /><Motion /><TopProgress /><OfflineBar /><BackToTop /><RatePrompt />
     <DeskNav />
     <Routes>
       <Route path="/" element={<Root />} />
@@ -69,6 +71,7 @@ export default function App() {
       <Route path="/service/:code" element={<Service />} />
       <Route path="/guarantee" element={<Guarantee />} />
       <Route path="/faq" element={<Faq />} />
+      <Route path="/terms" element={<Terms />} />
       <Route path="/receipt/:id" element={<Member title="receipt" text="lw_page"><Receipt /></Member>} />
             <Route path="/book" element={<Member tab title="tab_book" text="lw_book"><BookingLocation><BookMaid /></BookingLocation></Member>} />
       <Route path="/maid-profile/:id" element={<MaidProfile />} />
@@ -100,7 +103,7 @@ export default function App() {
       <Route path="/admin/maids" element={<AdminOnly><AdminMaids /></AdminOnly>} />
       <Route path="/admin/settings" element={<AdminOnly><AdminSettings /></AdminOnly>} />
       <Route path="/admin/settings/pages" element={<AdminOnly><AdminPublicPages /></AdminOnly>} />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
     <DeskFooter />
     <DeskLineFab />
