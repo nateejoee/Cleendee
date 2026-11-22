@@ -11,7 +11,7 @@ import { sb, friendly, type Maid, type Rating, type Quote2, type Service } from 
 import { addonImage } from '../lib/serviceImages'
 import { AiEstimate } from '../components/AiEstimate'
 import { useServices, useAddons, svcName, svcUnit, jobHours } from '../lib/services'
-import { useI18n, money, fmtDate, type Key } from '../lib/i18n'
+import { useI18n, money, fmtDate, keepThaiWords, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { getDraft, setDraft, clearDraft, startIso, hhmm, bkkToday, getAutoPicked, setAutoPicked, type Draft } from '../lib/draft'
 import { Avatar, DistrictOptions, Icon, Loading, MonthCalendar, useToast } from '../components/ui'
@@ -285,9 +285,11 @@ function RoomSizePicker({ qty, min, max, onPick }: { qty: number; min: number; m
   const clamp = (h: number) => Math.min(max, Math.max(min, h))
   return <div className="rs-box">
     <div className="rs-head"><Icon n="home" size={16} />{th ? 'ขนาดบ้านของคุณ (ช่วยแนะนำจำนวนชั่วโมง)' : 'Your home size (we suggest the hours)'}</div>
-    <div className="rs-grid">{rows.map(r => { const h = clamp(r.hours); const on = sel === r.id && qty === h
-      return <button key={r.id} type="button" aria-pressed={on} className={'rs-c' + (on ? ' on' : '')} onClick={() => { setSel(r.id); onPick(h) }}>
-        <b>{th ? r.name_th : r.name_en}</b><span>{th ? `แนะนำ ${h} ชม.` : `${h} h suggested`}</span></button> })}</div>
+    <div className="rs-grid">{rows.map(r => { const other = r.hours === 0 // "อื่นๆ" = ไม่เลือกชั่วโมงให้ ลูกค้าเลือกเอง
+      const h = clamp(r.hours); const on = sel === r.id && (other || qty === h)
+      return <button key={r.id} type="button" aria-pressed={on} className={'rs-c' + (on ? ' on' : '')} onClick={() => { setSel(r.id); if (!other) onPick(h) }}>
+        <b>{th ? keepThaiWords(r.name_th) : r.name_en}</b><span>{other ? (th ? 'เลือกชั่วโมงเอง' : 'Choose hours') : th ? `แนะนำ ${h} ชม.` : `${h} h suggested`}</span></button> })}</div>
+    {rows.some(r => r.id === sel && r.hours === 0) && <p className="small muted rs-hint">{th ? 'เลือกจำนวนชั่วโมงด้านล่าง หรือถ่ายรูปห้องให้ AI ช่วยประเมิน' : 'Pick the hours below, or snap a photo for an AI estimate'}</p>}
   </div>
 }
 

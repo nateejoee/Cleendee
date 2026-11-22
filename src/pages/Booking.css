@@ -566,3 +566,4 @@
 .rs-c:active{transform:scale(.97)}
 .rs-c.on{border-color:var(--ocean);box-shadow:inset 0 0 0 1px var(--ocean);background:var(--card)}
 .rs-c.on span{color:var(--ocean);font-weight:700}
+.rs-hint{margin:8px 2px 0}

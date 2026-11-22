@@ -452,7 +452,7 @@ function RoomSizesEditor({ toast }: { toast: (m: string) => void }) {
     {rows.map((x, i) => <div key={x.id} className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
       <input className="input" style={{ flex: '2 1 180px' }} value={x.name_th} onChange={e => upd(i, { name_th: e.target.value })} aria-label="ชื่อ (ไทย)" />
       <input className="input" style={{ flex: '2 1 160px' }} value={x.name_en} onChange={e => upd(i, { name_en: e.target.value })} aria-label="Name (EN)" />
-      <select className="input" style={{ flex: '0 1 100px' }} value={x.hours} onChange={e => upd(i, { hours: Number(e.target.value) })}>{Array.from({ length: 12 }, (_, k) => k + 1).map(h => <option key={h} value={h}>{h} {th ? 'ชม.' : 'h'}</option>)}</select>
+      <select className="input" style={{ flex: '0 1 100px' }} value={x.hours} onChange={e => upd(i, { hours: Number(e.target.value) })}><option value={0}>{th ? 'เลือกเอง' : 'Custom'}</option>{Array.from({ length: 12 }, (_, k) => k + 1).map(h => <option key={h} value={h}>{h} {th ? 'ชม.' : 'h'}</option>)}</select>
       <button type="button" className={'sw' + (x.active ? ' on' : '')} aria-label={th ? 'เปิดใช้' : 'Active'} onClick={() => upd(i, { active: !x.active })} />
     </div>)}
     <button className="btn b-ocean" onClick={save}>{t('save')}</button></>
