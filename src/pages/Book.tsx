@@ -15,6 +15,7 @@ import { useAuth } from '../lib/auth'
 import { getDraft, setDraft, clearDraft, startIso, bkkToday, getAutoPicked, setAutoPicked, type Draft } from '../lib/draft'
 import { Avatar, DistrictOptions, Icon, Loading, MonthCalendar, useToast } from '../components/ui'
 import { Empty } from '../components/EmptyArt'
+import { MaidSilhouette } from '../components/MaidSilhouette'
 import { BookingLayout } from './BookingLayout'
 import { useServiceAreas } from '../lib/areas'
 import { confetti } from '../lib/fx'
@@ -67,7 +68,7 @@ function bookingQuantity(draft: Draft, service: Service | undefined) {
 function HelperAvatar({ maid, size = 44 }: { maid: Maid; size?: number }) {
   return maid.photo_url
     ? <Avatar name={maid.nickname} url={maid.photo_url} seed={maid.id} size={size} />
-    : <span className="booking-avatar-fallback" aria-hidden="true">{maid.nickname.slice(0, 1)}</span>
+    : <span className="booking-avatar-fallback sil" style={{ width: size, height: size }} aria-hidden="true"><MaidSilhouette seed={maid.id} round /></span>
 }
 
 const SelectedAddress = createContext<{ address: string; change: () => void }>({ address: '', change: () => {} })
