@@ -1,4 +1,5 @@
 import { FunnelReport } from '../components/FunnelReport'
+import { LineLink } from '../components/LineLink'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { bkkToday } from '../lib/draft'
@@ -118,6 +119,7 @@ export function AdminHome() {
         <span><b className="disp">#{b.id} {fmtDate(b.start_at, lang)} {fmtTime(b.start_at)}</b><span className="small muted" style={{ display: 'block' }}>{money(b.total_price)} ฿</span></span>
         <button className="btn sm b-red" onClick={() => refundAll(b)}>{t('a_refund_full')}</button></div>)}</>}
       <LowRatings rows={low.rows} reload={low.load} />
+      <div className="mt16"><LineLink admin /></div>
     </div>
     <AdminTabs />{toast.node}
   </div>

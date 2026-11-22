@@ -1,0 +1,4 @@
+-- ผู้ช่วย AI (Gemini ฟรี) ใช้งานจริงผ่าน migration "ai_assist_gemini" ใน Supabase (สร้างเมื่อ 22/11/2569)
+-- ดูเนื้อหาเต็มได้จาก supabase_migrations.schema_migrations (name = 'ai_assist_gemini')
+-- สรุป: messages.body_tr + trigger แปล, maid_review_summary + trigger สรุป, ai_usage (จำกัดประเมินจากรูป 5 ครั้ง/วัน),
+--       staff_line (แอดมินรับสรุปทาง LINE), line_link รองรับแอดมิน, ai_daily_job + cron 'cleendee-ai-daily' 07:30 น.

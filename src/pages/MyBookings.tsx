@@ -84,10 +84,10 @@ export function Bookings() {
 }
 
 function Chat({ bookingId }: { bookingId: number }) {
-  const { t, lang } = useI18n(); const { session } = useAuth(); const [msgs, setMsgs] = useState<{ id: number; sender_id: string; body: string; created_at: string }[]>([]); const [txt, setTxt] = useState('')
+  const { t, lang } = useI18n(); const { session } = useAuth(); const [msgs, setMsgs] = useState<{ id: number; sender_id: string; body: string; body_tr: string | null; created_at: string }[]>([]); const [txt, setTxt] = useState('')
   const [sending, setSending] = useState(false); const [err, setErr] = useState('')
   useMinuteTick()
-  const load = () => sb.from('messages').select('id,sender_id,body,created_at').eq('booking_id', bookingId).order('created_at').then(({ data }) => setMsgs(data || []))
+  const load = () => sb.from('messages').select('id,sender_id,body,body_tr,created_at').eq('booking_id', bookingId).order('created_at').then(({ data }) => setMsgs(data || []))
   useEffect(() => {
     load()
     const ch = sb.channel('m' + bookingId).on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `booking_id=eq.${bookingId}` }, load).subscribe()
@@ -101,7 +101,7 @@ function Chat({ bookingId }: { bookingId: number }) {
     setTxt(cur => (cur === body ? '' : cur)); load()
   }
   return <div className="card stack">
-    <div className="chatbox">{msgs.map(m => <div key={m.id} className={'bub' + (m.sender_id === session?.user.id ? ' me' : '')}>{m.body}<small className="bt">{relTime(m.created_at, t)}</small></div>)}</div>
+    <div className="chatbox">{msgs.map(m => <div key={m.id} className={'bub' + (m.sender_id === session?.user.id ? ' me' : '')}>{m.body}{m.body_tr && m.sender_id !== session?.user.id && <span className="bub-tr"><span aria-hidden="true">✦ </span>{lang === 'th' ? 'แปล: ' : 'Translated: '}{m.body_tr}</span>}<small className="bt">{relTime(m.created_at, t)}</small></div>)}</div>
     <div className="tiny muted" style={{ textAlign: 'center' }}>{t('masked_note')}</div>
     <div className="row"><input className="input" value={txt} onChange={e => setTxt(e.target.value)} placeholder={t('type_msg')} onKeyDown={e => e.key === 'Enter' && send()} />
       <button className="btn b-ocean sm" disabled={sending} onClick={send}>{t('send')}</button></div>

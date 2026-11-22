@@ -8,6 +8,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import generatePayload from 'promptpay-qr'
 import { sb, friendly, type Maid, type Rating, type Quote2, type Service } from '../lib/supabase'
 import { addonImage } from '../lib/serviceImages'
+import { AiEstimate } from '../components/AiEstimate'
 import { useServices, useAddons, svcName, svcUnit, jobHours } from '../lib/services'
 import { useI18n, money, fmtDate, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
@@ -210,9 +211,12 @@ export function BookMaid() {
 }
 
 export function MaidProfile() {
-  const { id } = useParams(); const { t } = useI18n(); const nav = useNavigate(); const { maids, failed, retry } = useMaidsLoad(); const blocked = useBlockedMaids()
+  const { id } = useParams(); const { t, lang } = useI18n(); const nav = useNavigate(); const { maids, failed, retry } = useMaidsLoad(); const blocked = useBlockedMaids()
   const [revs, setRevs] = useState<{ rating: number; comment: string | null; tags: string[]; created_at: string }[]>([])
   useEffect(() => { sb.from('reviews').select('rating,comment,tags,created_at').eq('maid_id', id!).order('created_at', { ascending: false }).limit(10).then(({ data }) => setRevs(data || [])) }, [id])
+  // สรุปรีวิวโดย AI (มีเมื่อแม่บ้านมีรีวิวที่เขียนความเห็นตั้งแต่ 3 รายการ)
+  const [sum, setSum] = useState<{ summary_th: string; summary_en: string; n_reviews: number } | null>(null)
+  useEffect(() => { sb.from('maid_review_summary').select('summary_th,summary_en,n_reviews').eq('maid_id', id!).maybeSingle().then(({ data }) => setSum(data)) }, [id])
   const m = maids?.find(x => x.id === id)
   if (failed) return <BookingLayout title={t('reviews_title')}><section className="booking-panel stack" role="status"><p className="muted">{t('load_failed')}</p>
     <button className="btn b-line" type="button" onClick={retry}>{t('try_again')}</button></section></BookingLayout>
@@ -240,6 +244,7 @@ export function MaidProfile() {
       <section className="booking-panel"><FreeDays maidId={m.id} /></section>
       <section className="booking-panel">
         <h2>{t('reviews_title')}</h2>
+        {sum && <div className="ai-sum"><span className="ai-est-ic" aria-hidden="true">✦</span><div><small>{lang === 'th' ? `สรุปจาก ${sum.n_reviews} รีวิว (AI)` : `Summary of ${sum.n_reviews} reviews (AI)`}</small><p>{lang === 'th' ? sum.summary_th : sum.summary_en}</p></div></div>}
         {revs.length === 0 ? <p className="muted">{t('no_reviews')}</p> : <div className="stack">
           {revs.map((r, i) => <div key={i} className="booking-review">
             <span className="star" aria-label={r.rating + ' / 5'}>{'★'.repeat(r.rating)}</span>
@@ -367,6 +372,8 @@ export function BookTime() {
           <div className="chips">{Array.from({ length: s.max_qty - s.min_qty + 1 }, (_, i) => s.min_qty + i).map(n =>
             <button key={n} aria-pressed={n === qty} className={'chip' + (n === qty ? ' on' : '')} onClick={() => setD(setDraft({ qty: n, hour: null }))}>{n} {unit}</button>)}</div>
           {s.pricing === 'hourly' && <p className="small muted">{t('qty_hint')}</p>}
+          {s.pricing === 'hourly' && <AiEstimate service={s.code} unit={unit} addonName={c => { const x = (allAddons || []).find(a => a.code === c); return x ? (lang === 'th' ? x.name_th : x.name_en) : c }}
+            onApply={(h, ads) => setD(setDraft({ qty: h, hour: null, addons: [...new Set([...d.addons, ...ads.filter(c => addons.some(a => a.code === c))])] }))} />}
         </>}
       </section>}
       {isPkg && pkgBlocked && s.code !== 'general_cleaning' && <div className="infonote">{t('pkg_need_maid')} <button className="link" onClick={() => nav('/book')}>{t('choose')}</button></div>}

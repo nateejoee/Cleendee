@@ -6,7 +6,7 @@ import { useI18n } from '../lib/i18n'
 const OA = '@716smhqr'
 const ADD = 'https://line.me/R/ti/p/' + encodeURIComponent(OA)
 
-export function LineLink() {
+export function LineLink({ admin = false }: { admin?: boolean }) {
   const { lang } = useI18n(); const th = lang === 'th'
   const [st, setSt] = useState<{ linked: boolean } | null>(null)
   const [code, setCode] = useState<{ code: string; expires_at: string } | null>(null)
@@ -20,11 +20,11 @@ export function LineLink() {
   if (!st) return null
   if (st.linked) return <div className="card ln-card on">
     <span className="ln-ico" aria-hidden="true">LINE</span>
-    <span className="ln-txt"><b>{th ? 'แจ้งเตือนทาง LINE เปิดอยู่' : 'LINE alerts are on'}</b><small>{th ? 'งานใหม่ และเตือนงานพรุ่งนี้ (18:00 น.)' : 'New jobs and a reminder the evening before (6 pm)'}</small></span>
+    <span className="ln-txt"><b>{admin ? (th ? 'สรุปงานทาง LINE เปิดอยู่' : 'LINE summary is on') : (th ? 'แจ้งเตือนทาง LINE เปิดอยู่' : 'LINE alerts are on')}</b><small>{admin ? (th ? 'สรุปงานทุกเช้า 07:30 น.' : 'Morning summary at 7:30') : (th ? 'งานใหม่ และเตือนงานพรุ่งนี้ (18:00 น.)' : 'New jobs and a reminder the evening before (6 pm)')}</small></span>
     <button className="btn sm b-ghost" onClick={unlink}>{th ? 'ยกเลิก' : 'Turn off'}</button></div>
   return <div className="card ln-card">
     <div className="ln-head"><span className="ln-ico" aria-hidden="true">LINE</span>
-      <span className="ln-txt"><b>{th ? 'รับแจ้งเตือนงานทาง LINE' : 'Get job alerts on LINE'}</b><small>{th ? 'งานใหม่เด้งเข้า LINE ทันที และเตือนก่อนวันทำงาน' : 'New jobs straight to LINE, plus a reminder the day before'}</small></span></div>
+      <span className="ln-txt"><b>{admin ? (th ? 'รับสรุปงานทุกเช้าทาง LINE' : 'Get a morning summary on LINE') : (th ? 'รับแจ้งเตือนงานทาง LINE' : 'Get job alerts on LINE')}</b><small>{admin ? (th ? 'AI สรุปงานวันนี้ งานที่ยังไม่มีแม่บ้าน สลิปรอตรวจ ส่งให้ 07:30 น.' : 'AI summary of today: jobs, unassigned work, slips to check — at 7:30') : (th ? 'งานใหม่เด้งเข้า LINE ทันที และเตือนก่อนวันทำงาน' : 'New jobs straight to LINE, plus a reminder the day before')}</small></span></div>
     <ol className="ln-steps">
       <li><span>{th ? 'เพิ่มเพื่อน LINE CleenDee' : 'Add CleenDee on LINE'}</span><a className="btn sm b-line" href={ADD} target="_blank" rel="noopener">{th ? 'เพิ่มเพื่อน' : 'Add friend'}</a></li>
       <li><span>{th ? 'ขอรหัส แล้วพิมพ์ส่งในแชท LINE CleenDee' : 'Get a code and send it in the CleenDee LINE chat'}</span>
