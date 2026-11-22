@@ -98,7 +98,8 @@ export function DeskNav() {
   if (!on) return null
   return <header className={'dk-nav' + (scrolled ? ' scrolled' : '')}>
     <div className="dk-container dk-nav-in">
-      <Link to="/" className="dk-logo" aria-label="CleenDee — หน้าหลัก / Home"><Logo h={36} /></Link>
+      {/* โลโก้บนคอม: ขยายจาก 36 เป็น 50px ให้เด่นขึ้น (แถบเมนูสูง 72px) */}
+      <Link to="/" className="dk-logo" aria-label="CleenDee — หน้าหลัก / Home"><Logo h={50} /></Link>
       <nav className="dk-links" aria-label={t('dk_nav')}>
         {ITEMS.map(it => {
           const active = it.on(loc.pathname, loc.hash)
