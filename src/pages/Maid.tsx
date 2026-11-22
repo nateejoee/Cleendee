@@ -7,7 +7,7 @@ import { useI18n, money, fmtDate, fmtTime, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { bkkToday } from '../lib/draft'
 import maidPortrait from '../assets/ill/safety.webp'
-import { Avatar, DistrictOptions, Icon, Bell, LangToggle, Loading, MaidTabs, StatusPill, TopBar, useToast } from '../components/ui'
+import { Avatar, DistrictOptions, Icon, Bell, LangToggle, Loading, MaidTabs, MonthCalendar, StatusPill, TopBar, useToast } from '../components/ui'
 import { Empty } from '../components/EmptyArt'
 import { Chat, JobProof } from './MyBookings'
 import { useServices, useAddons, svcName, svcUnit } from '../lib/services'
@@ -226,17 +226,37 @@ export function MaidAvailability() {
     const { error } = await sb.from('maid_availability').update({ [f]: v }).eq('maid_id', session!.user.id).eq('work_date', d); if (error) toast.show(friendly(error, lang)); load()
   }
   const hours = Array.from({ length: 16 }, (_, i) => `${String(i + 6).padStart(2, '0')}:00`)
+  // ปฏิทินรายเดือน: กดวันเพื่อดู/แก้เวลาทำงานของวันนั้นด้านล่าง
+  const [sel, setSel] = useState(days[0])
+  const bookedOn = (d: string) => booked.filter(b => new Date(b.start_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }) === d)
+  const r = rows[sel]; const bk = bookedOn(sel); const th = lang === 'th'
   return <div className="page">
     <div className="hero"><h1>{t('m_avail')}</h1><p>{t('m_avail_d')}</p></div>
-    <div className="pad">{days.map(d => { const r = rows[d]; const bk = booked.filter(b => new Date(b.start_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }) === d)
-      return <div key={d} className="dayrow">
-        <div style={{ width: 52 }} className="disp"><div className="tiny muted">{fmtDate(d + 'T12:00:00+07:00', lang, { weekday: 'short' })}</div><b style={{ fontSize: 20 }}>{Number(d.slice(8))}</b></div>
-        <div style={{ flex: 1 }}>{r ? <div className="row" style={{ gap: 6 }}>
-          <select className="timesel" value={r.start_time.slice(0, 5)} onChange={e => setTime(d, 'start_time', e.target.value)}>{hours.map(h => <option key={h}>{h}</option>)}</select>–
-          <select className="timesel" value={r.end_time.slice(0, 5)} onChange={e => setTime(d, 'end_time', e.target.value)}>{hours.map(h => <option key={h}>{h}</option>)}</select></div>
-          : <b className="disp" style={{ color: 'var(--ink3)' }}>{t('m_off')}</b>}
-          {bk.map(b => <div key={b.id} className="tiny" style={{ color: '#8A6200' }}>{fmtTime(b.start_at)}–{fmtTime(b.end_at)} ✓</div>)}</div>
-        <button className={'sw' + (r ? ' on' : '')} onClick={() => toggle(d)} aria-label={d} disabled={bk.length > 0 && !!r} /></div> })}</div>
+    <div className="pad">
+      <div className="card av-cal">
+        <MonthCalendar value={sel} min={days[0]} max={days[days.length - 1]} onPick={setSel}
+          mark={d => bookedOn(d).length ? 'booked' : rows[d] ? 'work' : undefined} />
+        <div className="mcal-legend">
+          <span><i className="lg-work" />{th ? 'รับงาน' : 'Working'}</span>
+          <span><i className="lg-booked" />{th ? 'มีงานจองแล้ว' : 'Booked'}</span>
+          <span><i className="lg-off" />{th ? 'หยุด' : 'Off'}</span>
+        </div>
+      </div>
+      <div className="card av-day mt12">
+        <div className="between">
+          <div><div className="small muted">{th ? 'วันที่เลือก' : 'Selected day'}</div>
+            <b className="av-day-t">{fmtDate(sel + 'T12:00:00+07:00', lang, { weekday: 'long', day: 'numeric', month: 'long' })}</b></div>
+          <button className={'sw' + (r ? ' on' : '')} onClick={() => toggle(sel)} aria-label={th ? 'เปิด/ปิดรับงานวันนี้' : 'Toggle working'} disabled={bk.length > 0 && !!r} />
+        </div>
+        {r ? <div className="av-times">
+          <label><span className="tiny muted">{th ? 'เริ่ม' : 'From'}</span><select className="timesel" value={r.start_time.slice(0, 5)} onChange={e => setTime(sel, 'start_time', e.target.value)}>{hours.map(h => <option key={h}>{h}</option>)}</select></label>
+          <span className="av-dash">–</span>
+          <label><span className="tiny muted">{th ? 'ถึง' : 'To'}</span><select className="timesel" value={r.end_time.slice(0, 5)} onChange={e => setTime(sel, 'end_time', e.target.value)}>{hours.map(h => <option key={h}>{h}</option>)}</select></label>
+        </div> : <p className="muted mt8">{t('m_off')}</p>}
+        {bk.length > 0 && <div className="av-jobs">{bk.map(b => <div key={b.id} className="av-job"><Icon n="clock" size={15} />{fmtTime(b.start_at)}–{fmtTime(b.end_at)} <b>{th ? 'มีงานจอง' : 'Booked'}</b></div>)}
+          <small className="muted">{th ? 'วันที่มีงานจองแล้วปิดรับงานไม่ได้' : "Days with bookings can't be turned off"}</small></div>}
+      </div>
+    </div>
     <MaidTabs />{toast.node}
   </div>
 }

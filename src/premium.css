@@ -390,3 +390,26 @@ button.memcard{width:100%;text-align:left}
 /* รูปสำรองแบบภาพเงา (ไม่มีรูปโปรไฟล์) */
 .avatar.ph{padding:0;background:#E9EEF5;overflow:hidden}
 .avatar.ph img{width:100%;height:100%;object-fit:cover;object-position:50% 22%}
+/* ปฏิทินที่มีสถานะวัน: วันว่าง (หน้าโปรไฟล์แม่บ้าน) / รับงาน / มีงานจอง (หน้าตารางว่างของแม่บ้าน) */
+.mcal-d.m-free{background:#E7F4EC;border-color:#B9DEC8;color:#1F6B4A}
+.mcal-d.m-free:hover{background:#D6EEE0}
+.mcal-d.m-work{background:#E7F4EC;border-color:#B9DEC8;color:#1F6B4A}
+.mcal-d.m-booked{background:#FBF1DA;border-color:#E8CF94;color:#7A5A1E}
+.mcal-d.m-booked::before{content:"";position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--sun)}
+.mcal-d.on.m-work,.mcal-d.on.m-booked{border-width:2px;border-color:var(--ocean)}
+.mcal-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:12.5px;color:var(--ink2)}
+.mcal-legend span{display:inline-flex;align-items:center;gap:6px}
+.mcal-legend i{width:12px;height:12px;border-radius:4px;border:1px solid var(--line);background:var(--card)}
+.mcal-legend .lg-free,.mcal-legend .lg-work{background:#E7F4EC;border-color:#B9DEC8}
+.mcal-legend .lg-booked{background:#FBF1DA;border-color:#E8CF94}
+[data-dark="1"] .mcal-d.m-free,[data-dark="1"] .mcal-d.m-work,[data-dark="1"] .mcal-legend .lg-free,[data-dark="1"] .mcal-legend .lg-work{background:rgba(63,154,123,.18);border-color:rgba(63,154,123,.45);color:#8FD6B2}
+[data-dark="1"] .mcal-d.m-booked,[data-dark="1"] .mcal-legend .lg-booked{background:rgba(227,196,126,.14);border-color:rgba(227,196,126,.4);color:#E3C47E}
+.av-cal{padding:14px}
+.av-day-t{font-size:17px}
+.av-times{display:flex;align-items:flex-end;gap:10px;margin-top:12px}
+.av-times label{display:grid;gap:3px;flex:1}
+.av-times .timesel{width:100%;padding:9px 10px;font-size:15px}
+.av-dash{padding-bottom:10px;color:var(--ink3)}
+.av-jobs{display:grid;gap:6px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+.av-job{display:flex;align-items:center;gap:6px;font-size:14px;color:#7A5A1E}
+.av-job b{margin-left:auto;font-size:12px;padding:2px 8px;border-radius:99px;background:#FBF1DA}

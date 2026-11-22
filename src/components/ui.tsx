@@ -180,10 +180,11 @@ export function DistrictOptions({ groups, keep }: { groups: AreaGroup[]; keep?: 
 
 // ปฏิทินรายเดือนสำหรับเลือกวันจอง: เลือกได้ตั้งแต่ min ถึง max (YYYY-MM-DD) วันนอกช่วงกดไม่ได้
 // สัปดาห์เริ่มวันจันทร์ · มีปุ่มเลื่อนเดือนก่อน/ถัดไป (กดไม่ได้เมื่อพ้นช่วง)
-export function MonthCalendar({ value, min, max, onPick }: { value: string; min: string; max: string; onPick: (d: string) => void }) {
+// allow: กดได้เฉพาะวันที่ผ่านเงื่อนไข (เช่นวันที่แม่บ้านว่าง) · mark: ใส่สีบอกสถานะของวัน (free/work/booked)
+export function MonthCalendar({ value, min, max, onPick, allow, mark }: { value: string; min: string; max: string; onPick: (d: string) => void; allow?: (d: string) => boolean; mark?: (d: string) => string | undefined }) {
   const { lang } = useI18n()
-  const [ym, setYm] = useState(value.slice(0, 7))
-  useEffect(() => { setYm(value.slice(0, 7)) }, [value]) // วันที่เปลี่ยนจากที่อื่น (เช่นเลือกวันว่างที่แนะนำ) ให้เปิดเดือนนั้น
+  const [ym, setYm] = useState((value || min).slice(0, 7))
+  useEffect(() => { if (value) setYm(value.slice(0, 7)) }, [value]) // วันที่เปลี่ยนจากที่อื่น (เช่นเลือกวันว่างที่แนะนำ) ให้เปิดเดือนนั้น
   const [y, m] = ym.split('-').map(Number)
   const pad = (n: number) => String(n).padStart(2, '0')
   const first = new Date(Date.UTC(y, m - 1, 1))
@@ -204,9 +205,9 @@ export function MonthCalendar({ value, min, max, onPick }: { value: string; min:
       {wk.map(w => <span key={w} className="mcal-wd">{w}</span>)}
       {Array.from({ length: lead }, (_, i) => <span key={'e' + i} />)}
       {Array.from({ length: dim }, (_, i) => {
-        const d = ym + '-' + pad(i + 1); const off = d < min || d > max
+        const d = ym + '-' + pad(i + 1); const off = d < min || d > max || (!!allow && !allow(d)); const mk = off ? undefined : mark?.(d)
         return <button type="button" key={d} disabled={off} aria-pressed={d === value}
-          className={'mcal-d' + (d === value ? ' on' : '') + (d === today ? ' today' : '')}
+          className={'mcal-d' + (d === value ? ' on' : '') + (d === today ? ' today' : '') + (mk ? ' m-' + mk : '')}
           aria-label={new Date(d + 'T12:00:00Z').toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })}
           onClick={() => onPick(d)}>{i + 1}</button>
       })}

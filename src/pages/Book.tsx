@@ -268,8 +268,10 @@ function FreeDays({ maidId }: { maidId: string }) {
   useEffect(() => { if (s) sb.rpc('maid_free_days', { p_maid: maidId, p_service_code: s.code, p_hours: hours }).then(({ data }) => setDays((data as string[]) || [])) }, [maidId, s?.code, hours])
   return <><h2>{t('free_days')}</h2>
     {!days ? <Loading /> : days.length === 0 ? <div className="muted">{t('no_free_days')}</div> :
-      <div className="cal">{days.map(x => <button key={x} className="cd" onClick={() => { setDraft({ maidId: null, date: x, hour: null }); setAutoPicked(null); nav('/book?helper=' + encodeURIComponent(maidId)) }}>
-        <small>{fmtDate(x + 'T12:00:00+07:00', lang, { weekday: 'short' })}</small><b>{Number(x.slice(8))}</b></button>)}</div>}</>
+      <>{/* ปฏิทินรายเดือน: วันที่ว่างเป็นสีเขียว กดได้ วันอื่นกดไม่ได้ */}
+        <MonthCalendar value="" min={days[0]} max={days[days.length - 1]} allow={x => days.includes(x)} mark={() => 'free'}
+          onPick={x => { setDraft({ maidId: null, date: x, hour: null }); setAutoPicked(null); nav('/book?helper=' + encodeURIComponent(maidId)) }} />
+        <div className="mcal-legend"><span><i className="lg-free" />{lang === 'th' ? 'วันที่ว่าง · กดเพื่อจองวันนั้น' : 'Free · tap to book that day'}</span></div></>}</>
 }
 
 // การ์ดเลือกแพ็กเกจ แนวหน้าราคาของเว็บ AI: ราคาใหญ่ ราคาเฉลี่ยต่อชั่วโมง ส่วนที่ประหยัด และสิ่งที่ได้
