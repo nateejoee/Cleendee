@@ -30,8 +30,6 @@ export function RewardsDetail() {
       .then(({ data, error }) => setRows(error ? [] : (data as Row[])))
   }, [session])
 
-  const tier = d?.tier ?? 'member'
-  const from = (k: string) => k === 'member' ? 0 : (d?.levels?.[k] ?? 0)
   const why: Record<string, [string, string]> = { earn: ['ได้แต้มจากงานที่เสร็จ', 'Earned from a finished job'], redeem: ['ใช้แต้มเป็นส่วนลด', 'Used as a discount'], return: ['คืนแต้ม (ยกเลิก/คืนเงิน)', 'Points returned (cancel/refund)'] }
 
   return <div className="page nobar dp-sub rw-page"><TopBar title={th ? 'บัตรสมาชิก' : 'Membership card'} />
