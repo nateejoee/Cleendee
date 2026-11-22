@@ -12,7 +12,7 @@ import { MaidHome, MaidJob, MaidAvailability, MaidIncome, MaidApply } from './pa
 import { EditProfile, MaidEditProfile } from './pages/Profile'
 import { AdminHome, AdminMoney, AdminMaids, AdminSettings, AdminPublicPages } from './pages/Admin'
 import { Loading, LoginWall } from './components/ui'
-import { Guarantee, Privacy } from './pages/PublicPages'
+import { Faq, Guarantee, Privacy } from './pages/PublicPages'
 import { ThemeProvider } from './lib/theme'
 import { Motion, TopProgress, BackToTop, OfflineBar } from './lib/fx'
 import { useI18n, type Key } from './lib/i18n'
@@ -21,7 +21,7 @@ import imgChat from './assets/ill/chat.webp'
 import imgSched from './assets/ill/schedule.webp'
 import { useEffect, useState, type ReactNode } from 'react'
 import { RatePrompt } from './components/Rating'
-import { DeskNav, DeskFooter } from './components/DeskNav'
+import { DeskNav, DeskFooter, DeskLineFab } from './components/DeskNav'
 
 // หน้าที่ต้องเข้าสู่ระบบก่อน (คนที่ยังไม่สมัครดูได้แค่หน้าแรก บริการ และโปรไฟล์แม่บ้าน — แบบแอป bTaskee)
 // tab = หน้าที่อยู่ในเมนูหลัก (แสดงแถบเมนูด้วย) · ที่เหลือเป็นหน้าย่อย แสดงปุ่มย้อนกลับ
@@ -68,6 +68,7 @@ export default function App() {
       <Route path="/service" element={<Service />} />
       <Route path="/service/:code" element={<Service />} />
       <Route path="/guarantee" element={<Guarantee />} />
+      <Route path="/faq" element={<Faq />} />
       <Route path="/receipt/:id" element={<Member title="receipt" text="lw_page"><Receipt /></Member>} />
             <Route path="/book" element={<Member tab title="tab_book" text="lw_book"><BookingLocation><BookMaid /></BookingLocation></Member>} />
       <Route path="/maid-profile/:id" element={<MaidProfile />} />
@@ -102,5 +103,6 @@ export default function App() {
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     <DeskFooter />
+    <DeskLineFab />
   </div></BrowserRouter></AuthProvider></ThemeProvider></I18nProvider>
 }

@@ -548,3 +548,10 @@
 .tmin-c.on{background:linear-gradient(145deg,var(--ocean),var(--ocean-d));color:var(--sun);box-shadow:0 5px 12px rgba(34,53,94,.28)}
 @keyframes tminIn{from{opacity:0;transform:translateY(-4px)}}
 @media (prefers-reduced-motion:reduce){.tmin{animation:none}}
+
+/* ตราความปลอดภัยใกล้ปุ่มจ่ายเงิน */
+.trust-badges{list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0;padding:0}
+.trust-badges li{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;background:var(--card);border:1px solid var(--line);font-size:.8125rem;font-weight:500;color:var(--ink2);line-height:1.3}
+.trust-ic{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:color-mix(in srgb,var(--sun) 16%,transparent);color:var(--ocean)}
+[data-dark="1"] .trust-ic{color:var(--sun)}
+

@@ -89,3 +89,22 @@
   .dk-tools{gap:8px}
   .dk-user-name{display:none}
 }
+
+/* ท้ายเว็บ: ช่องทางติดต่อ LINE OA + เบอร์โทร */
+.dk-foot-contact{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.dk-foot-contact a{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);font-variant-numeric:tabular-nums;white-space:nowrap;transition:border-color .2s,background .2s,color .2s}
+.dk-foot-contact a:hover{border-color:color-mix(in srgb,var(--sun) 60%,transparent);background:rgba(255,255,255,.08)}
+.dk-foot-contact .ico{color:var(--sun)}
+.dk-foot-contact a.dk-foot-line .ico{color:#06C755}
+.dk-foot-contact b{color:#fff;font-weight:600}
+
+/* ปุ่ม LINE ลอยมุมขวาล่าง (จอคอม) */
+.dk-line-fab{position:fixed;right:28px;bottom:28px;z-index:40;display:flex;align-items:center;gap:10px;height:54px;padding:0 20px 0 8px;border-radius:999px;background:#06C755;color:#fff!important;font-weight:600;font-size:.9375rem;box-shadow:0 10px 28px rgba(6,199,85,.35),0 2px 6px rgba(10,20,40,.18);transition:transform .2s ease,box-shadow .2s ease}
+.dk-line-fab:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(6,199,85,.42),0 3px 8px rgba(10,20,40,.2)}
+.dk-line-fab .dk-line-ic{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#fff;color:#06C755}
+.dk-line-fab .dk-line-ic .ico{stroke-width:2.2}
+.dk-line-fab small{display:block;font-size:.75rem;font-weight:500;opacity:.9;line-height:1.1}
+.dk-line-fab span b{display:block;line-height:1.2}
+/* ปุ่มกลับขึ้นบนหลบขึ้นไปเหนือปุ่ม LINE */
+.app:has(.dk-line-fab) .totop{bottom:96px;right:33px}
+.app:has(.dk-line-fab) .dk-foot{padding-bottom:100px}

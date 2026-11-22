@@ -6,6 +6,7 @@ import { LocationPin, type MapPin } from '../components/LocationPin'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import generatePayload from 'promptpay-qr'
+import { TrustBadges } from '../components/TrustBadges'
 import { sb, friendly, type Maid, type Rating, type Quote2, type Service } from '../lib/supabase'
 import { addonImage } from '../lib/serviceImages'
 import { AiEstimate } from '../components/AiEstimate'
@@ -636,6 +637,7 @@ export function BookConfirm() {
         <Link to="/guarantee" className="booking-guarantee"><Icon n="shield" size={23} /><div><b>{t('ins_t')}</b><p className="small muted">{t('ins_d')}</p></div><Icon n="next" size={14} /></Link>
         <p className="small muted">{t('cancel_rules')}</p>
       </section>
+      <TrustBadges />
       {err && <div className="err" role="alert">{err}</div>}
     </div>
   </BookingLayout>
@@ -686,6 +688,7 @@ export function Pay() {
         </label>
         {err && <div className="err" role="alert">{err}</div>}
       </section>
+      <TrustBadges />
     </div>
     {toast.node}
   </BookingLayout>

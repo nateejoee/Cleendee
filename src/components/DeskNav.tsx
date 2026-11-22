@@ -7,13 +7,15 @@ import { clearDraft } from '../lib/draft'
 import { openProvinceNames, useProvinces } from '../lib/areas'
 import { useIsDesktop, useCustomerShellWanted } from '../lib/useDesktop'
 import { Avatar, Bell, Icon, LangToggle, Logo } from './ui'
+import { LINE_OA, LINE_URL, useContactPhones } from '../lib/contact'
+import { formatPolicyPhones, policyPhoneHref } from '../lib/publicPages'
 
 /* โครงหน้าจอคอม (≥1024px) สำหรับลูกค้าและผู้เยี่ยมชม: เมนูด้านบน + ท้ายหน้าสีกรมท่า
    หน้าที่มีแถบเมนูลูกค้า (CustomerTabs) จะ "ลงทะเบียน" ไว้ที่นี่แทนการแสดงเมนูข้าง
    แม่บ้านและแอดมินยังใช้เมนูข้างเหมือนเดิม */
 
-const NAV_ROUTES = ['/guarantee', '/privacy'] // หน้าที่ไม่มีแถบเมนู แต่ควรมีเมนูด้านบนบนจอคอม
-const FOOT_ROUTES = ['/', '/home', '/bookings', '/account', '/guarantee', '/privacy', '/messages']
+const NAV_ROUTES = ['/guarantee', '/privacy', '/faq'] // หน้าที่ไม่มีแถบเมนู แต่ควรมีเมนูด้านบนบนจอคอม
+const FOOT_ROUTES = ['/', '/home', '/bookings', '/account', '/guarantee', '/privacy', '/faq', '/messages']
 const SERVICES_ID = 'home-services'
 const YEAR = new Date().getFullYear()
 
@@ -120,21 +122,27 @@ export function DeskNav() {
 /** ท้ายหน้าเต็ม (จอคอม) — เฉพาะหน้าที่ไม่มีแถบปุ่มค้างด้านล่าง */
 export function DeskFooter() {
   const on = useShellOn(); const { t, lang } = useI18n(); const { pathname } = useLocation()
-  const provinces = useProvinces()
+  const provinces = useProvinces(); const phones = useContactPhones()
   if (!on || !FOOT_ROUTES.includes(pathname)) return null
   const area = openProvinceNames(provinces, lang)
   const cols: { title: Key; links: [string, Key][] }[] = [
     { title: 'dk_col_svc', links: [['/book', 'dk_book'], ['/#' + SERVICES_ID, 'dk_services'], ['/bookings', 'tab_bookings']] },
     { title: 'dk_col_about', links: [['/guarantee', 'dk_guarantee'], ['/maid/apply', 'dk_become'], ['/privacy', 'dk_privacy']] },
-    { title: 'dk_col_help', links: [['/support', 'dk_support'], ['/messages', 'tab_msgs'], ['/account', 'tab_account']] },
+    { title: 'dk_col_help', links: [['/faq', 'dk_faq'], ['/support', 'dk_support'], ['/messages', 'tab_msgs'], ['/account', 'tab_account']] },
   ]
   return <footer className="dk-foot">
     <div className="dk-container">
       <div className="dk-foot-grid">
         <div className="dk-foot-brand">
-          <Link to="/" aria-label="CleenDee"><Logo white h={40} /></Link>
+          {/* โลโก้ท้ายเว็บ: ขยายจาก 40 เป็น 52px ให้เข้าชุดกับแถบเมนูด้านบน */}
+          <Link to="/" aria-label="CleenDee"><Logo white h={52} /></Link>
           <p>{t('dk_tagline')}</p>
           {area && <p className="dk-foot-area"><Icon n="pin" size={16} /><span><b>{t('dk_area')}</b> · {area}</span></p>}
+          {/* ช่องทางติดต่อ: LINE OA + เบอร์โทร */}
+          <div className="dk-foot-contact" aria-label={t('dk_contact')}>
+            <a className="dk-foot-line" href={LINE_URL} target="_blank" rel="noopener noreferrer"><Icon n="chat" size={18} /><span><b>LINE</b> {LINE_OA}</span></a>
+            {phones.map(p => <a key={p} className="dk-foot-tel" href={policyPhoneHref(p)}><Icon n="phone" size={18} /><span>{formatPolicyPhones([p], lang)}</span></a>)}
+          </div>
         </div>
         {cols.map(c => <div key={c.title} className="dk-foot-col">
           <h2>{t(c.title)}</h2>
@@ -147,4 +155,16 @@ export function DeskFooter() {
       </div>
     </div>
   </footer>
+}
+
+/** ปุ่ม LINE ลอยมุมขวาล่าง (จอคอม) ให้ลูกค้าทักถามก่อนจอง — ไม่แสดงในขั้นตอนจอง/จ่ายเงิน และหน้าแชต ที่มีปุ่มด้านล่างอยู่แล้ว */
+const FAB_HIDE = ['/book', '/pay', '/messages', '/claim', '/receipt']
+export function DeskLineFab() {
+  const on = useShellOn(); const { lang } = useI18n(); const { pathname } = useLocation()
+  if (!on || FAB_HIDE.some(p => pathname === p || pathname.startsWith(p + '/'))) return null
+  const th = lang === 'th'
+  return <a className="dk-line-fab" href={LINE_URL} target="_blank" rel="noopener noreferrer" aria-label={th ? 'ทักแชต LINE CleenDee' : 'Chat with CleenDee on LINE'}>
+    <span className="dk-line-ic"><Icon n="chat" size={22} /></span>
+    <span><b>{th ? 'ทักแชต LINE' : 'Chat on LINE'}</b><small>{th ? 'สอบถามก่อนจองได้' : 'Ask us before booking'}</small></span>
+  </a>
 }

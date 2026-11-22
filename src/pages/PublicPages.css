@@ -210,3 +210,19 @@
 .policy-editor-hint { font-size: .8125rem; color: var(--ink2); overflow-wrap: anywhere; }
 /* ช่องวันที่ (ปฏิทิน) ในตัวแก้ไขหน้า ให้ระยะเท่ากับ label อื่น */
 .policy-editor-date { display: grid; gap: 4px; min-width: 0; font-size: .9375rem; margin: 8px 0; }
+
+/* ---------- หน้าคำถามที่พบบ่อย ---------- */
+.policy-cover-faq { object-position: center 30%; }
+.faq-group + .faq-group { margin-top: 26px; }
+.faq-group h2 { color: var(--policy-gold-text); font-size: .8125rem; font-weight: 680; letter-spacing: .06em; margin-bottom: 6px; }
+.faq-item { border-bottom: 1px solid var(--policy-rule); }
+.faq-item summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 52px; padding: 12px 0; cursor: pointer; color: var(--policy-ink); font-weight: 620; line-height: 1.45; }
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary .ico { flex: none; color: var(--policy-gold-text); transition: transform .25s ease; }
+.faq-item[open] summary .ico { transform: rotate(45deg); }
+.faq-item summary:hover span { color: var(--ocean); }
+.faq-item p { padding: 0 34px 16px 0; color: var(--ink2); line-height: 1.8; overflow-wrap: anywhere; }
+.faq-contact .btn { display: inline-flex; align-items: center; gap: 7px; }
+.faq-contact .faq-line { width: auto; min-height: 44px; font-size: .875rem; background: #06C755; color: #fff; border-color: #06C755; }
+.faq-contact .faq-tel { width: auto; min-height: 44px; font-size: .875rem; font-variant-numeric: tabular-nums; background: var(--card); color: var(--policy-ink); border: 1.5px solid var(--line); }
+.faq-contact .faq-tel .ico { color: var(--policy-gold-text); }

@@ -38,6 +38,10 @@ const P: Record<string, ReactNode> = {
   image: <><rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="9" cy="10" r="2" /><path d="M21 16l-5-5-8 8" /></>,
   search: <><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></>,
   heart: <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" />,
+  // โทรศัพท์ / คำถาม / QR (ใช้ที่ท้ายเว็บ หน้า FAQ และตราความปลอดภัยตอนจ่ายเงิน)
+  phone: <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z" />,
+  help: <><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.8-.9 1.4v.3" /><path d="M12 17h.01" /></>,
+  qr: <><rect x="4" y="4" width="6" height="6" rx="1" /><rect x="14" y="4" width="6" height="6" rx="1" /><rect x="4" y="14" width="6" height="6" rx="1" /><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2" /></>,
 }
 export function Icon({ n, size = 20, style }: { n: keyof typeof P | string; size?: number; style?: React.CSSProperties }) {
   return <svg className="ico" viewBox="0 0 24 24" style={{ width: size, height: size, ...style }} aria-hidden>{P[n]}</svg>
@@ -142,7 +146,7 @@ export function useToast() {
 export function SiteFooter({ dark = false }: { dark?: boolean }) {
   const { lang } = useI18n()
   return <div className="tiny site-foot" style={{ textAlign: 'center', padding: '14px 20px', color: dark ? '#CFE3F2' : 'var(--ink3)' }}>
-    © CleenDee คลีนดี · <Link to="/privacy" style={{ color: 'inherit', textDecoration: 'underline' }}>{lang === 'th' ? 'นโยบายความเป็นส่วนตัว' : 'Privacy Policy'}</Link></div>
+    © CleenDee คลีนดี · <Link to="/faq" style={{ color: 'inherit', textDecoration: 'underline' }}>{lang === 'th' ? 'คำถามที่พบบ่อย' : 'FAQ'}</Link> · <Link to="/privacy" style={{ color: 'inherit', textDecoration: 'underline' }}>{lang === 'th' ? 'นโยบายความเป็นส่วนตัว' : 'Privacy Policy'}</Link></div>
 }
 
 // ระหว่างโหลด: โครงร่างแถบเทามีแสงวิ่ง (skeleton) แทนข้อความ "กำลังโหลด…"
