@@ -19,7 +19,7 @@ export type MaidChangeRequest = {
   status: 'pending' | 'approved' | 'rejected' | 'cancelled'; admin_note: string | null; created_at: string; decided_at: string | null
 }
 export type District = { id: number; province_code: string; name_th: string; name_en: string; active: boolean }
-export type Maid = { id: string; nickname: string; bio: string | null; photo_url: string | null; status: string; district_id: number | null; id_verified: boolean; background_checked: boolean; services?: string[]; gender?: string | null }
+export type Maid = { trained_at?: string | null; id: string; nickname: string; bio: string | null; photo_url: string | null; status: string; district_id: number | null; id_verified: boolean; background_checked: boolean; services?: string[]; gender?: string | null }
 export type Rating = { maid_id: string; avg_rating: number | null; review_count: number; jobs_done: number }
 export type BookingStatus = 'pending_payment' | 'payment_review' | 'awaiting_maid' | 'confirmed' | 'on_the_way' | 'working' | 'completed' | 'cancelled_by_customer' | 'refunded_no_maid' | 'payment_rejected'
 export type Booking = {
@@ -57,6 +57,12 @@ export function errMsg(e: unknown): string {
 }
 
 const ERR: Record<string, [string, string]> = {
+  // ขอแก้งานฟรี (รับประกันความพอใจ)
+  reclean_too_late: ['เลยเวลาขอแก้งานแล้ว (ต้องแจ้งภายใน 24 ชม. หลังจบงาน)', 'Too late to request a re-clean (within 24 hours of the job)'],
+  reclean_exists: ['งานนี้ขอแก้งานไปแล้ว', 'A re-clean was already requested for this job'],
+  reclean_bad_time: ['เวลาที่เลือกใช้ไม่ได้ ลองเลือกเวลาอื่น', 'That time can\'t be used. Pick another time'],
+  reclean_helper_busy: ['แม่บ้านคนเดิมไม่ว่างเวลานี้ ลองเวลาอื่น', 'The original helper is busy then. Try another time'],
+  reclean_not_yet: ['ยังไม่ถึงเวลานัดแก้งาน', 'It isn\'t time for the re-clean yet'],
   too_many_messages: ['ส่งข้อความมากเกินไปในวันนี้ กรุณาลองใหม่พรุ่งนี้', 'Too many messages today. Please try again tomorrow'],
   invalid_message: ['ข้อความว่างหรือยาวเกินไป', 'The message is empty or too long'],
   maid_busy: ['แม่บ้านไม่ว่างเวลานี้ ลองเลือกเวลาอื่น', 'This helper is busy then. Try another time'],

@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { MaidTraining } from './pages/MaidTraining'
 import { I18nProvider, localStorageGet } from './lib/i18n'
 import { AuthProvider, useAuth } from './lib/auth'
 import { Onboarding, Login, AdminLogin, Home, Service } from './pages/Start'
@@ -93,6 +94,7 @@ export default function App() {
       <Route path="/maid" element={<Member title="tab_jobs" text="lw_page"><MaidHome /></Member>} />
       <Route path="/maid/job/:id" element={<Member title="tab_jobs" text="lw_page"><MaidJob /></Member>} />
       <Route path="/maid/availability" element={<Member title="tab_avail" text="lw_page"><MaidAvailability /></Member>} />
+      <Route path="/maid/training" element={<Member title="tab_avail" text="lw_page"><MaidTraining /></Member>} />
       <Route path="/maid/income" element={<Member title="tab_income" text="lw_page"><MaidIncome /></Member>} />
       <Route path="/maid/profile" element={<Member title="mp_title" text="lw_page"><MaidEditProfile /></Member>} />
       <Route path="/maid/apply" element={<Member title="become_maid" text="lw_page"><MaidApply /></Member>} />

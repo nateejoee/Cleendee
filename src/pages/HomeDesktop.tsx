@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { TrustStats } from '../components/TrustStats'
 import { Link } from 'react-router-dom'
 import { useI18n, money, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
@@ -72,6 +73,9 @@ export function HomeDesktop({ quickBook, services, bookable, maids, maidsFailed,
         {trust.map(([i, b, d]) => <li key={b}><span className="dkh-trust-ic"><Icon n={i} size={22} /></span><span><b>{t(b)}</b><small>{t(d)}</small></span></li>)}
       </ul>
     </section>
+
+    {/* ตัวเลขจริง (ซ่อนจนงานเสร็จถึงเกณฑ์) */}
+    <div className="dk-container"><TrustStats desk /></div>
 
     {/* 3) บริการ: ภาพสลับซ้ายขวา */}
     <section className="dkh-sec" aria-labelledby="home-services">

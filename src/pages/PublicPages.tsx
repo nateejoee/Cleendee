@@ -138,6 +138,7 @@ export function Faq() {
     { title: th ? 'ความปลอดภัยและการรับประกัน' : 'Safety and guarantee', items: [
       [th ? 'แม่บ้านไว้ใจได้ไหม' : 'Can I trust the helpers?', th ? 'แม่บ้านทุกคนเป็นคนในพื้นที่ ยืนยันตัวตนและตรวจประวัติอาชญากรรมก่อนรับงาน และลูกค้าให้คะแนนรีวิวได้หลังจบงานทุกครั้ง' : 'Every helper is local, ID-verified and background-checked before taking jobs, and you can rate them after every job.'],
       [th ? 'ถ้าแม่บ้านไม่มาทำอย่างไร' : 'What if the helper doesn’t show up?', th ? 'เราหาแม่บ้านคนแทนให้ หรือคืนเงินเต็มจำนวน' : 'We find a replacement or refund you in full.'],
+      [th ? 'ไม่พอใจงาน ทำอย่างไร' : "Not happy with the job?", th ? 'ขอแก้งานฟรีได้ในหน้ารายละเอียดการจอง ภายใน 24 ชม. หลังจบงาน แนบรูปจุดที่ต้องแก้ ทีมงานจะนัดแม่บ้านคนเดิมกลับมาแก้ให้โดยไม่มีค่าใช้จ่าย' : 'Request a free re-clean from the booking page within 24 hours, with photos. We send the same helper back at no cost.'],
       [th ? 'ถ้าของเสียหายระหว่างทำงาน' : 'What if something gets damaged?', th ? `แจ้งเคลมในแอปภายใน ${v.claim_report_days} วันหลังจบงาน พร้อมรูปถ่าย CleenDee ชดเชยสูงสุด ${m(v.claim_cap)} บาทต่องาน ดูเงื่อนไขทั้งหมดได้ที่หน้าการรับประกัน` : `File a claim in the app within ${v.claim_report_days} days after the job, with photos. CleenDee covers up to ${m(v.claim_cap)} THB per job. See the guarantee page for full terms.`],
     ] },
     { title: th ? 'แต้มสะสมและอื่น ๆ' : 'Points and more', items: [
@@ -229,6 +230,7 @@ export function Terms() {
       th ? 'เราหาแม่บ้านคนแทนให้ หรือคืนเงินเต็มจำนวน' : 'We find a replacement or refund you in full.',
     ] },
     { h: th ? '8. ความเสียหายและการรับประกันงาน' : '8. Damage and work guarantee', p: [
+      th ? 'รับประกันความพอใจ: ถ้างานยังไม่เรียบร้อย ขอแก้งานฟรีได้ในหน้ารายละเอียดการจอง ภายใน 24 ชม. หลังจบงาน พร้อมรูปจุดที่ต้องแก้ ทีมงานจะตรวจสอบและนัดแม่บ้านคนเดิมกลับมาแก้ให้ (ขอได้ 1 ครั้งต่องาน)' : 'Satisfaction guarantee: if something wasn\'t done right, request a free re-clean from the booking page within 24 hours with photos. We review it and send the same helper back (once per job).',
       th ? `ถ้าของเสียหายระหว่างทำงาน แจ้งเคลมในแอปภายใน ${v.claim_report_days} วันหลังจบงาน พร้อมรูปถ่าย CleenDee ชดเชยสูงสุด ${m(v.claim_cap)} บาทต่องาน` : `If something is damaged during the job, file a claim in the app within ${v.claim_report_days} days with photos. CleenDee covers up to ${m(v.claim_cap)} THB per job.`,
       th ? 'รายละเอียดการรับประกันงานทั้งหมดอยู่ที่หน้า "การรับประกันงาน"' : 'Full details are on the Guarantee page.',
     ] },

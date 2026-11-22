@@ -428,3 +428,44 @@ button.memcard{width:100%;text-align:left}
 .nf-actions .btn{min-width:150px;gap:6px}
 .nf-links{display:flex;gap:18px;margin-top:18px;font-size:14px}
 .nf-links .link{background:none;border:0;font:inherit;color:var(--ocean);font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+/* รับประกันความพอใจ: การ์ดขอแก้งานฟรี */
+.rc-card{display:grid;gap:8px}
+.rc-title{display:inline-flex;align-items:center;gap:6px;font-size:15.5px}
+.rc-title svg{color:var(--ocean)}
+.rc-when{display:flex;align-items:center;gap:6px;font-weight:700;color:var(--ocean)}
+.rc-desc{margin:0;color:var(--ink2);font-style:italic}
+.rc-note{margin:0;padding:8px 10px;border-radius:10px;background:var(--foam)}
+.rc-offer{background:linear-gradient(160deg,var(--card),var(--foam));border:1px solid var(--line)}
+.rc-head{display:flex;gap:10px;align-items:center}
+.rc-ic{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:#E7F4EC;color:#1F6B4A}
+/* ป้าย "ผ่านการอบรม CleenDee" บนการ์ดแม่บ้าน */
+.mc2-trained{display:inline-flex;align-items:center;gap:4px;align-self:flex-start;padding:2px 8px;border-radius:99px;background:linear-gradient(135deg,#FBF1DA,#F3E2B5);color:#7A5A1E;font-size:11.5px;font-weight:700}
+.mc2-trained svg{color:var(--sun)}
+/* หน้าอบรมแม่บ้าน */
+.tr-hero{display:flex;gap:14px;align-items:center;background:linear-gradient(140deg,var(--ocean),var(--ocean-d,#1a2a4a));color:#fff;border:0}
+.tr-hero .muted{color:rgba(255,255,255,.75)!important;margin:4px 0 0}
+.tr-hero.done{background:linear-gradient(140deg,#1F6B4A,#2E8A63)}
+.tr-badge{flex:none;display:grid;place-items:center;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#F3D58A,#C9A24D);color:#fff;box-shadow:0 6px 16px rgba(201,162,77,.45)}
+.tr-badge.sm{width:42px;height:42px}
+.tr-lesson ul{margin:8px 0 0;padding-left:1.2em;display:grid;gap:5px;color:var(--ink2);line-height:1.6}
+.tr-lesson li::marker{color:var(--sun)}
+.tr-lh{display:flex;align-items:center;gap:8px}
+.tr-lh svg{color:var(--ocean)}
+.tr-num{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--foam);font-size:12.5px;font-weight:800;color:var(--ocean)}
+.tr-q{display:grid;gap:10px}
+.tr-opts{display:grid;gap:8px}
+.tr-opt{text-align:left;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;cursor:pointer;line-height:1.45;transition:border-color .12s,background .12s}
+.tr-opt.on{border-color:var(--ocean);background:var(--foam);box-shadow:inset 0 0 0 1px var(--ocean);font-weight:600}
+.tr-res{border-left:4px solid var(--brick)}
+.tr-res.ok{border-left-color:var(--leaf)}
+.tr-invite{display:flex;align-items:center;gap:12px;color:var(--ink)!important;background:linear-gradient(135deg,var(--card),#FBF4E2)}
+/* ตัวเลขความน่าเชื่อถือ (หน้าแรก) */
+.tstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:8px;margin:0 0 12px}
+.tstat{display:grid;justify-items:center;gap:2px;padding:12px 6px;border-radius:16px;background:var(--card);border:1px solid var(--hair,var(--line));text-align:center}
+.tstat svg{color:var(--sun)}
+.tstat b{font-size:20px;line-height:1.2;color:var(--ocean);font-variant-numeric:tabular-nums}
+.tstat span{font-size:11.5px;color:var(--ink2);line-height:1.35}
+.tstats.desk{margin:28px 0 0;gap:16px}
+.tstats.desk .tstat{padding:20px 12px;grid-template-columns:auto;}
+.tstats.desk b{font-size:30px}
+.tstats.desk span{font-size:13.5px}

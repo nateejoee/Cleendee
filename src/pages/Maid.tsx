@@ -1,4 +1,6 @@
 import { Arrival } from '../components/Arrival'
+import { TrainingInvite } from './MaidTraining'
+import { RecleanMaid } from '../components/Reclean'
 import { DateField } from '../components/DateField'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -57,6 +59,7 @@ export function MaidHome() {
     <div className="pad" style={{ marginTop: -50, position: 'relative', zIndex: 2 }}><div className="earn"><div><span>{t('m_month')}</span><b>{money(earned)} ฿</b></div><div style={{ background: 'var(--sun)' }}><span style={{ color: 'var(--ink)' }}>{t('m_pending')}</span><b>{money(pending)} ฿</b></div></div></div>
     <div className="pad mt16 stack">
       {profile?.role === 'maid' && <LineLink />}
+      {profile?.role === 'maid' && <TrainingInvite />}
       <div className="desk-nav"><a href="#maid-offers">{lang === 'th' ? 'รอตอบรับ' : 'Offers'} <b>{req.length + open.length}</b></a><a href="#maid-active">{t('m_my_jobs')} <b>{jobs.length}</b></a></div>
       <h2 id="maid-offers" className="desk-heading">{lang === 'th' ? 'งานที่รอตอบรับ' : 'Job offers'}</h2>
       {open.map(b => profile && b.offer_maid_id === profile.id && b.offer_expires_at && new Date(b.offer_expires_at) > new Date()
@@ -81,6 +84,7 @@ export function MaidHome() {
         <div className="row mt12"><button className="btn b-sun" style={{ flex: 2 }} onClick={() => act('maid_respond', { p_booking_id: b.id, p_accept: true })}>{t('m_accept')}</button>
           <button className="btn b-dark2" style={{ flex: 1 }} onClick={() => act('maid_respond', { p_booking_id: b.id, p_accept: false })}>{t('m_reject')}</button></div></div>)}
       {open.length === 0 && req.length === 0 && <Empty art="jobs" title={t('m_no_jobs')} />}
+      <RecleanMaid />
       <h2 id="maid-active" className="desk-heading">{t('m_my_jobs')}</h2>
       {!mine ? <Loading /> : jobs.length === 0 ? <div className="muted">{t('nothing')}</div> : jobs.map(b => <Link key={b.id} to={'/maid/job/' + b.id} className="card row" style={{ color: 'var(--ink)' }}>
         <div style={{ width: 56, textAlign: 'center', background: 'var(--foam)', borderRadius: 14, padding: '6px 0' }}><div className="tiny muted">{fmtDate(b.start_at, lang, { weekday: 'short' })}</div><b className="disp" style={{ fontSize: 21 }}>{fmtDate(b.start_at, lang, { day: 'numeric' })}</b></div>

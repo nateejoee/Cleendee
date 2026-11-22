@@ -27,6 +27,7 @@ export function MaidCard({ m, area }: { m: Maid & Partial<Rating>; area?: string
       <span className="mc2-top"><b>{m.nickname}</b>
         {m.review_count ? <span className="mc2-rate"><span className="star">★</span>{m.avg_rating ?? '–'}<small>({m.review_count})</small></span>
           : <span className="mc2-new">{th ? 'แม่บ้านใหม่' : 'New'}</span>}</span>
+      {m.trained_at && <span className="mc2-trained"><Icon n="star" size={12} />{th ? 'ผ่านการอบรม' : 'Trained'}</span>}
       {area && <span className="mc2-area"><Icon n="pin" size={13} />{area}</span>}
       {chips.length > 0 && <span className="mc2-chips">{chips.map(c => <i key={c}>{c}</i>)}{more > 0 && <i>+{more}</i>}</span>}
     </span>

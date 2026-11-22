@@ -1,4 +1,5 @@
 import { useLiveArea, type LiveArea } from '../lib/liveArea'
+import { TrustStats } from '../components/TrustStats'
 import { useDistricts, useProvinces, useServiceAreas, openProvinceNames, type Province } from '../lib/areas'
 import { ServiceFAQ, HoursGuide } from '../components/ServiceGuide'
 import { bookingStep } from '../lib/bookingMetrics'
@@ -237,6 +238,7 @@ export function Home() {
         </section>
         <section className="pad" aria-labelledby="home-why">
           <h2 id="home-why" className="sec-title">{t('why_us')}</h2>
+          <TrustStats />
           <Link to="/guarantee" className="trust-card">{why.map(([i, b, x]) => <span key={b} className="trust-row"><span className="trust-ic"><Icon n={i} size={20} /></span><span><b>{b}</b><small>{x}</small></span></span>)}
             <span className="trust-foot"><Icon n="shield" size={16} />{t('g_title')}: {t('g_short')}</span></Link>
         </section>

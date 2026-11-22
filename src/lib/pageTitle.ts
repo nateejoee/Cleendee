@@ -15,7 +15,7 @@ const TITLES: [string, string, string][] = [
   ['/account/rewards', 'สิทธิ์สมาชิก', 'Membership'], ['/account', 'บัญชีของฉัน', 'My account'],
   ['/service/', 'บริการ', 'Service'], ['/service', 'บริการทั้งหมด', 'Services'], ['/guarantee', 'การรับประกันงาน', 'Guarantee'], ['/privacy', 'นโยบายความเป็นส่วนตัว', 'Privacy policy'],
   ['/terms', 'ข้อกำหนดการใช้บริการ', 'Terms of service'], ['/faq', 'คำถามที่พบบ่อย', 'FAQ'], ['/login', 'เข้าสู่ระบบ', 'Log in'], ['/welcome', 'ยินดีต้อนรับ', 'Welcome'],
-  ['/maid/job/', 'รายละเอียดงาน', 'Job details'], ['/maid/availability', 'วันที่รับงานได้', 'Availability'], ['/maid/income', 'รายได้', 'Income'],
+  ['/maid/job/', 'รายละเอียดงาน', 'Job details'], ['/maid/availability', 'วันที่รับงานได้', 'Availability'], ['/maid/income', 'รายได้', 'Income'], ['/maid/training', 'อบรมแม่บ้าน', 'Helper training'],
   ['/maid/profile', 'โปรไฟล์แม่บ้าน', 'Helper profile'], ['/maid/apply', 'สมัครเป็นแม่บ้าน', 'Become a helper'], ['/maid', 'งานของฉัน', 'My jobs'],
   ['/admin/login', 'เข้าสู่ระบบแอดมิน', 'Admin login'], ['/admin/log', 'ประวัติการทำงาน · แอดมิน', 'Audit log · Admin'], ['/admin/support', 'ข้อความลูกค้า · แอดมิน', 'Support · Admin'],
   ['/admin/money', 'การเงิน · แอดมิน', 'Money · Admin'], ['/admin/maids', 'แม่บ้าน · แอดมิน', 'Helpers · Admin'], ['/admin/settings', 'ตั้งค่า · แอดมิน', 'Settings · Admin'], ['/admin', 'ภาพรวม · แอดมิน', 'Overview · Admin'],

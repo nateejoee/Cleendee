@@ -1,4 +1,5 @@
 import { FunnelReport } from '../components/FunnelReport'
+import { RecleanAdmin } from '../components/Reclean'
 import { DateField } from '../components/DateField'
 import { LineLink } from '../components/LineLink'
 import { useEffect, useState, type ReactNode } from 'react'
@@ -42,10 +43,10 @@ type Refund = { id: number; booking_id: number; amount: number; points_returned:
 type Claim = { id: number; booking_id: number; item: string; description: string | null; purchase_price: number | null; purchase_year: number | null; photo_paths: string[]; created_at: string }
 
 function useAdminData() {
-  const [d, setD] = useState<{ pays: Pay[]; payouts: Payout[]; refunds: Refund[]; claims: Claim[]; unmatched: Booking[]; month: Booking[]; maidsPending: number; maidsTotal: number } | null>(null)
+  const [d, setD] = useState<{ pays: Pay[]; payouts: Payout[]; refunds: Refund[]; claims: Claim[]; unmatched: Booking[]; month: Booking[]; maidsPending: number; maidsTotal: number; reclean: number } | null>(null)
   const load = async () => {
     const m0 = new Date(bkkToday().slice(0, 7) + '-01T00:00:00+07:00') // ต้นเดือนตามเวลาไทย
-    const [pays, payouts, refunds, claims, unmatched, month, mp, mt] = await Promise.all([
+    const [pays, payouts, refunds, claims, unmatched, month, mp, mt, rc] = await Promise.all([
       sb.from('payments').select('*').eq('status', 'pending').order('created_at'),
       sb.rpc('admin_pending_payouts'),
       sb.from('refunds').select('*').eq('status', 'pending'),
@@ -54,8 +55,9 @@ function useAdminData() {
       sb.from('bookings').select('*').eq('status', 'completed').gte('completed_at', m0.toISOString()),
       sb.from('maids').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       sb.from('maids').select('id', { count: 'exact', head: true }).eq('status', 'approved'),
+      sb.from('reclean_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'), // คำขอแก้งานฟรีที่รออนุมัติ
     ])
-    setD({ pays: pays.data || [], payouts: (payouts.data as Payout[]) || [], refunds: refunds.data || [], claims: claims.data || [], unmatched: (unmatched.data as Booking[]) || [], month: (month.data as Booking[]) || [], maidsPending: mp.count || 0, maidsTotal: mt.count || 0 })
+    setD({ pays: pays.data || [], payouts: (payouts.data as Payout[]) || [], refunds: refunds.data || [], claims: claims.data || [], unmatched: (unmatched.data as Booking[]) || [], month: (month.data as Booking[]) || [], maidsPending: mp.count || 0, maidsTotal: mt.count || 0 , reclean: rc.count || 0 })
   }
   useEffect(() => { load() }, [])
   return { d, reload: load }
@@ -101,6 +103,7 @@ export function AdminHome() {
     [d.payouts.length, t('a_payouts'), money(d.payouts.reduce((a, p) => a + p.amount, 0)) + ' ' + t('baht'), '#E1EEF8', 'var(--ocean-d)', '/admin/money#payouts'],
     [d.refunds.length, t('a_refunds'), money(d.refunds.reduce((a, p) => a + p.amount, 0)) + ' ' + t('baht'), 'var(--brick-l)', 'var(--brick)', '/admin/money#refunds'],
     [d.claims.length, t('a_claims'), '', 'var(--brick-l)', 'var(--brick)', '/admin/money#claims'],
+    [d.reclean, th ? 'คำขอแก้งานฟรี' : 'Re-clean requests', th ? 'ลูกค้าขอให้แม่บ้านกลับไปแก้งาน' : 'Customers asking for a re-clean', 'var(--sun-l)', '#8A6200', '/admin/money#reclean'],
     [d.maidsPending, t('a_newmaids'), '', 'var(--leaf-l)', 'var(--leaf)', '/admin/maids'],
     [changeReqs, t('a_change_reqs'), t('a_change_reqs_d'), 'var(--sun-l)', '#8A6200', '/admin/maids#changes'],
     [chatWaiting, lang === 'th' ? 'แชทรอตอบ' : 'Chats waiting', lang === 'th' ? 'ลูกค้าขอคุยกับเจ้าหน้าที่' : 'Customers asking for staff', 'var(--sun-l)', '#8A6200', '/admin/support'],
@@ -169,6 +172,11 @@ export function AdminMoney() {
       <Section id="refunds" title={t('a_refunds')} count={d.refunds.length}>
       {d.refunds.length === 0 ? <Nothing /> : <div className="admin-grid">{d.refunds.map(r => <div key={r.id} className="card between"><span><b className="disp">#{r.booking_id}</b> <span className="small muted">{money(r.amount)} ฿{r.points_returned ? ` + ${r.points_returned} pts` : ''}{r.reason === 'choose_fee' ? ' · ' + t('a_refund_choose_fee') : ''}</span></span>
         <button className="btn sm b-line" onClick={() => run('admin_mark_refund_done', { p_id: r.id })}>{t('a_mark_refunded')}</button></div>)}</div>}
+      </Section>
+
+      {/* รับประกันความพอใจ: คำขอแก้งานฟรี */}
+      <Section id="reclean" title={th ? 'คำขอแก้งานฟรี' : 'Re-clean requests'}>
+        <RecleanAdmin showPhoto={showSlip} toast={toast.show} />
       </Section>
 
       <Section id="claims" title={t('a_claims')} count={d.claims.length}>
@@ -296,7 +304,7 @@ export function AdminSettings() {
     <div className="pad mt16 stack">
       <Link to="/admin/log" className="btn b-line"><Icon n="clock" size={18} />{th ? 'บันทึกการทำงาน (Log)' : 'Activity log'}</Link>
       <Link to="/admin/settings/pages" className="btn b-line"><Icon n="grid" size={18} />{lang === 'th' ? 'จัดการการันตีและนโยบายความเป็นส่วนตัว' : 'Manage guarantee and privacy pages'}</Link>
-      <div className="chips admin-jump">{([['s-pay', th ? 'รับเงิน' : 'Payment'], ['s-areas', th ? 'พื้นที่ให้บริการ' : 'Service areas'], ['s-shop', t('a_shop')], ['s-tiers', th ? 'ระดับสมาชิก' : 'Tiers'], ['s-prices', t('a_prices')], ['s-addons', t('addons')], ['s-promo', t('promo_code')]] as [string, string][]).map(([k, label]) => <button key={k} className="chip" onClick={() => jump(k)}>{label}</button>)}</div>
+      <div className="chips admin-jump">{([['s-pay', th ? 'รับเงิน' : 'Payment'], ['s-areas', th ? 'พื้นที่ให้บริการ' : 'Service areas'], ['s-shop', t('a_shop')], ['s-tiers', th ? 'ระดับสมาชิก' : 'Tiers'], ['s-prices', t('a_prices')], ['s-rooms', th ? 'ขนาดบ้าน' : 'Home sizes'], ['s-addons', t('addons')], ['s-promo', t('promo_code')]] as [string, string][]).map(([k, label]) => <button key={k} className="chip" onClick={() => jump(k)}>{label}</button>)}</div>
       <section id="s-pay" className="admin-sec card stack"><div className="sec-title" style={{ margin: 0 }}>{th ? 'บัญชีรับเงิน (พร้อมเพย์)' : 'Payment account (PromptPay)'}</div>
       <div className="field"><label>{t('a_pp')}</label><input className="input" inputMode="numeric" value={id} onChange={e => setId(e.target.value)} placeholder="08xxxxxxxx / 13 หลัก" /></div>
       <div className="field"><label>{t('a_pp_name')}</label><input className="input" value={name} onChange={e => setName(e.target.value)} /></div>
@@ -305,6 +313,7 @@ export function AdminSettings() {
       <section id="s-shop" className="admin-sec card stack"><ShopSettings toast={toast.show} /></section>
       <section id="s-tiers" className="admin-sec card stack"><TierSettings toast={toast.show} /><TierPerks toast={toast.show} /></section>
       <section id="s-prices" className="admin-sec"><ServicePrices toast={toast.show} /></section>
+      <section id="s-rooms" className="admin-sec card stack"><RoomSizesEditor toast={toast.show} /></section>
       <section id="s-addons" className="admin-sec"><AddonEditor toast={toast.show} /></section>
       <section id="s-promo" className="admin-sec"><PromoEditor toast={toast.show} /></section>
       <Link to="/account" className="btn b-line mt16">{t('account')}</Link>
@@ -406,21 +415,46 @@ function TierPerks({ toast }: { toast: (m: string) => void }) {
 
 function ShopSettings({ toast }: { toast: (m: string) => void }) {
   const { t, lang } = useI18n(); const [f, setF] = useState<Record<string, string> | null>(null)
-  const keys = ['urgent_fee', 'urgent_maid_bonus', 'urgent_min_lead_minutes', 'reschedule_min_hours', 'first_booking_discount', 'choose_maid_fee', 'business_name', 'business_address', 'tax_id']
+  const keys = ['urgent_fee', 'urgent_maid_bonus', 'urgent_min_lead_minutes', 'reschedule_min_hours', 'first_booking_discount', 'choose_maid_fee', 'stats_min_jobs', 'business_name', 'business_address', 'tax_id']
   useEffect(() => { sb.from('settings').select(keys.join(',')).maybeSingle().then(({ data }) => setF(Object.fromEntries(keys.map(k => [k, String((data as Record<string, unknown> | null)?.[k] ?? '')])))) }, [])
   if (!f) return <Loading />
   const save = async () => {
-    const p: Record<string, unknown> = { ...f }; for (const k of keys.slice(0, 6)) p[k] = Number(f[k])
+    const p: Record<string, unknown> = { ...f }; for (const k of keys.slice(0, 7)) p[k] = Number(f[k])
     const { error } = await sb.rpc('admin_update_settings', { p }); toast(error ? friendly(error, lang) : t('saved'))
   }
   const set = (k: string) => (v: string) => setF({ ...f, [k]: v })
   return <><div className="sec-title">{t('a_shop')}</div>
     <div className="row" style={{ flexWrap: 'wrap' }}><Num label={t('a_urgent_fee')} v={f.urgent_fee} on={set('urgent_fee')} /><Num label={t('a_urgent_bonus')} v={f.urgent_maid_bonus} on={set('urgent_maid_bonus')} />
       <Num label={t('a_urgent_lead')} v={f.urgent_min_lead_minutes} on={set('urgent_min_lead_minutes')} /><Num label={t('a_resched_h')} v={f.reschedule_min_hours} on={set('reschedule_min_hours')} />
-      <Num label={t('first_promo')} v={f.first_booking_discount} on={set('first_booking_discount')} /><Num label={t('pick_fee')} v={f.choose_maid_fee} on={set('choose_maid_fee')} /></div>
+      <Num label={t('first_promo')} v={f.first_booking_discount} on={set('first_booking_discount')} /><Num label={t('pick_fee')} v={f.choose_maid_fee} on={set('choose_maid_fee')} />
+      {/* หน้าแรกจะโชว์ตัวเลข (งานที่ทำเสร็จ คะแนน แม่บ้าน) เมื่องานที่เสร็จถึงจำนวนนี้ */}
+      <Num label={lang === 'th' ? 'โชว์ตัวเลขหน้าแรกเมื่องานเสร็จถึง' : 'Show home stats after jobs'} v={f.stats_min_jobs} on={set('stats_min_jobs')} /></div>
     <div className="field"><label>{t('a_biz_name')}</label><input className="input" value={f.business_name} onChange={e => set('business_name')(e.target.value)} /></div>
     <div className="field"><label>{t('a_biz_addr')}</label><input className="input" value={f.business_address} onChange={e => set('business_address')(e.target.value)} /></div>
     <div className="field"><label>{t('tax_id')}</label><input className="input" value={f.tax_id} onChange={e => set('tax_id')(e.target.value)} /></div>
+    <button className="btn b-ocean" onClick={save}>{t('save')}</button></>
+}
+
+// ขนาดบ้าน -> ชั่วโมงแนะนำ ที่ลูกค้าเห็นในหน้าเลือกเวลา (ทำความสะอาดทั่วไป)
+type RoomRow = { id: number; sort: number; name_th: string; name_en: string; hours: number; active: boolean }
+function RoomSizesEditor({ toast }: { toast: (m: string) => void }) {
+  const { t, lang } = useI18n(); const th = lang === 'th'; const [rows, setRows] = useState<RoomRow[] | null>(null)
+  const load = () => sb.from('room_sizes').select('*').order('sort').then(({ data }) => setRows((data as RoomRow[]) || []))
+  useEffect(() => { load() }, [])
+  if (!rows) return <Loading />
+  const upd = (i: number, p: Partial<RoomRow>) => setRows(rows.map((x, j) => j === i ? { ...x, ...p } : x))
+  const save = async () => {
+    for (const x of rows) { const { error } = await sb.rpc('admin_update_room_size', { p_id: x.id, p_name_th: x.name_th, p_name_en: x.name_en, p_hours: Number(x.hours), p_active: x.active }); if (error) { toast(friendly(error, lang)); return } }
+    toast(t('saved')); load()
+  }
+  return <><div className="sec-title" style={{ margin: 0 }}>{th ? 'ขนาดบ้าน → ชั่วโมงแนะนำ' : 'Home size → suggested hours'}</div>
+    <p className="small muted" style={{ margin: 0 }}>{th ? 'ลูกค้าเลือกขนาดบ้านในหน้าจอง แล้วระบบเลือกจำนวนชั่วโมงให้ (บริการทำความสะอาดทั่วไป)' : 'Customers pick their home size and we pre-select the hours (general cleaning).'}</p>
+    {rows.map((x, i) => <div key={x.id} className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+      <input className="input" style={{ flex: '2 1 180px' }} value={x.name_th} onChange={e => upd(i, { name_th: e.target.value })} aria-label="ชื่อ (ไทย)" />
+      <input className="input" style={{ flex: '2 1 160px' }} value={x.name_en} onChange={e => upd(i, { name_en: e.target.value })} aria-label="Name (EN)" />
+      <select className="input" style={{ flex: '0 1 100px' }} value={x.hours} onChange={e => upd(i, { hours: Number(e.target.value) })}>{Array.from({ length: 12 }, (_, k) => k + 1).map(h => <option key={h} value={h}>{h} {th ? 'ชม.' : 'h'}</option>)}</select>
+      <button type="button" className={'sw' + (x.active ? ' on' : '')} aria-label={th ? 'เปิดใช้' : 'Active'} onClick={() => upd(i, { active: !x.active })} />
+    </div>)}
     <button className="btn b-ocean" onClick={save}>{t('save')}</button></>
 }
 

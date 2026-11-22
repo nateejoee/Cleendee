@@ -1,4 +1,5 @@
 import { Arrival } from '../components/Arrival'
+import { RecleanCustomer } from '../components/Reclean'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { MapContainer, TileLayer, CircleMarker } from 'react-leaflet'
@@ -202,6 +203,7 @@ export function BookingDetail() {
   const elRebook = ['completed', 'cancelled_by_customer'].includes(b.status) && !b.package_id && !second && <button className="btn b-sun" onClick={rebook}><Icon n="redo" />{t('book_again')}</button>
   const elReceipt = !['pending_payment', 'payment_review', 'payment_rejected'].includes(b.status) && <Link to={'/receipt/' + (b.team_id ?? b.id)} className="btn b-line"><Icon n="print" />{t('receipt')}</Link>
   const elRating = b.status === 'completed' && !reviewed && b.maid_id && <div className="card"><RatingForm bookingId={b.id} side="customer" name={m?.nickname ?? ''} onDone={() => { setReviewed(true); confetti(); toast.show(t('thanks_review')) }} /></div>
+  const elReclean = b.status === 'completed' && <RecleanCustomer b={b} />
   const elClaim = b.status === 'completed' && <Link to={'/claim/' + b.id} className="btn b-line">{t('claim')}</Link>
   const elCancel = ['pending_payment', 'payment_review', 'awaiting_maid', 'confirmed', 'payment_rejected'].includes(b.status) && <><div className="small muted">{t('cancel_rules')}{ts ? (th ? ' · ยกเลิกแล้วจะยกเลิกทั้ง 2 คน' : ' · Cancelling cancels both helpers') : ''}</div><button className="btn b-red" onClick={cancel}>{t('cancel_booking')}</button></>
   const elError = err && <div className="err">{err}</div>
@@ -210,8 +212,8 @@ export function BookingDetail() {
     <TopBar title={t('details')} back="/bookings" />
     {desk ? <div className="pad mt16 bd-grid">
       <div className="stack bd-main">{elArrival}{elTrack}{elTicket}{elTeam}{elProof}{elChat}{elRating}</div>
-      <aside className="stack bd-side">{elPay}{elRecv}{elCal}{elResched}{elRebook}{elReceipt}{elClaim}{elCancel}{elError}</aside>
-    </div> : <div className="pad mt16 stack">{elArrival}{elTrack}{elTicket}{elTeam}{elPay}{elRecv}{elCal}{elResched}{elProof}{elChat}{elRebook}{elReceipt}{elRating}{elClaim}{elCancel}{elError}</div>}{toast.node}
+      <aside className="stack bd-side">{elPay}{elRecv}{elCal}{elResched}{elRebook}{elReceipt}{elReclean}{elClaim}{elCancel}{elError}</aside>
+    </div> : <div className="pad mt16 stack">{elArrival}{elTrack}{elTicket}{elTeam}{elPay}{elRecv}{elCal}{elResched}{elProof}{elChat}{elRebook}{elReceipt}{elRating}{elReclean}{elClaim}{elCancel}{elError}</div>}{toast.node}
   </div>
 }
 

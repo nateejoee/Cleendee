@@ -25,7 +25,7 @@ export function useMaidsLoad() {
   const [maids, setMaids] = useState<(Maid & Partial<Rating>)[] | null>(null)
   const [failed, setFailed] = useState(false); const [attempt, setAttempt] = useState(0)
   useEffect(() => {
-    Promise.all([sb.from('maids').select('id,nickname,bio,photo_url,status,district_id,id_verified,background_checked,services,gender').eq('status', 'approved'), sb.rpc('maid_ratings')]).then(([m, r]) => {
+    Promise.all([sb.from('maids').select('id,nickname,bio,photo_url,status,district_id,id_verified,background_checked,services,gender,trained_at').eq('status', 'approved'), sb.rpc('maid_ratings')]).then(([m, r]) => {
       const rr = new Map(((r.data as Rating[]) || []).map(x => [x.maid_id, x]))
       setFailed(!!m.error)
       setMaids(((m.data as Maid[]) || []).map(x => ({ ...x, ...rr.get(x.id) })).sort((a, b) => (b.avg_rating ?? 0) - (a.avg_rating ?? 0)))
@@ -238,9 +238,10 @@ export function MaidProfile() {
             </div>
           </div>
         </div>
-        {(m.id_verified || m.background_checked) && <div className="booking-profile-checks">
+        {(m.id_verified || m.background_checked || m.trained_at) && <div className="booking-profile-checks">
           {m.id_verified && <span><Icon n="check" size={16} />{t('id_ok')}</span>}
           {m.background_checked && <span><Icon n="check" size={16} />{t('bg_ok')}</span>}
+          {m.trained_at && <span><Icon n="check" size={16} />{lang === 'th' ? 'ผ่านการอบรม CleenDee' : 'CleenDee trained'}</span>}
         </div>}
       </section>
       <section className="booking-panel"><FreeDays maidId={m.id} /></section>
@@ -272,6 +273,22 @@ function FreeDays({ maidId }: { maidId: string }) {
         <MonthCalendar value="" min={days[0]} max={days[days.length - 1]} allow={x => days.includes(x)} mark={() => 'free'}
           onPick={x => { setDraft({ maidId: null, date: x, hour: null }); setAutoPicked(null); nav('/book?helper=' + encodeURIComponent(maidId)) }} />
         <div className="mcal-legend"><span><i className="lg-free" />{lang === 'th' ? 'วันที่ว่าง · กดเพื่อจองวันนั้น' : 'Free · tap to book that day'}</span></div></>}</>
+}
+
+// แนะนำจำนวนชั่วโมงจากขนาดบ้าน (ค่าตั้งต้นแก้ได้ในแอดมิน ตาราง room_sizes) กดแล้วเลือกชั่วโมงให้ทันที
+type RoomSize = { id: number; name_th: string; name_en: string; hours: number }
+function RoomSizePicker({ qty, min, max, onPick }: { qty: number; min: number; max: number; onPick: (h: number) => void }) {
+  const { lang } = useI18n(); const th = lang === 'th'
+  const [rows, setRows] = useState<RoomSize[]>([]); const [sel, setSel] = useState<number | null>(null)
+  useEffect(() => { sb.from('room_sizes').select('id,name_th,name_en,hours').eq('active', true).order('sort').then(({ data }) => setRows((data as RoomSize[]) || [])) }, [])
+  if (!rows.length) return null
+  const clamp = (h: number) => Math.min(max, Math.max(min, h))
+  return <div className="rs-box">
+    <div className="rs-head"><Icon n="home" size={16} />{th ? 'ขนาดบ้านของคุณ (ช่วยแนะนำจำนวนชั่วโมง)' : 'Your home size (we suggest the hours)'}</div>
+    <div className="rs-grid">{rows.map(r => { const h = clamp(r.hours); const on = sel === r.id && qty === h
+      return <button key={r.id} type="button" aria-pressed={on} className={'rs-c' + (on ? ' on' : '')} onClick={() => { setSel(r.id); onPick(h) }}>
+        <b>{th ? r.name_th : r.name_en}</b><span>{th ? `แนะนำ ${h} ชม.` : `${h} h suggested`}</span></button> })}</div>
+  </div>
 }
 
 // การ์ดเลือกแพ็กเกจ แนวหน้าราคาของเว็บ AI: ราคาใหญ่ ราคาเฉลี่ยต่อชั่วโมง ส่วนที่ประหยัด และสิ่งที่ได้
@@ -377,6 +394,7 @@ export function BookTime() {
         {pkgBlocked && <div className="infonote">{t('pkg_need_maid')} <button className="link" onClick={() => nav('/book')}>{t('choose')}</button></div>}
         {!isPkg && <>
           <h2>{s.pricing === 'hourly' ? t('how_long') : t('how_many')}{team && <span className="small muted"> {lang === 'th' ? '(ต่อคน · แม่บ้าน 2 คนทำพร้อมกัน)' : '(each · 2 helpers work together)'}</span>}</h2>
+          {s.code === 'general_cleaning' && <RoomSizePicker qty={qty} min={s.min_qty} max={s.max_qty} onPick={h => setD(setDraft({ qty: h, hour: null }))} />}
           <div className="chips">{Array.from({ length: s.max_qty - s.min_qty + 1 }, (_, i) => s.min_qty + i).map(n =>
             <button key={n} aria-pressed={n === qty} className={'chip' + (n === qty ? ' on' : '')} onClick={() => setD(setDraft({ qty: n, hour: null }))}>{n} {unit}</button>)}</div>
           {s.pricing === 'hourly' && <p className="small muted">{t('qty_hint')}</p>}
