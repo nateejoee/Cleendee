@@ -332,7 +332,11 @@ button.memcard{width:100%;text-align:left}
 .btn:active:not(:disabled),.dkh-btn:active,.chip:active,.choice:active,.tc:active,.cd:active{transform:scale(.97)}
 @media (prefers-reduced-motion:reduce){.rv{opacity:1;transform:none}.btn:active,.dkh-btn:active,.chip:active,.choice:active{transform:none}}
 /* รูปสำรองแม่บ้าน (ภาพเงาใส่เสื้อคลีนดี) แทนตัวอักษรย่อ */
-.maid-sil{display:block;width:100%;height:100%}
+.maid-sil{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 30%}
+/* การ์ดที่ยังไม่มีรูป: ย้ายป้ายตรวจแล้วขึ้นมุมบน จะได้ไม่บังโลโก้บนเสื้อ */
+.mc2-ph.sil{background:radial-gradient(circle at 50% 48%,#F7E6CC 0,#EBC8A0 70%)}
+.mc2-ph.sil .maid-sil{position:absolute;left:8%;top:17%;width:84%;height:auto;object-fit:contain;-webkit-mask-image:linear-gradient(to right,transparent,#000 14%,#000 86%,transparent),linear-gradient(to bottom,transparent,#000 12%);-webkit-mask-composite:source-in;mask-image:linear-gradient(to right,transparent,#000 14%,#000 86%,transparent),linear-gradient(to bottom,transparent,#000 12%);mask-composite:intersect}
+.mc2-ph.sil .mc2-ok{top:8px;bottom:auto}
 .booking-avatar-fallback.sil{overflow:hidden;padding:0;flex:none}
 .mc2-ph.sil::after{display:none}
 /* ===== ช่องเลือกวันที่แบบปฏิทิน (DateField) ===== */
