@@ -930,3 +930,8 @@ button.memcard:focus-visible{outline:2px solid var(--foil2);outline-offset:3px}
 .empty.ntf-empty.sm{padding:14px 14px 18px}
 .zbell.sm{width:150px}
 @media (prefers-reduced-motion:no-preference){.zart-body{animation:zb-bub 4s ease-in-out infinite}}
+
+/* รูปหัวหน้าบริการ: เต็มรูปไม่ครอป */
+.svc-hero{position:relative;overflow:hidden;background:var(--ocean)}
+.svc-hero::before{content:"";position:absolute;inset:-30px;background:var(--bg) center/cover;filter:blur(28px) brightness(.85);transform:scale(1.1)}
+.svc-hero img{position:relative;display:block;width:100%;max-width:440px;aspect-ratio:1/1;object-fit:contain;margin:0 auto}
