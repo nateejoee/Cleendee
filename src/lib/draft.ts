@@ -9,6 +9,7 @@ export type Draft = {
   maid2Id: string | null // แม่บ้านคนที่ 2 ที่ลูกค้าเลือกเอง (งาน 2 คน)
   date: string | null // YYYY-MM-DD
   hour: number | null
+  min: number // นาทีของเวลาเริ่ม (0/15/30/45) ใช้คู่กับ hour
   plan: 'once' | 'biweekly' | 'weekly'
   addressId: number | null
   tags: string[]
@@ -16,7 +17,7 @@ export type Draft = {
   usePoints: boolean
 }
 const KEY = 'cd_draft'
-export const emptyDraft: Draft = { service: 'general_cleaning', qty: null, addons: [], promo: '', maidId: null, people: 1, maid2Id: null, date: null, hour: null, plan: 'once', addressId: null, tags: [], note: '', usePoints: false }
+export const emptyDraft: Draft = { service: 'general_cleaning', qty: null, addons: [], promo: '', maidId: null, people: 1, maid2Id: null, date: null, hour: null, min: 0, plan: 'once', addressId: null, tags: [], note: '', usePoints: false }
 export function getDraft(): Draft {
   try { return { ...emptyDraft, ...JSON.parse(sessionStorage.getItem(KEY) || '{}') } } catch { return { ...emptyDraft } }
 }
@@ -26,7 +27,9 @@ export function setDraft(p: Partial<Draft>) {
   return d
 }
 export function clearDraft() { try { sessionStorage.removeItem(KEY) } catch { /* ignore */ } }
-export function startIso(date: string, hour: number) { return `${date}T${String(hour).padStart(2, '0')}:00:00+07:00` }
+export function startIso(date: string, hour: number, min = 0) { return `${date}T${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}:00+07:00` }
+// แสดงเวลาแบบ HH:MM จากชั่วโมง+นาที (นาทีเกิน 60 ทบเป็นชั่วโมง เช่นเวลาเลิกงาน)
+export function hhmm(hour: number, min = 0) { const t = hour * 60 + min; return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0') }
 export function bkkToday(offsetDays = 0) {
   const d = new Date(Date.now() + 7 * 3600e3 + offsetDays * 86400e3)
   return d.toISOString().slice(0, 10)

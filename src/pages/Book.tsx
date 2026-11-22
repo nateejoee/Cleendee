@@ -12,7 +12,7 @@ import { AiEstimate } from '../components/AiEstimate'
 import { useServices, useAddons, svcName, svcUnit, jobHours } from '../lib/services'
 import { useI18n, money, fmtDate, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
-import { getDraft, setDraft, clearDraft, startIso, bkkToday, getAutoPicked, setAutoPicked, type Draft } from '../lib/draft'
+import { getDraft, setDraft, clearDraft, startIso, hhmm, bkkToday, getAutoPicked, setAutoPicked, type Draft } from '../lib/draft'
 import { Avatar, DistrictOptions, Icon, Loading, MonthCalendar, useToast } from '../components/ui'
 import { Empty } from '../components/EmptyArt'
 import { MaidSilhouette } from '../components/MaidSilhouette'
@@ -318,7 +318,7 @@ export function BookTime() {
   const addons = (allAddons || []).filter(a => a.active && a.service_codes.includes(d.service))
   const chosen = isPkg ? [] : addons.filter(a => d.addons.includes(a.code))
   const hours = jobHours(s, qty, chosen)
-  const [slots, setSlots] = useState<{ h: number; urgent: boolean }[] | null>(null)
+  const [slots, setSlots] = useState<{ h: number; m: number; urgent: boolean }[] | null>(null)
   const [q, setQ] = useState<Quote2 | null>(null)
   const [slotError, setSlotError] = useState(false)
   const [retry, setRetry] = useState(0)
@@ -328,20 +328,24 @@ export function BookTime() {
     if (!s) return
     let active = true
     setSlots(null); setSlotError(false)
-    sb.rpc('booking_times', { p_date: date, p_maid: d.maidId, p_service_code: s.code, p_hours: hours, p_plan: d.plan, p_maid2: maid2, p_people: team ? 2 : 1 })
+    sb.rpc('booking_times_15', { p_date: date, p_maid: d.maidId, p_service_code: s.code, p_hours: hours, p_plan: d.plan, p_maid2: maid2, p_people: team ? 2 : 1 })
       .then(({ data, error }) => {
         if (!active) return
         setSlotError(!!error); setLoadedKey(slotKey)
         const rows = (data ?? []) as { start_time: string; urgent: boolean }[]
-        setSlots(rows.map(x => ({ h: Number(x.start_time.slice(0, 2)), urgent: x.urgent })))
+        setSlots(rows.map(x => ({ h: Number(x.start_time.slice(0, 2)), m: Number(x.start_time.slice(3, 5)), urgent: x.urgent })))
         if (!error && !rows.length && (!isPkg || d.maidId)) void bookingStep(s.code, 'full')
       })
     return () => { active = false }
   }, [slotKey, retry])
-  const picked = loadedKey === slotKey && d.hour !== null && d.date === date ? slots?.find(x => x.h === d.hour) : undefined
+  const picked = loadedKey === slotKey && d.hour !== null && d.date === date ? slots?.find(x => x.h === d.hour && x.m === (d.min ?? 0)) : undefined
+  // เลือกเวลา 2 ขั้น: ชั่วโมง แล้วนาที (ทุก 15 นาที) แสดงเฉพาะช่วงที่แม่บ้านว่าง
+  const hourList = [...new Set((slots || []).map(x => x.h))]
+  const openHour = d.date === date && d.hour !== null && hourList.includes(d.hour) ? d.hour : null
+  const pickHour = (h: number) => { const first = (slots || []).find(x => x.h === h); if (first) setD(setDraft({ date, hour: h, min: first.m })) }
   useEffect(() => {
     if (!s || isPkg) return
-    sb.rpc('quote_booking_v2', { p_service_code: s.code, p_qty: qty, p_addons: d.addons, p_chose_maid: chosenCount > 0, p_start_at: picked ? startIso(date, picked.h) : null, p_people: team ? 2 : 1, p_chosen: chosenCount })
+    sb.rpc('quote_booking_v2', { p_service_code: s.code, p_qty: qty, p_addons: d.addons, p_chose_maid: chosenCount > 0, p_start_at: picked ? startIso(date, picked.h, picked.m) : null, p_people: team ? 2 : 1, p_chosen: chosenCount })
       .then(({ data }) => setQ(data as Quote2))
   }, [s?.code, qty, d.addons.join(), d.maidId, maid2, team, picked?.h, date, isPkg])
   if (!services) return <Loading />
@@ -353,7 +357,7 @@ export function BookTime() {
   const unit = svcUnit(s, lang)
   const selectedDate = fmtDate(date + 'T12:00:00+07:00', lang, { weekday: 'long', month: 'long', day: 'numeric' })
   const quantityLabel = isPkg ? t(d.plan) : qty + ' ' + unit + (team ? (lang === 'th' ? ' × 2 คน' : ' × 2 helpers') : '')
-  const timeLabel = picked ? String(picked.h).padStart(2, '0') + ':00' : ''
+  const timeLabel = picked ? hhmm(picked.h, picked.m) : ''
 
   return <BookingLayout title={t('pick_date')} service={svcName(s, lang)} step={1}
     action={{ label: t('next'), disabled: !ok, onClick: () => { setDraft({ qty }); nav('/book/details') } }}
@@ -397,12 +401,19 @@ export function BookTime() {
         {loadedKey !== slotKey || !slots ? <Loading /> : slotError ? <button className="btn b-line" onClick={() => setRetry(n => n+1)}>{lang === 'th' ? 'โหลดคิวไม่สำเร็จ · ลองอีกครั้ง' : 'Could not load times · Retry'}</button> :
           slots.length === 0 ? (pkgBlocked ? <p>{t('pkg_need_maid')}</p> : team ? <p className="muted">{lang === 'th' ? 'วันนี้ไม่มีเวลาที่แม่บ้านว่างพร้อมกัน 2 คน ลองเลือกวันอื่น' : 'No time with 2 free helpers on this day. Try another day.'}</p> : <SlotAlternatives key={slotKey} date={date} maid={d.maidId} service={s.code} hours={hours} plan={d.plan} choose={row => {
             void bookingStep(s.code, 'alternative')
-            setD(setDraft({ date: row.visit_date, hour: Number(row.slot_time.slice(0, 2)), maidId: row.helper_id }))
+            setD(setDraft({ date: row.visit_date, hour: Number(row.slot_time.slice(0, 2)), min: Number(row.slot_time.slice(3, 5)) || 0, maidId: row.helper_id }))
           }} />) :
-          <div className="tgrid">{slots.map(x => <button key={x.h} aria-pressed={picked?.h === x.h} className={'tc' + (picked?.h === x.h ? ' on' : '')} onClick={() => setD(setDraft({ date, hour: x.h }))}>
-            {String(x.h).padStart(2, '0')}:00{x.urgent && <span className="tiny booking-urgent">{t('urgent_tag')}</span>}
-          </button>)}</div>}
-        {picked && <div className="ok-note"><Icon n="clock" />{t('work_hours').replace('{h}', String(hours))} <b>{String(picked.h + hours).padStart(2, '0')}:00</b></div>}
+          <><div className="tgrid">{hourList.map(h => { const on = openHour === h; const urg = slots.some(x => x.h === h && x.urgent)
+            return <button key={h} aria-pressed={on} className={'tc' + (on ? ' on' : '')} onClick={() => pickHour(h)}>
+              {on && picked ? hhmm(picked.h, picked.m) : hhmm(h)}{urg && <span className="tiny booking-urgent">{t('urgent_tag')}</span>}
+            </button> })}</div>
+          {openHour !== null && <div className="tmin" role="radiogroup" aria-label={lang === 'th' ? 'เลือกนาที' : 'Pick minutes'}>
+            <span className="tmin-l">{lang === 'th' ? 'นาที' : 'Minutes'}</span>
+            {[0, 15, 30, 45].map(mm => { const x = slots.find(y => y.h === openHour && y.m === mm); const on = !!picked && picked.h === openHour && picked.m === mm
+              return <button key={mm} type="button" role="radio" aria-checked={on} disabled={!x} className={'tmin-c' + (on ? ' on' : '')}
+                onClick={() => setD(setDraft({ date, hour: openHour, min: mm }))}>{hhmm(openHour, mm)}</button> })}
+          </div>}</>}
+        {picked && <div className="ok-note"><Icon n="clock" />{t('work_hours').replace('{h}', String(hours))} <b>{hhmm(picked.h + hours, picked.m)}</b></div>}
         {picked?.urgent && q && q.urgent_fee > 0 && <div className="infonote"><Icon n="clock" />{t('urgent_fee_note').replace('{fee}', money(q.urgent_fee))}</div>}
       </section>
     </div>
@@ -542,7 +553,7 @@ export function BookConfirm() {
   const team = d.plan === 'once' && d.people === 2 && !!s?.allow_team
   const maid2 = team ? d.maid2Id : null
   const chosenCount = (d.maidId ? 1 : 0) + (maid2 ? 1 : 0)
-  const start = d.date && d.hour !== null ? startIso(d.date, d.hour) : null
+  const start = d.date && d.hour !== null ? startIso(d.date, d.hour, d.min ?? 0) : null
   useEffect(() => {
     if (d.plan !== 'once' || !start) return
     sb.rpc('quote_booking_v2', { p_service_code: d.service, p_qty: d.qty, p_addons: d.addons, p_chose_maid: chosenCount > 0, p_start_at: start, p_use_points: usePts, p_promo: promo || null, p_people: team ? 2 : 1, p_chosen: chosenCount })
@@ -570,7 +581,7 @@ export function BookConfirm() {
     } catch (e) { setErr(friendly(e, lang)) } finally { setBusy(false) }
   }
   const total = d.plan === 'once' ? q?.total : pkgPrice
-  const time = String(d.hour).padStart(2, '0') + ':00–' + String(d.hour! + hours).padStart(2, '0') + ':00'
+  const time = hhmm(d.hour!, d.min ?? 0) + '–' + hhmm(d.hour! + hours, d.min ?? 0)
   const invalidQuote = d.plan === 'once' && (!q || (!!promo && !!q.promo_error))
 
   return <BookingLayout title={t('confirm_booking')} service={svcName(s, lang)} step={3}
