@@ -11,7 +11,9 @@ import './desktop-home.css'
 import './desktop-pages.css'
 import App from './App'
 import { registerServiceWorker } from './lib/notify'
+import { startReveal } from './lib/reveal'
 
 registerServiceWorker()
+startReveal()
 
 createRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>)

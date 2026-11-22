@@ -9,11 +9,13 @@ import { useI18n, localStorageSet, money, type Key } from '../lib/i18n'
 import { useAuth } from '../lib/auth'
 import { Avatar, Icon, Bell, LangToggle, Logo, CustomerTabs, TopBar, Loading, SiteFooter } from '../components/ui'
 import { Empty } from '../components/EmptyArt'
+import { MaidCard } from '../components/MaidCard'
 import { setDraft, emptyDraft } from '../lib/draft'
 import { useServices, useServicesLoad, svcName, svcUnit } from '../lib/services'
 import { greetKey } from '../lib/fx'
 import { useMaidsLoad, useBlockedMaids } from './Book'
 import imgHero from '../assets/ill/hero.webp'
+import imgWai from '../assets/ill/login.webp'
 import { PromoArt } from '../components/BrandArt'
 import { RewardsCard } from '../components/Rewards'
 import { ServiceArt } from '../components/ServiceArt'
@@ -88,17 +90,40 @@ export function Login() {
     const { error } = await sb.auth.signInWithOAuth({ provider: provider as 'google', options: { redirectTo: window.location.origin + '/' } })
     if (error) setErr(friendly(error, lang))
   }
-  return <div className="page nobar">
-    <TopBar title={t('login')} />
-    <div className="pad stack mt20">
-      <div style={{ textAlign: 'center', margin: '10px 0 8px' }}><img src="/brand/CleenDee_logo_stacked.svg" alt="CleenDee" style={{ height: 120 }} /></div>
-      <p className="muted" style={{ textAlign: 'center', marginBottom: 8 }}>{t('login_with')}</p>
-      {SOCIAL.map(s => <button key={s.id} className="btn" style={{ background: s.bg, color: s.fg, border: s.bg === '#fff' ? '1.5px solid var(--line)' : 0 }} onClick={() => social(s.id)}>{s.icon}{t('continue_with')} {s.label}</button>)}
-      {err && <div className="err">{err}</div>}
-      <p className="tiny muted" style={{ textAlign: 'center' }}>{t('login_terms')}</p>
-      <SiteFooter />
+  const th = lang === 'th'
+  const perks: [string, string][] = th
+    ? [['shield', 'แม่บ้านยืนยันตัวตนและตรวจประวัติทุกคน'], ['wallet', 'ราคาชัดเจน เห็นยอดรวมก่อนจ่าย'], ['check', 'มีการันตีงาน แม่บ้านไม่มาคืนเงิน']]
+    : [['shield', 'Every helper ID-verified and background-checked'], ['wallet', 'Clear prices, see the total before you pay'], ['check', 'Work guarantee, refund if no-show']]
+  // หน้าเข้าสู่ระบบ: มือถือ = รูปต้อนรับด้านบน + แผ่นปุ่มด้านล่าง · คอม = แบ่งครึ่งจอ รูปซ้าย ฟอร์มขวา
+  return <div className="page nobar lg-page">
+    <div className="lg-wrap">
+      <div className="lg-media" style={{ backgroundImage: `url(${imgWai})` }}>
+        <div className="lg-top"><BackBtn /><LangToggle /></div>
+        <div className="lg-copy">
+          <img src="/brand/CleenDee_logo_white.svg" alt="CleenDee คลีนดี" className="lg-logo" />
+          <h1>{th ? 'ยินดีต้อนรับสู่คลีนดี' : 'Welcome to CleenDee'}</h1>
+          <ul className="lg-perks">{perks.map(([i, x]) => <li key={x}><Icon n={i} size={16} />{x}</li>)}</ul>
+        </div>
+      </div>
+      <div className="lg-panel">
+        <div className="lg-card">
+          <h2>{t('login')} / {t('signup')}</h2>
+          <p className="muted">{t('login_with')}</p>
+          <div className="stack mt16">{SOCIAL.map(s => <button key={s.id} className="btn lg-btn" style={{ background: s.bg, color: s.fg, border: s.bg === '#fff' ? '1.5px solid var(--line)' : 0 }} onClick={() => social(s.id)}>{s.icon}{t('continue_with')} {s.label}</button>)}</div>
+          {err && <div className="err mt12">{err}</div>}
+          <p className="tiny muted mt16" style={{ textAlign: 'center' }}>{t('login_terms')}</p>
+          <div className="lg-safe"><Icon n="lock" size={14} />{th ? 'เราไม่เห็นรหัสผ่านของคุณ เข้าสู่ระบบผ่าน Google หรือ LINE โดยตรง' : 'We never see your password. You sign in directly with Google or LINE'}</div>
+        </div>
+        <SiteFooter />
+      </div>
     </div>
   </div>
+}
+
+// ปุ่มย้อนกลับบนรูป (หน้าเข้าสู่ระบบ)
+function BackBtn() {
+  const nav = useNavigate()
+  return <button className="back lg-back" onClick={() => (window.history.length > 1 ? nav(-1) : nav('/'))} aria-label="Back"><Icon n="back" /></button>
 }
 
 // เข้าสู่ระบบของแอดมิน (ลิงก์แยก /admin/login) ใช้ไอดีและรหัสผ่าน บัญชีที่ไม่ใช่แอดมินจะถูกออกจากระบบทันที
@@ -157,9 +182,11 @@ export function Home() {
     ['home_step_payment', 'home_step_payment_d'],
   ]
   const bookable = (services || []).filter(s => s.active)
+  // ชื่ออำเภอของแม่บ้าน (แสดงบนการ์ด)
+  const areaOf = (id: number | null) => { const x = districts.find(y => y.id === id); return x ? (lang === 'th' ? 'อ.' + x.name_th : x.name_en) : undefined }
   // จอคอม (≥1024px): หน้าแรกแบบเว็บไซต์ (ข้อมูลและการ์ดเริ่มจองชุดเดียวกัน) — มือถือ/แท็บเล็ตใช้ด้านล่างเหมือนเดิม
   if (desk) return <HomeDesktop quickBook={<QuickBook services={bookable} onPick={code => open(code, '/book')} />} services={services} bookable={bookable}
-    maids={maids} maidsFailed={maidsFailed} extra={extra} short={short} open={open} place={placeText(live, provinces, districts, d, lang, t)}
+    maids={maids} maidsFailed={maidsFailed} areaOf={areaOf} extra={extra} short={short} open={open} place={placeText(live, provinces, districts, d, lang, t)}
     greeting={t(greetKey()) + (profile?.full_name ? ', ' + profile.full_name : '')} />
   return <div className="page home">
     {/* หัวหน้า: ภาพจริง + คำทักทาย + พาดหัวตัวใหญ่ แล้วการ์ด "เริ่มจอง" ซ้อนขึ้นมาจากด้านล่าง */}
@@ -195,7 +222,7 @@ export function Home() {
                 <span className="gx-ic" style={{ '--tint': ART_TINT[s.art] } as React.CSSProperties}><ServiceArt code={s.art} size={44} /></span>
                 <span className="gx-name">{s.label}</span></button>)}
               {services.filter(s => !s.active && s.coming_soon).map(s => <div key={s.code} className="gx-tile soon">
-                <span className="gx-ic" style={{ '--tint': ART_TINT[s.code] } as React.CSSProperties}><ServiceArt code={s.code} size={44} /><span className="gx-badge">{t('soon')}</span></span>
+                <span className="gx-ic photo"><img src={serviceImage(s.code)} alt="" loading="lazy" /><span className="gx-badge">{t('soon')}</span></span>
                 <span className="gx-name">{short(s.code, svcName(s, lang))}</span></div>)}
             </div>
           </>}
@@ -203,11 +230,7 @@ export function Home() {
         <section className="pad" aria-labelledby="home-maids">
           <div className="between"><h2 id="home-maids" className="sec-title">{t('top_maids')}</h2><Link to="/book" className="link">{t('see_all')}</Link></div>
           {maids && maids.length === 0 ? <Empty small art={maidsFailed ? 'error' : 'search'} title={maidsFailed ? t('load_failed') : t('nothing')} /> :
-            <div className="maid-rail">{(maids || []).slice(0, 8).map(m => <Link key={m.id} to={'/maid-profile/' + m.id} className="maid-tile">
-              <Avatar name={m.nickname} url={m.photo_url} seed={m.id} size={64} />
-              <b>{m.nickname}</b>
-              <small>{m.review_count ? <><span className="star">★</span> {m.avg_rating ?? '–'} · {m.review_count} {t('reviews')}</> : t('no_reviews')}</small>
-            </Link>)}</div>}
+            <div className="maid-rail">{(maids || []).slice(0, 8).map(m => <MaidCard key={m.id} m={m} area={areaOf(m.district_id)} />)}</div>}
         </section>
         <section className="pad" aria-labelledby="home-why">
           <h2 id="home-why" className="sec-title">{t('why_us')}</h2>

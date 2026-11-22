@@ -6,6 +6,7 @@ import type { Service as Svc } from '../lib/supabase'
 import { svcName, svcUnit } from '../lib/services'
 import { Avatar, Icon, Loading, CustomerTabs } from '../components/ui'
 import { Empty } from '../components/EmptyArt'
+import { MaidCard } from '../components/MaidCard'
 import { ServiceArt } from '../components/ServiceArt'
 import { serviceImage } from '../lib/serviceImages'
 import { ART_TINT } from '../lib/serviceTint'
@@ -27,8 +28,8 @@ type Extra = { to: string; art: string; label: string; svc: string }
 const SVC_IMG: Record<string, string> = Object.fromEntries(['general_cleaning', 'deep_cleaning', 'office_cleaning', 'ac_cleaning', 'ironing', 'sofa_cleaning', 'mattress_cleaning'].map(c => [c, serviceImage(c)]))
 const ROTATE = [imgChat, imgSched, imgHome, imgSafe]
 
-export function HomeDesktop({ quickBook, services, bookable, maids, maidsFailed, extra, short, open, place, greeting }: {
-  quickBook: ReactNode; services: Svc[] | null; bookable: Svc[]; maids: Maids | undefined; maidsFailed: boolean
+export function HomeDesktop({ quickBook, services, bookable, maids, maidsFailed, areaOf, extra, short, open, place, greeting }: {
+  quickBook: ReactNode; services: Svc[] | null; bookable: Svc[]; maids: Maids | undefined; maidsFailed: boolean; areaOf: (id: number | null) => string | undefined
   extra: Extra[]; short: (code: string, full: string) => string; open: (code: string, to: string) => void; place: string; greeting: string
 }) {
   const { t, lang } = useI18n(); const { profile } = useAuth()
@@ -79,24 +80,23 @@ export function HomeDesktop({ quickBook, services, bookable, maids, maidsFailed,
           <h2 id="home-services">{t('dkh_svc_title')}</h2>
           <p>{t('dkh_svc_sub')}</p>
         </header>
-        {!services ? <Loading /> : <div className="dkh-zz">
+        {/* การ์ดบริการเรียงแถว (แทนบล็อกใหญ่สลับซ้ายขวา) */}
+        {!services ? <Loading /> : <div className="dkh-cards">
           {bookable.map((s, i) => {
             const desc = (lang === 'th' ? s.desc_th : s.desc_en) || t('dkh_svc_fallback')
-            return <article key={s.code} className={'dkh-zz-row' + (i % 2 ? ' flip' : '')}>
-              <div className="dkh-zz-media" style={{ '--tint': ART_TINT[s.code] ?? ART_TINT.general_cleaning } as React.CSSProperties}>
+            return <article key={s.code} className="dkh-card" data-reveal>
+              <button type="button" className="dkh-card-media" onClick={() => open(s.code, '/service/' + s.code)} aria-label={svcName(s, lang)}
+                style={{ '--tint': ART_TINT[s.code] ?? ART_TINT.general_cleaning } as React.CSSProperties}>
                 <img src={imgs[i]} alt="" loading="lazy" />
-                <span className="dkh-zz-badge"><ServiceArt code={s.code} size={56} /></span>
-              </div>
-              <div className="dkh-zz-text">
+                <span className="dkh-card-badge"><ServiceArt code={s.code} size={34} /></span>
+              </button>
+              <div className="dkh-card-body">
                 <h3>{svcName(s, lang)}</h3>
                 <p>{desc}</p>
-                <dl className="dkh-zz-meta">
-                  <div><dt>{t('dkh_from')}</dt><dd>{money(s.min_qty * s.price_per_unit)} {t('baht')}</dd></div>
-                  <div><dt>{t('min_qty')}</dt><dd>{s.min_qty}{' '}{svcUnit(s, lang)}</dd></div>
-                </dl>
-                <div className="dkh-zz-btns">
-                  <button type="button" className="dkh-btn line" onClick={() => open(s.code, '/service/' + s.code)}>{t('details')}</button>
-                  <button type="button" className="dkh-btn sun" onClick={() => open(s.code, '/book')}>{t('book_now')}</button>
+                <div className="dkh-card-price"><span>{t('dkh_from')}</span><b>{money(s.min_qty * s.price_per_unit)} {t('baht')}</b><small>· {t('min_qty')} {s.min_qty}{'\u00a0'}{svcUnit(s, lang)}</small></div>
+                <div className="dkh-card-btns">
+                  <button type="button" className="dkh-btn line sm" onClick={() => open(s.code, '/service/' + s.code)}>{t('details')}</button>
+                  <button type="button" className="dkh-btn sun sm" onClick={() => open(s.code, '/book')}>{t('book_now')}</button>
                 </div>
               </div>
             </article>
@@ -108,7 +108,7 @@ export function HomeDesktop({ quickBook, services, bookable, maids, maidsFailed,
             <b>{s.label.replace('\n', ' ')}</b><Icon n="next" size={18} />
           </button>)}
           {soon.map(s => <div key={s.code} className="dkh-more-item soon">
-            <span className="dkh-more-ic" style={{ '--tint': ART_TINT[s.code] } as React.CSSProperties}><ServiceArt code={s.code} size={40} /></span>
+            <span className="dkh-more-ic photo"><img src={serviceImage(s.code)} alt="" loading="lazy" /></span>
             <b>{short(s.code, svcName(s, lang))}</b><span className="dkh-soon">{t('soon')}</span>
           </div>)}
         </div>}
@@ -123,12 +123,7 @@ export function HomeDesktop({ quickBook, services, bookable, maids, maidsFailed,
           <Link to="/book" className="dkh-btn line">{t('see_all')}</Link>
         </header>
         {maids && maids.length === 0 ? <Empty small art={maidsFailed ? 'error' : 'search'} title={maidsFailed ? t('load_failed') : t('nothing')} />
-          : !maids ? <Loading /> : <div className="dkh-maids">{maids.slice(0, 4).map(m => <Link key={m.id} to={'/maid-profile/' + m.id} className="dkh-maid">
-            <Avatar name={m.nickname} url={m.photo_url} seed={m.id} size={72} />
-            <b>{m.nickname}</b>
-            <small>{m.review_count ? <><span className="star">★</span> {m.avg_rating ?? '–'} · {m.review_count} {t('reviews')}</> : t('no_reviews')}</small>
-            {(m.id_verified || m.background_checked) && <span className="dkh-maid-ok"><Icon n="shield" size={14} />{m.background_checked ? t('bg_ok') : t('id_ok')}</span>}
-          </Link>)}</div>}
+          : !maids ? <Loading /> : <div className="dkh-maids">{maids.slice(0, 4).map(m => <MaidCard key={m.id} m={m} area={areaOf(m.district_id)} />)}</div>}
       </div>
     </section>
 

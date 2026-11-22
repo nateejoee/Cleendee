@@ -233,7 +233,20 @@ const D = {
 } as const
 export type Key = keyof typeof D.th
 
-export function translate(lang: Lang, key: Key) { return D[lang][key] ?? D.th[key] ?? key }
+// คำไทยที่เบราว์เซอร์มักตัดขึ้นบรรทัดใหม่กลางคำ (ไม่มีในพจนานุกรมตัดคำ) เช่น "มีกา / รันตี"
+// ใส่ตัวเชื่อมคำที่มองไม่เห็น (U+2060) ระหว่างพยางค์ของคำเหล่านี้ เพื่อให้ขึ้นบรรทัดใหม่ทั้งคำ
+const KEEP_TOGETHER = ['การันตี', 'ตรวจสอบ', 'ตรวจประวัติ', 'คลีนดี', 'แม่บ้าน', 'ส่วนลด', 'สมาชิก', 'ทำความสะอาด', 'ยืนยันตัวตน', 'บัตรประชาชน']
+const joinWord = (w: string) => {
+  const seg = typeof Intl !== 'undefined' && 'Segmenter' in Intl ? [...new Intl.Segmenter('th', { granularity: 'grapheme' }).segment(w)].map(x => x.segment) : [...w]
+  return seg.join('\u2060')
+}
+const KEEP_MAP = KEEP_TOGETHER.map(w => [w, joinWord(w)] as const)
+export function keepThaiWords(s: string) {
+  if (!/[\u0E00-\u0E7F]/.test(s)) return s
+  for (const [w, j] of KEEP_MAP) if (s.includes(w)) s = s.split(w).join(j)
+  return s
+}
+export function translate(lang: Lang, key: Key) { const v = D[lang][key] ?? D.th[key] ?? key; return lang === 'th' ? keepThaiWords(v) : v }
 
 const Ctx = createContext<{ lang: Lang; setLang: (l: Lang) => void; t: (k: Key) => string }>({ lang: 'th', setLang: () => {}, t: k => k })
 
