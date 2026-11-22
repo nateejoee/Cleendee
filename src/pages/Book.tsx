@@ -358,7 +358,7 @@ export function BookTime() {
     action={{ label: t('next'), disabled: !ok, onClick: () => { setDraft({ qty }); nav('/book/details') } }}
     price={(price !== null ? money(price) : '…') + ' ' + t('baht')} priceLabel={t('booking_estimate')}
     was={discounted && q ? money(q.total + q.promo_discount) + ' ' + t('baht') : undefined}
-    saving={discounted && q ? (q.promo_code ? t('promo_code') + ' ' + q.promo_code : t('first_promo')) + ' −' + money(q.promo_discount) + ' ' + t('baht') : undefined}
+    saving={discounted && q ? (q.promo_code ? t('promo_code') + ' ' + q.promo_code : q.tier_coupon ? tierCouponLabel(q.tier, lang) : t('first_promo')) + ' −' + money(q.promo_discount) + ' ' + t('baht') : undefined}
     meta={[quantityLabel, chosen.length ? chosen.length + ' ' + t('addons') : null, timeLabel].filter(Boolean).join(' · ')}>
     <div className="booking-stack">
       {(s.code === 'general_cleaning' || !isPkg) && <section className="booking-panel">
@@ -601,7 +601,7 @@ export function BookConfirm() {
             {addonRows.map(a => <div key={a.code}><span className="muted">+ {lang === 'th' ? a.name_th : a.name_en}</span><span>{money(a.price)} {t('baht')}</span></div>)}
             {q.choose_maid_fee > 0 && <div><span className="muted">{t('pick_fee')}{chosenCount > 1 ? ' × ' + chosenCount : ''}</span><span>{money(q.choose_maid_fee)} {t('baht')}</span></div>}
             {q.urgent_fee > 0 && <div><span className="muted">{t('urgent_tag')}</span><span>{money(q.urgent_fee)} {t('baht')}</span></div>}
-            {q.promo_discount > 0 && <div><span>{q.promo_code ? t('promo_code') + ' ' + q.promo_code : t('first_promo')}</span><span>−{money(q.promo_discount)} {t('baht')}</span></div>}
+            {q.promo_discount > 0 && <div><span>{q.promo_code ? t('promo_code') + ' ' + q.promo_code : q.tier_coupon ? tierCouponLabel(q.tier, lang) : t('first_promo')}</span><span>−{money(q.promo_discount)} {t('baht')}</span></div>}
             {q.points_discount > 0 && <div><span>{t('use_points')} {q.points_used}</span><span>−{money(q.points_discount)} {t('baht')}</span></div>}
           </div> : <Loading />}
         </section>
@@ -613,7 +613,7 @@ export function BookConfirm() {
           </form>
           {q?.promo_error && promo && <div className="err" role="alert">{friendly(q.promo_error, lang)}</div>}
           {q?.promo_code && <div className="ok-note"><Icon n="ticket" />{t('promo_ok')}</div>}
-          {q && !q.promo_code && q.first_discount && promo && !q.promo_error && <p className="small muted">{t('promo_first_better')}</p>}
+          {q && !q.promo_code && (q.first_discount || !!q.tier_coupon) && promo && !q.promo_error && <p className="small muted">{q.tier_coupon ? (lang === 'th' ? 'คูปองสมาชิกคุ้มกว่า ระบบใช้คูปองนั้นแทน' : 'Your member coupon is bigger, so we used that') : t('promo_first_better')}</p>}
           {q && q.points_available >= 50 && <button className={'choice' + (usePts ? ' on' : '')} aria-pressed={usePts} onClick={() => { setUsePts(!usePts); setDraft({ usePoints: !usePts }) }}>
             <span className={'chk' + (usePts ? ' on' : '')}>{usePts && <Icon n="check" size={14} />}</span>
             <span><b>{t('use_points')}</b><span className="small muted">{q.points_available} {t('points')}</span></span>
@@ -678,3 +678,6 @@ export function Pay() {
     {toast.node}
   </BookingLayout>
 }
+
+// ชื่อคูปองสมาชิกตามระดับ
+function tierCouponLabel(tier: string | undefined, lang: string) { const n = (tier || 'member').replace(/^./, c => c.toUpperCase()); return lang === 'th' ? `คูปองสมาชิก ${n}` : `${n} member coupon` }

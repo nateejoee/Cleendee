@@ -217,3 +217,33 @@ button.memcard{width:100%;text-align:left}
 .ai-sum{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:var(--sun-l);margin-bottom:10px}
 .ai-sum small{font-size:12px;color:var(--ink3)}.ai-sum p{margin:2px 0 0}
 [data-dark="1"] .ai-est-ic{background:#E3C47E;color:#141B2D}
+
+/* สิทธิ์ตามระดับแบบแท็บ (อิง Shopee Rewards) */
+.rw-tabs-card{padding:0;overflow:hidden;gap:0}
+.rw-deck{display:flex;justify-content:center;padding:22px 16px 18px;background:linear-gradient(135deg,#1B2A4A,#2B3F6B)}
+.rw-mini{width:78px;height:50px;border-radius:9px;margin-left:-12px;display:flex;align-items:flex-start;padding:7px 8px;font-size:10px;letter-spacing:.5px;color:#fff;box-shadow:0 6px 14px rgba(0,0,0,.28);transform:rotate(-6deg);transition:transform .25s}
+.rw-mini:first-child{margin-left:0}
+.rw-mini.t-member{background:linear-gradient(135deg,#3A4E78,#22325A)}
+.rw-mini.t-silver{background:linear-gradient(135deg,#F1F3F7,#9AA5B4);color:#3B4656}
+.rw-mini.t-gold{background:linear-gradient(135deg,#F3E3B8,#B8914A);color:#4A3712}
+.rw-mini.t-platinum{background:linear-gradient(135deg,#9AA3B8,#4A5368)}
+.rw-mini.on{transform:rotate(-6deg) translateY(-8px) scale(1.08);z-index:2;outline:2px solid #F3E3B8}
+.rw-tabs{display:flex;border-bottom:1px solid var(--line)}
+.rw-tabs button{flex:1;padding:12px 4px;font-size:15px;font-weight:600;color:var(--ink3);border-bottom:2.5px solid transparent}
+.rw-tabs button.on{color:#B8863B;border-bottom-color:#B8863B}
+.rw-status{margin:12px 16px 2px;padding:9px 12px;border-radius:10px;font-size:13px;background:var(--foam);color:var(--ink2)}
+.rw-status.me{background:rgba(201,162,77,.16);color:#7A5A1E;font-weight:600}
+.rw-status.lock{background:var(--brick-l,#FBE6E1);color:var(--ink2)}
+.rw-perks{padding:4px 0 6px}
+.rw-perk{display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border-bottom:1px solid var(--line)}
+.rw-perk:last-child{border-bottom:0}
+.rw-pi{width:46px;height:46px;border-radius:50%;flex:none;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#3A4E78,#22325A)}
+.rw-pi.t-silver{background:linear-gradient(135deg,#B7C0CC,#7D899A)}
+.rw-pi.t-gold{background:linear-gradient(135deg,#E2C27A,#B07F2E)}
+.rw-pi.t-platinum{background:linear-gradient(135deg,#7C869C,#3F475A)}
+.rw-pt{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.rw-pt b{font-size:16px}
+.rw-pt small{font-size:13px;color:var(--ink3);line-height:1.45}
+.rw-pt em{font-style:normal;font-size:12px;font-weight:700;color:#8A6A2B;background:rgba(201,162,77,.16);align-self:flex-start;padding:2px 9px;border-radius:99px;margin-top:2px}
+[data-dark="1"] .rw-tabs button.on{color:#E3C47E;border-bottom-color:#E3C47E}
+[data-dark="1"] .rw-status.me,[data-dark="1"] .rw-pt em{color:#E3C47E}

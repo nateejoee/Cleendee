@@ -302,7 +302,7 @@ export function AdminSettings() {
       <button className="btn b-sun" onClick={save}>{t('save')}</button></section>
       <section id="s-areas" className="admin-sec"><ServiceAreas toast={toast.show} /></section>
       <section id="s-shop" className="admin-sec card stack"><ShopSettings toast={toast.show} /></section>
-      <section id="s-tiers" className="admin-sec card stack"><TierSettings toast={toast.show} /></section>
+      <section id="s-tiers" className="admin-sec card stack"><TierSettings toast={toast.show} /><TierPerks toast={toast.show} /></section>
       <section id="s-prices" className="admin-sec"><ServicePrices toast={toast.show} /></section>
       <section id="s-addons" className="admin-sec"><AddonEditor toast={toast.show} /></section>
       <section id="s-promo" className="admin-sec"><PromoEditor toast={toast.show} /></section>
@@ -377,6 +377,29 @@ function TierSettings({ toast }: { toast: (m: string) => void }) {
       <Num label={th ? 'Gold ตั้งแต่ (บาท)' : 'Gold from (THB)'} v={f.tier_gold} on={set('tier_gold')} /><Num label={th ? 'แต้ม × Gold' : 'Points × Gold'} v={f.mult_gold} on={set('mult_gold')} />
       <Num label={th ? 'Platinum ตั้งแต่ (บาท)' : 'Platinum from (THB)'} v={f.tier_platinum} on={set('tier_platinum')} /><Num label={th ? 'แต้ม × Platinum' : 'Points × Platinum'} v={f.mult_platinum} on={set('mult_platinum')} />
       <Num label={th ? 'แม่บ้านตอบรับงานภายใน (นาที)' : 'Helper must answer within (min)'} v={f.offer_minutes} on={set('offer_minutes')} /></div>
+    <button className="btn b-ocean" onClick={save}>{t('save')}</button></>
+}
+
+// สิทธิ์ของแต่ละระดับ (คูปองรายเดือน ฟรีค่าเลือกแม่บ้าน ลดค่าเรียกด่วน) ระบบใช้ให้อัตโนมัติตอนจอง
+type PerkRow = { tier: string; coupon_value: number | string; coupon_min: number | string; coupons_per_month: number | string; free_choose_maid: boolean; urgent_discount_pct: number | string }
+function TierPerks({ toast }: { toast: (m: string) => void }) {
+  const { t, lang } = useI18n(); const th = lang === 'th'; const [rows, setRows] = useState<PerkRow[] | null>(null)
+  const order = ['member', 'silver', 'gold', 'platinum']
+  useEffect(() => { sb.from('tier_perks').select('*').then(({ data }) => setRows(((data as PerkRow[]) || []).sort((a, b) => order.indexOf(a.tier) - order.indexOf(b.tier)))) }, [])
+  if (!rows) return <Loading />
+  const upd = (i: number, patch: Partial<PerkRow>) => setRows(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)))
+  const save = async () => {
+    const p = rows.map(r => ({ tier: r.tier, coupon_value: Number(r.coupon_value) || 0, coupon_min: Number(r.coupon_min) || 0, coupons_per_month: Number(r.coupons_per_month) || 0, free_choose_maid: r.free_choose_maid, urgent_discount_pct: Math.min(100, Number(r.urgent_discount_pct) || 0) }))
+    const { error } = await sb.rpc('admin_update_tier_perks', { p }); toast(error ? friendly(error, lang) : t('saved'))
+  }
+  return <><div className="sec-title">{th ? 'สิทธิ์ของแต่ละระดับ' : 'Tier benefits'}</div>
+    <p className="admin-hint">{th ? 'คูปองรายเดือนใช้ให้อัตโนมัติตอนจอง (ไม่รวมกับโค้ดส่วนลด/ส่วนลดครั้งแรก ระบบเลือกอันที่ลดมากกว่า) ใส่ 0 = ไม่มีสิทธิ์นั้น' : 'Monthly coupons apply automatically at checkout (not combined with promo codes; the bigger discount wins). 0 = none.'}</p>
+    <div className="stack cols">{rows.map((r, i) => <div key={r.tier} className="card stack"><b className="disp">{r.tier.replace(/^./, c => c.toUpperCase())}</b>
+      <div className="row" style={{ flexWrap: 'wrap' }}><Num label={th ? 'คูปองลด (บาท)' : 'Coupon (THB)'} v={r.coupon_value} on={v => upd(i, { coupon_value: v })} />
+        <Num label={th ? 'ขั้นต่ำ (บาท)' : 'Minimum (THB)'} v={r.coupon_min} on={v => upd(i, { coupon_min: v })} />
+        <Num label={th ? 'ครั้ง/เดือน' : 'Per month'} v={r.coupons_per_month} on={v => upd(i, { coupons_per_month: v })} />
+        <Num label={th ? 'ลดค่าด่วน (%)' : 'Urgent fee off (%)'} v={r.urgent_discount_pct} on={v => upd(i, { urgent_discount_pct: v })} /></div>
+      <button className={'chip' + (r.free_choose_maid ? ' on' : '')} style={{ alignSelf: 'flex-start' }} onClick={() => upd(i, { free_choose_maid: !r.free_choose_maid })}>{th ? 'ฟรีค่าเลือกแม่บ้านเอง' : 'Free choice of helper'}</button></div>)}</div>
     <button className="btn b-ocean" onClick={save}>{t('save')}</button></>
 }
 

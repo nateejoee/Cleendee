@@ -45,7 +45,7 @@ export type Addon = { code: string; name_th: string; name_en: string; price: num
 // ราคาที่คำนวณจากเซิร์ฟเวอร์ (quote_booking_v2)
 export type Quote2 = {
   qty: number; hours: number; base: number; addons_price: number; choose_maid_fee: number; urgent_fee: number
-  promo_discount: number; promo_code: string | null; promo_error: string | null; first_discount: boolean
+  promo_discount: number; promo_code: string | null; promo_error: string | null; first_discount: boolean; tier_coupon?: number; tier?: string
   points_used: number; points_discount: number; total: number; maid_payout: number; points_available: number
   people?: number; base_each?: number
 }

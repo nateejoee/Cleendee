@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { sb } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { useI18n, money, fmtDate } from '../lib/i18n'
-import { TopBar, Loading } from '../components/ui'
+import { TopBar, Loading, Icon } from '../components/ui'
 import { Empty } from '../components/EmptyArt'
 import { RewardsCard } from '../components/Rewards'
 
@@ -47,14 +47,9 @@ export function RewardsDetail() {
           : (th ? 'คุณอยู่ระดับสูงสุดแล้ว' : 'You are at the top tier')}</div>
       </>}</div></div>
 
-    {/* สิทธิ์แต่ละระดับ */}
-    <div className="pad mt16"><div className="sec-title">{th ? 'สิทธิ์ของแต่ละระดับ' : 'Tier benefits'}</div>
-      <div className="card rw-tiers">{ORDER.map(k => <div key={k} className={'rw-tier t-' + k + (k === tier ? ' on' : '')}>
-        <span className="rw-dot" aria-hidden="true" />
-        <span className="rw-tn"><b>{NAME[k]}</b>{k === tier && <em>{th ? 'ระดับของคุณ' : 'Your tier'}</em>}
-          <small>{k === 'member' ? (th ? 'เมื่อสมัครสมาชิก' : 'When you sign up') : (th ? `ใช้จ่ายสะสม ${money(from(k))} บาทขึ้นไป` : `From ${money(from(k))} THB spent`)}</small></span>
-        <span className="rw-mult">×{d?.mults?.[k] ?? 1}<small>{th ? 'แต้ม' : 'points'}</small></span>
-      </div>)}</div></div>
+    {/* สิทธิ์แต่ละระดับ แบบแท็บ (อิง Shopee Rewards) */}
+    <div className="pad mt16"><div className="sec-title">{th ? 'สิทธิพิเศษตามระดับ' : 'Benefits by tier'}</div>
+      <TierBenefits d={d} rule={rule} /></div>
 
     {/* วิธีได้แต้มและแลกแต้ม */}
     <div className="pad mt16"><div className="sec-title">{th ? 'วิธีได้แต้มและแลกแต้ม' : 'Earn and use points'}</div>
@@ -73,5 +68,45 @@ export function RewardsDetail() {
             <small>{fmtDate(r.created_at, lang, { day: 'numeric', month: 'short', year: 'numeric' })}{r.booking_id && <> · <Link to={'/bookings/' + r.booking_id}>{th ? 'งาน' : 'Job'} #{r.booking_id}</Link></>}</small></span>
           <span className={'rw-d' + (r.delta < 0 ? ' neg' : '')}>{r.delta > 0 ? '+' : ''}{money(r.delta)}</span></div>)}</div>}
     </div>
+  </div>
+}
+
+// สิทธิ์ของแต่ละระดับ: แท็บ Member / Silver / Gold / Platinum แต่ละแท็บมีรายการสิทธิ์พร้อมเงื่อนไข (ระบบใช้ให้อัตโนมัติตอนจอง)
+type Perk = { tier: string; coupon_value: number; coupon_min: number; coupons_per_month: number; free_choose_maid: boolean; urgent_discount_pct: number }
+function TierBenefits({ d, rule }: { d: Tier | null; rule: Rule }) {
+  const { lang } = useI18n(); const th = lang === 'th'; const { session } = useAuth()
+  const my = d?.tier ?? 'member'
+  const [tab, setTab] = useState<string | null>(null); const cur = tab ?? my
+  const [perks, setPerks] = useState<Perk[] | null>(null); const [used, setUsed] = useState(0)
+  const [fees, setFees] = useState({ choose_maid_fee: 20, urgent_fee: 200 })
+  useEffect(() => {
+    sb.from('tier_perks').select('*').then(({ data }) => setPerks((data as Perk[]) || []))
+    sb.from('settings').select('choose_maid_fee,urgent_fee').limit(1).maybeSingle().then(({ data }) => { if (data) setFees(data as typeof fees) })
+    if (session) sb.rpc('my_tier_coupons_used').then(({ data }) => setUsed(Number(data) || 0))
+  }, [session])
+  const p = perks?.find(x => x.tier === cur)
+  const mult = d?.mults?.[cur] ?? 1
+  const rank = (k: string) => ORDER.indexOf(k)
+  const from = cur === 'member' ? 0 : (d?.levels?.[cur] ?? 0)
+  // ข้อความสถานะของแท็บ: ระดับของคุณ / ผ่านมาแล้ว / ต้องใช้จ่ายอีกเท่าไร
+  const status = cur === my ? (th ? 'ระดับปัจจุบันของคุณ' : 'Your current tier')
+    : rank(cur) < rank(my) ? (th ? 'คุณผ่านระดับนี้มาแล้ว' : 'You have passed this tier')
+    : (th ? `ปลดล็อกเมื่อใช้จ่ายสะสม ${money(from)} บาท (อีก ${money(Math.max(0, from - (d?.spent ?? 0)))} บาท)` : `Unlocks at ${money(from)} THB spent (${money(Math.max(0, from - (d?.spent ?? 0)))} THB to go)`)
+  const items: { ic: string; t: string; s: string; extra?: string }[] = []
+  items.push({ ic: 'star', t: th ? `แต้มสะสม ×${mult}` : `Points ×${mult}`, s: th ? `ทุก ${money(rule.baht_per_point)} บาท ได้ ${mult} แต้ม · ${rule.redeem_points} แต้มแลกส่วนลด ${money(rule.redeem_value)} บาท` : `${mult} pts per ${money(rule.baht_per_point)} THB · ${rule.redeem_points} pts = ${money(rule.redeem_value)} THB off` })
+  if (p && p.coupons_per_month > 0 && p.coupon_value > 0) items.push({ ic: 'ticket', t: th ? `คูปองลด ${money(p.coupon_value)} บาท ทุกเดือน` : `${money(p.coupon_value)} THB coupon every month`,
+    s: th ? `ขั้นต่ำ ${money(p.coupon_min)} บาท · ใช้ได้ ${p.coupons_per_month} ครั้ง/เดือน · ใช้ให้อัตโนมัติตอนจอง` : `Min ${money(p.coupon_min)} THB · ${p.coupons_per_month}× per month · applied automatically`,
+    extra: cur === my && session ? (th ? `เดือนนี้ใช้ไป ${Math.min(used, p.coupons_per_month)}/${p.coupons_per_month}` : `Used ${Math.min(used, p.coupons_per_month)}/${p.coupons_per_month} this month`) : undefined })
+  if (p?.free_choose_maid) items.push({ ic: 'team', t: th ? 'ฟรีค่าเลือกแม่บ้านเอง' : 'Free choice of helper', s: th ? `ปกติ ${money(fees.choose_maid_fee)} บาทต่อคน` : `Normally ${money(fees.choose_maid_fee)} THB per helper` })
+  if (p && p.urgent_discount_pct > 0) items.push({ ic: 'clock', t: p.urgent_discount_pct >= 100 ? (th ? 'ฟรีค่าเรียกด่วน' : 'Free urgent booking') : (th ? `ลดค่าเรียกด่วน ${p.urgent_discount_pct}%` : `${p.urgent_discount_pct}% off urgent fee`),
+    s: th ? `จากปกติ ${money(fees.urgent_fee)} บาท เหลือ ${money(Math.round(fees.urgent_fee * (100 - p.urgent_discount_pct) / 100))} บาท` : `${money(fees.urgent_fee)} → ${money(Math.round(fees.urgent_fee * (100 - p.urgent_discount_pct) / 100))} THB` })
+  items.push({ ic: 'shield', t: th ? 'การันตีงาน CleenDee' : 'CleenDee guarantee', s: th ? 'แม่บ้านไม่มาหาคนแทนหรือคืนเงิน · ของเสียหายชดเชย' : 'No-show replacement or refund · damage compensation' })
+  return <div className="card rw-tabs-card">
+    <div className="rw-deck" aria-hidden="true">{ORDER.map(k => <span key={k} className={'rw-mini t-' + k + (k === cur ? ' on' : '')}><b>{NAME[k].toUpperCase()}</b></span>)}</div>
+    <div className="rw-tabs" role="tablist">{ORDER.map(k => <button key={k} role="tab" aria-selected={k === cur} className={k === cur ? 'on' : ''} onClick={() => setTab(k)}>{NAME[k]}</button>)}</div>
+    <div className={'rw-status' + (cur === my ? ' me' : rank(cur) > rank(my) ? ' lock' : '')}>{status}</div>
+    {!perks ? <Loading /> : <div className="rw-perks">{items.map(x => <div key={x.t} className="rw-perk">
+      <span className={'rw-pi t-' + cur}><Icon n={x.ic} size={22} /></span>
+      <span className="rw-pt"><b>{x.t}</b><small>{x.s}</small>{x.extra && <em>{x.extra}</em>}</span></div>)}</div>}
   </div>
 }
