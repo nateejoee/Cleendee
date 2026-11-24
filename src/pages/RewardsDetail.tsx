@@ -35,15 +35,9 @@ export function RewardsDetail() {
   return <div className="page nobar dp-sub rw-page"><TopBar title={th ? 'บัตรสมาชิก' : 'Membership card'} />
     <div className="pad mt12"><RewardsCard points={profile?.points ?? 0} name={profile?.full_name} since={profile?.created_at} /></div>
 
-    {/* ยอดใช้จ่ายสะสม */}
-    <div className="pad mt16"><div className="sec-title">{th ? 'ยอดใช้จ่ายสะสม' : 'Total spent'}</div>
-      <div className="card rw-spent">{!d ? <Loading /> : <>
-        <div className="rw-big">{money(d.spent)} <small>{th ? 'บาท' : 'THB'}</small></div>
-        <div className="small muted">{th ? 'นับจากงานที่ทำเสร็จแล้วเท่านั้น' : 'Counts finished jobs only'}</div>
-        <div className="rw-next">{d.next && d.next_at
-          ? (th ? <>ใช้จ่ายอีก <b>{money(d.next_at - d.spent)} บาท</b> เพื่อเป็น <b>{NAME[d.next]}</b></> : <>Spend <b>{money(d.next_at - d.spent)} THB</b> more to reach <b>{NAME[d.next]}</b></>)
-          : (th ? 'คุณอยู่ระดับสูงสุดแล้ว' : 'You are at the top tier')}</div>
-      </>}</div></div>
+    {/* เส้นทางระดับ: ยอดสะสม เกณฑ์ของทุกระดับ และตัวคูณแต้ม ในภาพเดียว */}
+    <div className="pad mt16"><div className="sec-title">{th ? 'ยอดใช้จ่ายสะสมและระดับ' : 'Spending and tiers'}</div>
+      <div className="card rw-spent">{!d ? <Loading /> : <TierPath d={d} />}</div></div>
 
     {/* สิทธิ์แต่ละระดับ แบบแท็บ (อิง Shopee Rewards) */}
     <div className="pad mt16"><div className="sec-title">{th ? 'สิทธิพิเศษตามระดับ' : 'Benefits by tier'}</div>
@@ -67,6 +61,28 @@ export function RewardsDetail() {
           <span className={'rw-d' + (r.delta < 0 ? ' neg' : '')}>{r.delta > 0 ? '+' : ''}{money(r.delta)}</span></div>)}</div>}
     </div>
   </div>
+}
+
+// เส้นทางระดับ 4 ขั้น: จุดของแต่ละระดับวางตามสัดส่วนยอดใช้จ่าย (ขั้นแรกกว้างพอให้อ่านป้าย) พร้อมเกณฑ์และแต้มคูณ
+function TierPath({ d }: { d: Tier }) {
+  const { lang } = useI18n(); const th = lang === 'th'
+  const my = ORDER.indexOf(d.tier)
+  const lv = (k: string) => k === 'member' ? 0 : (d.levels?.[k] ?? 0)
+  // ตำแหน่งบนเส้น: แบ่ง 3 ช่วงเท่ากัน แล้ววางยอดสะสมตามสัดส่วนภายในช่วงที่อยู่
+  const seg = (v: number) => { for (let i = 0; i < 3; i++) { const a = lv(ORDER[i]), b = lv(ORDER[i + 1]); if (v < b) return (i + (v - a) / Math.max(1, b - a)) / 3 * 100 } return 100 }
+  const fill = Math.max(0, Math.min(100, seg(d.spent)))
+  return <>
+    <div className="rw-sp-top"><div><span className="rw-sp-k">{th ? 'ยอดสะสมตลอดชีพ' : 'Lifetime spend'}</span><div className="rw-big">{money(d.spent)} <small>{th ? 'บาท' : 'THB'}</small></div></div>
+      <span className={'rw-sp-badge t-' + d.tier}>{NAME[d.tier]} · ×{d.mult}</span></div>
+    <div className="rw-path" aria-hidden="true"><i style={{ width: fill + '%' }} />
+      {ORDER.map((k, i) => <span key={k} className={'rw-pd t-' + k + (i <= my ? ' on' : '') + (i === my ? ' cur' : '')} style={{ left: i / 3 * 100 + '%' }} />)}</div>
+    <div className="rw-pl">{ORDER.map((k, i) => <div key={k} className={i === my ? 'cur' : i < my ? 'done' : ''} style={{ left: i / 3 * 100 + '%' }}>
+      <b>{NAME[k]}</b><span>{k === 'member' ? (th ? 'เริ่มต้น' : 'Start') : money(lv(k))}</span><em>×{d.mults?.[k] ?? 1}</em></div>)}</div>
+    <div className="rw-next">{d.next && d.next_at
+      ? (th ? <>ใช้จ่ายอีก <b>{money(d.next_at - d.spent)} บาท</b> เพื่อเป็น <b>{NAME[d.next]}</b> ได้แต้ม ×{d.mults?.[d.next]}</> : <>Spend <b>{money(d.next_at - d.spent)} THB</b> more to reach <b>{NAME[d.next]}</b> (points ×{d.mults?.[d.next]})</>)
+      : (th ? 'คุณอยู่ระดับสูงสุดแล้ว' : 'You are at the top tier')}</div>
+    <small className="muted">{th ? 'นับจากงานที่ทำเสร็จแล้วเท่านั้น สะสมตลอดชีพ ระดับไม่ลดลง' : 'Finished jobs only, counted for life. Your tier never drops.'}</small>
+  </>
 }
 
 // สิทธิ์ของแต่ละระดับ: แท็บ Member / Silver / Gold / Platinum แต่ละแท็บมีรายการสิทธิ์พร้อมเงื่อนไข (ระบบใช้ให้อัตโนมัติตอนจอง)
